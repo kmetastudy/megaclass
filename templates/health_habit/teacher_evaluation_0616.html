@@ -1,0 +1,341 @@
+<!-- teacher_evaluation.html -->
+{% extends 'health_habit/base_health_habit.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <h2 class="fun-font text-4xl text-center mb-8 text-white">
+        <span class="sticker">📝</span> 학생 건강 습관 평가하기
+    </h2>
+
+    <!-- 학급 선택 -->
+    <div class="bg-white rounded-3xl p-6 mb-8 shadow-xl">
+        <div class="flex flex-wrap items-center gap-4">
+            <label class="font-bold text-lg">학급 선택:</label>
+            <select id="classSelect" class="px-4 py-2 border-2 border-purple-300 rounded-xl focus:border-purple-500 focus:outline-none">
+                <option value="">전체</option>
+                {% for class in classes %}
+                <option value="{{ class.id }}">{{ class.grade }}학년 {{ class.class_number }}반</option>
+                {% endfor %}
+            </select>
+            
+            <div class="ml-auto flex gap-2">
+                <button onclick="loadStudents()" class="bg-purple-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-purple-600 transition">
+                    <span class="sticker">🔍</span> 조회
+                </button>
+                <button onclick="showStatistics()" class="bg-green-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-600 transition">
+                    <span class="sticker">📊</span> 통계
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 목록 -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="studentGrid">
+        <!-- 동적 로드 -->
+    </div>
+</div>
+
+<!-- 학생 상세 평가 모달 -->
+<div id="evaluationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden overflow-y-auto z-50">
+    <div class="min-h-screen px-4 py-8">
+        <div class="bg-white rounded-3xl max-w-4xl mx-auto p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="fun-font text-3xl">
+                    <span class="sticker">🌟</span> <span id="studentName"></span>의 건강 습관 기록
+                </h3>
+                <button onclick="closeEvaluationModal()" class="text-3xl hover:scale-110 transition">❌</button>
+            </div>
+            
+            <div id="studentDetail" class="space-y-6">
+                <!-- 동적 로드 -->
+            </div>
+            
+            <!-- 종합 평가 -->
+            <div class="bg-yellow-50 rounded-2xl p-6 mt-6">
+                <h4 class="fun-font text-2xl mb-4">🏆 종합 평가</h4>
+                
+                <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block font-bold mb-2">등급 선택</label>
+                        <select id="overallGrade" class="w-full p-3 border-2 rounded-xl">
+                            <option value="A">🏆 최우수</option>
+                            <option value="B">🥇 우수</option>
+                            <option value="C">🥈 보통</option>
+                            <option value="D">🥉 노력 필요</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-2">칭찬 뱃지</label>
+                        <div class="flex flex-wrap gap-2" id="badgeSelection">
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="perfect" class="hidden badge-check">
+                                <span class="inline-block px-3 py-1 bg-gray-200 rounded-full hover:bg-purple-200 badge-label">💯 완벽한 실천</span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="consistent" class="hidden badge-check">
+                                <span class="inline-block px-3 py-1 bg-gray-200 rounded-full hover:bg-purple-200 badge-label">📅 꾸준한 실천</span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="improved" class="hidden badge-check">
+                                <span class="inline-block px-3 py-1 bg-gray-200 rounded-full hover:bg-purple-200 badge-label">📈 발전하는 모습</span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="creative" class="hidden badge-check">
+                                <span class="inline-block px-3 py-1 bg-gray-200 rounded-full hover:bg-purple-200 badge-label">🎨 창의적인 소감</span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="checkbox" value="positive" class="hidden badge-check">
+                                <span class="inline-block px-3 py-1 bg-gray-200 rounded-full hover:bg-purple-200 badge-label">☀️ 긍정적인 태도</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block font-bold mb-2">종합 피드백</label>
+                    <textarea id="overallFeedback" rows="3" 
+                              class="w-full p-3 border-2 rounded-xl"
+                              placeholder="학생에게 전하고 싶은 칭찬과 격려의 메시지를 작성해주세요!"></textarea>
+                </div>
+                
+                <button onclick="saveOverallEvaluation()" 
+                        class="w-full bubble-button text-white py-3 rounded-xl font-bold text-lg">
+                    💾 평가 저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTrackerId = null;
+let currentReflections = [];
+
+// 학생 목록 로드
+function loadStudents() {
+    const classId = $('#classSelect').val();
+    
+    $.ajax({
+        url: `/health-habit/api/teacher/students/${slideId}/`,
+        type: 'GET',
+        data: { class_id: classId },
+        success: function(response) {
+            displayStudents(response.students);
+        }
+    });
+}
+
+// teacher_evaluation.html의 displayStudents 함수 수정
+function displayStudents(students) {
+    const $grid = $('#studentGrid');
+    $grid.empty();
+    
+    students.forEach(student => {
+        const completionColor = student.completion_rate >= 80 ? 'bg-green-100' : 
+                               student.completion_rate >= 60 ? 'bg-yellow-100' : 'bg-red-100';
+        
+        const evaluationStatus = student.is_evaluated ? 
+            `<span class="text-green-600 font-bold">✅ 평가 완료</span>` :
+            `<span class="text-orange-600 font-bold">⏳ 평가 대기</span>`;
+        
+        $grid.append(`
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden transform hover:scale-105 transition cursor-pointer"
+                 onclick="viewStudent(${student.tracker_id})">
+                <div class="${completionColor} p-4">
+                    <h4 class="font-bold text-lg">${student.name}</h4>
+                    <p class="text-sm">${student.student_grade}학년 ${student.class_number}반 ${student.number}번</p>
+                </div>
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-3xl">${student.completion_rate}%</span>
+                        ${evaluationStatus}
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p>📝 작성 소감: ${student.total_reflections}개</p>
+                        <p>⭐ 받은 별: ${student.total_stars}개</p>
+                    </div>
+                    ${student.evaluation_grade ? `
+                        <div class="mt-2 text-center text-2xl font-bold">
+                            ${student.evaluation_grade}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `);
+    });
+}
+
+
+
+
+
+// 학생 상세 보기
+function viewStudent(trackerId) {
+    currentTrackerId = trackerId;
+    
+    $.ajax({
+        url: `/health-habit/api/teacher/student-detail/${trackerId}/`,
+        type: 'GET',
+        success: function(response) {
+            displayStudentDetail(response.data);
+            $('#evaluationModal').show();
+        }
+    });
+}
+
+// 학생 상세 정보 표시
+function displayStudentDetail(data) {
+    $('#studentName').text(data.student_name);
+    
+    const $detail = $('#studentDetail');
+    $detail.empty();
+    
+    // 약속별 표시
+    data.promises.forEach(promise => {
+        const $promiseCard = $(`
+            <div class="bg-purple-50 rounded-2xl p-4">
+                <h5 class="font-bold text-lg mb-3">약속 ${promise.number}: ${promise.title}</h5>
+                <div class="space-y-2">
+                    ${promise.reflections.map(ref => `
+                        <div class="bg-white rounded-xl p-3 ${ref.is_evaluated ? 'border-2 border-green-400' : ''}">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="font-bold">${ref.week}주차 ${ref.day_name}요일</span>
+                                <span class="text-sm text-gray-500">${ref.date}</span>
+                            </div>
+                            <p class="mb-2">${ref.text}</p>
+                            <div class="flex items-center gap-2">
+                                ${ref.is_evaluated ? `
+                                    <span class="text-2xl">${ref.evaluation.emoji}</span>
+                                    <span>${'⭐'.repeat(ref.evaluation.score)}</span>
+                                    ${ref.evaluation.comment ? `<span class="text-sm text-gray-600">"${ref.evaluation.comment}"</span>` : ''}
+                                ` : `
+                                    <button onclick="evaluateReflection(${ref.id})" 
+                                            class="bg-yellow-400 text-white px-3 py-1 rounded-full text-sm font-bold hover:bg-yellow-500 transition">
+                                        평가하기
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `);
+        
+        $detail.append($promiseCard);
+    });
+    
+    // 최종 소감
+    if (data.final_reflection) {
+        $detail.append(`
+            <div class="bg-green-50 rounded-2xl p-4">
+                <h5 class="font-bold text-lg mb-2">📝 최종 소감</h5>
+                <p>${data.final_reflection}</p>
+            </div>
+        `);
+    }
+    
+    // 기존 평가 정보 표시
+    if (data.overall_evaluation) {
+        $('#overallGrade').val(data.overall_evaluation.grade);
+        $('#overallFeedback').val(data.overall_evaluation.feedback);
+        
+        // 뱃지 체크
+        data.overall_evaluation.badges.forEach(badge => {
+            $(`.badge-check[value="${badge}"]`).prop('checked', true)
+                .siblings('.badge-label').addClass('bg-purple-200');
+        });
+    }
+}
+
+// 개별 소감 평가 모달
+function evaluateReflection(reflectionId) {
+    // 간단한 평가 모달 구현
+    const emoji = prompt('이모지를 선택하세요:\n1. 🌟 (great)\n2. 👍 (good)\n3. 💪 (nice)\n4. 🔥 (fighting)\n5. 😊 (smile)');
+    const score = prompt('점수를 선택하세요:\n3. 매우 잘함\n2. 잘함\n1. 보통');
+    const comment = prompt('짧은 코멘트를 남겨주세요 (선택사항):');
+    
+    const emojiMap = {
+        '1': 'great',
+        '2': 'good',
+        '3': 'nice',
+        '4': 'fighting',
+        '5': 'smile'
+    };
+    
+    $.ajax({
+        url: '/health-habit/api/teacher/evaluate-reflection/',
+        type: 'POST',
+        data: JSON.stringify({
+            reflection_id: reflectionId,
+            emoji_feedback: emojiMap[emoji] || 'good',
+            score: parseInt(score) || 2,
+            comment: comment || ''
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            alert('평가가 저장되었습니다!');
+            viewStudent(currentTrackerId); // 새로고침
+        }
+    });
+}
+
+// 종합 평가 저장
+function saveOverallEvaluation() {
+    const selectedBadges = [];
+    $('.badge-check:checked').each(function() {
+        selectedBadges.push($(this).val());
+    });
+    
+    const data = {
+        tracker_id: currentTrackerId,
+        grade: $('#overallGrade').val(),
+        badges: selectedBadges,
+        feedback: $('#overallFeedback').val()
+    };
+    
+    $.ajax({
+        url: '/health-habit/api/teacher/overall-evaluation/',
+        type: 'POST',
+        data: JSON.stringify(data),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            alert('종합 평가가 저장되었습니다! 🎉');
+            closeEvaluationModal();
+            loadStudents(); // 목록 새로고침
+        }
+    });
+}
+
+// 모달 닫기
+function closeEvaluationModal() {
+    $('#evaluationModal').hide();
+    currentTrackerId = null;
+}
+
+// 뱃지 선택 토글
+$(document).on('change', '.badge-check', function() {
+    if ($(this).is(':checked')) {
+        $(this).siblings('.badge-label').addClass('bg-purple-200');
+    } else {
+        $(this).siblings('.badge-label').removeClass('bg-purple-200');
+    }
+});
+
+// 통계 보기
+function showStatistics() {
+    // 통계 모달 구현 (생략)
+    alert('통계 기능은 준비 중입니다! 📊');
+}
+
+// 페이지 로드 시
+$(document).ready(function() {
+    loadStudents();
+});
+</script>
+{% endblock %}

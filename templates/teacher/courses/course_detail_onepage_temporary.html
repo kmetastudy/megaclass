@@ -1,0 +1,278 @@
+<!-- teacher/templates/teacher/courses/course_detail_onepage.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.subject_name }} - 통합 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="{% static 'css/teacher/course.css' %}">
+<link rel="stylesheet" href="{% static 'css/teacher/onepage.css' %}">
+
+{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="bg-white shadow-sm border-b border-gray-200 px-0 py-2">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:course_detail' course.id %}" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">{{ course.target }} | 통합 관리 시스템</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleContentsPanel()" class="btn-modern btn-secondary">
+                <i class="fas fa-database"></i>
+                콘텐츠 라이브러리
+            </button>
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <a href="{% url 'teacher:contents_create' %}" target="_blank" class="btn-modern btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                콘텐츠 제작
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 컨테이너 -->
+<div class="main-container" id="mainContainer">
+    <!-- 트리 패널 -->
+    <div class="tree-panel" id="treePanel">
+        <div class="tree-header">
+            <div class="flex items-center">
+                <i class="fas fa-sitemap tree-header-icon"></i>
+                <span class="tree-header-title font-semibold text-gray-700 ml-2">코스 구조</span>
+            </div>
+            <button onclick="toggleTreePanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                <i class="fas fa-chevron-left" id="treePanelToggle"></i>
+            </button>
+        </div>
+        <div class="tree-view" id="courseTree">
+            <!-- 코스 루트 -->
+            <div class="tree-item" data-type="course" data-id="{{ course.id }}">
+                <div class="tree-content">
+                    <i class="fas fa-book tree-icon text-purple-600"></i>
+                    <span class="tree-text font-semibold">{{ course.subject_name }}</span>
+                </div>
+                <div class="tree-children" id="chapters-container">
+                    <!-- 대단원이 동적으로 로드됩니다 -->
+                    <div class="text-center py-4 text-gray-500">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>로딩 중...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 패널 (드롭 영역) -->
+    <div class="content-panel" id="contentPanel">
+        <div class="content-header p-4 border-b border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800" id="contentTitle">
+                <i class="fas fa-layer-group mr-2"></i>콘텐츠 구성
+            </h2>
+        </div>
+        <div class="content-body p-4" id="contentArea">
+            <!-- 드롭 영역 -->
+            <div class="drop-zone" id="dropZone">
+                <i class="fas fa-hand-pointer drop-zone-icon"></i>
+                <p class="drop-zone-text">콘텐츠를 여기로 드래그하세요</p>
+                <p class="drop-zone-hint">오른쪽 라이브러리에서 콘텐츠를 선택하여 끌어다 놓으면 됩니다</p>
+            </div>
+            <!-- 드롭된 콘텐츠 목록 -->
+            <div id="droppedContents" style="display: none;">
+                <div class="mb-4 text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    드래그하여 순서를 변경할 수 있습니다
+                </div>
+                <div id="droppedContentsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 라이브러리 패널 -->
+    <div class="contents-panel collapsed" id="contentsPanel">
+        <div class="contents-header p-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center">
+                    <i class="fas fa-database contents-header-icon"></i>
+                    <span class="contents-header-title font-semibold text-gray-700 ml-2">콘텐츠 라이브러리</span>
+                </div>
+                <button onclick="toggleContentsPanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-right" id="contentsPanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="contents-tabs flex border-b border-gray-200">
+            <button class="tab-button flex-1 py-2 px-4 text-center border-b-2 border-blue-500 text-blue-600 active" onclick="switchTab('search')">
+                <i class="fas fa-search mr-1"></i>검색
+            </button>
+            <button class="tab-button flex-1 py-2 px-4 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700" onclick="switchTab('create')">
+                <i class="fas fa-plus mr-1"></i>생성
+            </button>
+        </div>
+
+        <!-- 검색 탭 -->
+        <div id="searchTab" class="tab-content active p-4">
+            <!-- 검색 필터 -->
+            <div class="contents-filters">
+                <div class="mb-3">
+                    <input type="text" id="contentSearchInput" 
+                           class="form-input w-full" 
+                           placeholder="콘텐츠 검색...">
+                </div>
+                <div class="grid grid-cols-1 gap-2 mb-3">
+                    <select id="contentTypeFilter" class="form-select">
+                        <option value="">모든 타입</option>
+                        <!-- 실제 ContentType 데이터가 로드됩니다 -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <select id="chapterFilter" class="form-select">
+                        <option value="">모든 대단원</option>
+                        <!-- 실제 Chapter 데이터가 로드됩니다 -->
+                    </select>
+                    <select id="subchapterFilter" class="form-select">
+                        <option value="">모든 소단원</option>
+                        <!-- 실제 SubChapter 데이터가 로드됩니다 -->
+                    </select>
+                </div>
+                <button onclick="searchContents()" class="btn-modern btn-primary w-full">
+                    <i class="fas fa-search mr-2"></i>검색
+                </button>
+            </div>
+
+            <!-- 콘텐츠 목록 -->
+            <div class="contents-list mt-4" id="contentsList">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-search text-4xl mb-2"></i>
+                    <p>검색 조건을 입력하세요</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 생성 탭 -->
+        <div id="createTab" class="tab-content p-4" style="display: none;">
+            <form id="quickContentForm" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                    <input type="text" name="title" class="form-input" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 타입 *</label>
+                    <select name="content_type" id="createContentType" class="form-select" required>
+                        <option value="">선택하세요</option>
+                        <!-- 실제 ContentType 데이터가 로드됩니다 -->
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 내용 *</label>
+                    <div class="mb-2">
+                        <button type="button" onclick="insertQuickTemplate('multiple-choice')" 
+                                class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded mr-1">
+                            객관식
+                        </button>
+                        <button type="button" onclick="insertQuickTemplate('short-answer')" 
+                                class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded mr-1">
+                            단답형
+                        </button>
+                        <button type="button" onclick="insertQuickTemplate('essay')" 
+                                class="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">
+                            서술형
+                        </button>
+                    </div>
+                    <div class="hidden-textarea">
+                        <textarea name="page" id="quickPageTextarea"></textarea>
+                    </div>
+                    <div id="quickPageEditor"></div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">정답 (선택)</label>
+                    <textarea name="answer" rows="3" class="form-textarea"></textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                    <div class="hidden-textarea">
+                        <textarea name="meta_data" id="quickMetaTextarea">{}</textarea>
+                    </div>
+                    <div id="quickMetaEditor"></div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">태그/평가기준 (JSON)</label>
+                    <div class="hidden-textarea">
+                        <textarea name="tags" id="quickTagsTextarea">{}</textarea>
+                    </div>
+                    <div id="quickTagsEditor"></div>
+                </div>
+                
+                <button type="submit" class="btn-modern btn-primary w-full">
+                    <i class="fas fa-save mr-2"></i>콘텐츠 생성
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 컨테이너 -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+<!-- 전역 변수 설정 -->
+<script>
+    window.courseConfig = {
+        courseId: {{ course.id }},
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            courseStructure: "{% url 'teacher:api_course_structure' course.id %}",
+            courseDetail: "{% url 'teacher:api_course_detail' course.id %}",
+            chapterCreate: "{% url 'teacher:chapter_create' course.id %}",
+            chasiSlideManage: "{% url 'teacher:chasi_slide_manage' 0 %}",
+            contentsCreate: "{% url 'teacher:contents_create' %}",
+            contentsSearch: "{% url 'teacher:api_contents_search' %}",  // 이제 작동함
+            contentsPreview: "{% url 'teacher:contents_preview' 0 %}"   // content_id는 JavaScript에서 대체
+        },
+        stats: {
+            totalChapters: {{ stats.total_chapters|default:0 }},
+            totalSubchapters: {{ stats.total_subchapters|default:0 }},
+            totalChasis: {{ stats.total_chasis|default:0 }},
+            totalSlides: {{ stats.total_slides|default:0 }}
+        }
+    };
+    
+    window.currentNode = null;
+    window.currentActiveNodeId = null;
+    window.contentsPanelOpen = false;
+    window.droppedContents = [];
+    window.structureData = null;
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 외부 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
+<!-- 메인 스크립트 -->
+<script src="{% static 'js/teacher/course/onepage-main.js' %}"></script>
+<script src="{% static 'js/teacher/course/onepage-tree.js' %}"></script>
+<script src="{% static 'js/teacher/course/onepage-contents.js' %}"></script>
+<script src="{% static 'js/teacher/course/onepage-create.js' %}"></script>
+{% endblock %}

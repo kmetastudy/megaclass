@@ -1,0 +1,235 @@
+{% extends 'student/base.html' %}
+
+{% block title %}내 기록 - 학습 관리 시스템{% endblock %}
+{% block page_title %}내 기록{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">내 활동 기록</h1>
+    <p class="text-lg text-slate-600">모든 학습 활동과 평가 결과를 확인하세요.</p>
+</div>
+
+<!-- 통계 카드 -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- 총 기록 수 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                <i class="fas fa-clipboard-list text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">전체</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ total_records }}</h3>
+        <p class="text-sm text-slate-500">총 활동 기록</p>
+    </div>
+
+    <!-- 신체 기록 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                <i class="fas fa-running text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">운동</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ physical_records|length }}</h3>
+        <p class="text-sm text-slate-500">신체 활동 기록</p>
+    </div>
+
+    <!-- 건강 습관 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                <i class="fas fa-heartbeat text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">습관</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ health_habit_records|length }}</h3>
+        <p class="text-sm text-slate-500">건강 습관 기록</p>
+    </div>
+
+    <!-- 앞구르기 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <i class="fas fa-sync-alt text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">도전</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{% if rolling_data %}1{% else %}0{% endif %}</h3>
+        <p class="text-sm text-slate-500">앞구르기 도전</p>
+    </div>
+</div>
+
+<!-- 탭 네비게이션 -->
+<div class="bg-white rounded-2xl border border-slate-200 mb-6">
+    <div class="border-b border-slate-200">
+        <nav class="flex -mb-px">
+            <button class="tab-button active px-6 py-3 text-sm font-medium text-purple-600 border-b-2 border-purple-600" 
+                    data-tab="all">
+                전체 기록
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900" 
+                    data-tab="physical">
+                신체 활동
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900" 
+                    data-tab="health">
+                건강 습관
+            </button>
+            <button class="tab-button px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900" 
+                    data-tab="rolling">
+                앞구르기
+            </button>
+        </nav>
+    </div>
+</div>
+
+<!-- 기록 목록 -->
+<div class="space-y-4">
+    <!-- 전체 기록 탭 -->
+    <div class="tab-content" id="all-tab">
+        <!-- 신체 활동 기록 -->
+        {% if has_physical %}
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">
+            <i class="fas fa-running mr-2 text-blue-600"></i>신체 활동 기록
+        </h3>
+        {% for record in physical_records %}
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover mb-4">
+            {% include 'student/partials/physical_record_card.html' with record=record %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- 건강 습관 기록 -->
+        {% if has_health_habit %}
+        <h3 class="text-lg font-semibold text-slate-900 mt-8 mb-4">
+            <i class="fas fa-heartbeat mr-2 text-green-600"></i>건강 습관 기록
+        </h3>
+        {% for habit_record in health_habit_records %}
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover mb-4">
+            {% include 'student/partials/health_habit_card.html' with habit_record=habit_record %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- 앞구르기 기록 -->
+        {% if has_rolling %}
+        <h3 class="text-lg font-semibold text-slate-900 mt-8 mb-4">
+            <i class="fas fa-sync-alt mr-2 text-purple-600"></i>앞구르기 도전 기록
+        </h3>
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover">
+            {% include 'student/partials/rolling_record_card.html' with rolling_data=rolling_data %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 신체 활동 탭 -->
+    <div class="tab-content hidden" id="physical-tab">
+        {% if has_physical %}
+        {% for record in physical_records %}
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover mb-4">
+            {% include 'student/partials/physical_record_card.html' with record=record %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+            <i class="fas fa-running text-6xl text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-slate-700 mb-2">신체 활동 기록이 없습니다</h3>
+            <p class="text-slate-500">체육 수업에서 측정한 기록이 여기에 표시됩니다.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 건강 습관 탭 -->
+    <div class="tab-content hidden" id="health-tab">
+        {% if has_health_habit %}
+        {% for habit_record in health_habit_records %}
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover mb-4">
+            {% include 'student/partials/health_habit_card.html' with habit_record=habit_record %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+            <i class="fas fa-heartbeat text-6xl text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-slate-700 mb-2">건강 습관 기록이 없습니다</h3>
+            <p class="text-slate-500">건강 습관 실천 기록이 여기에 표시됩니다.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 앞구르기 탭 -->
+    <div class="tab-content hidden" id="rolling-tab">
+        {% if has_rolling %}
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover">
+            {% include 'student/partials/rolling_record_card.html' with rolling_data=rolling_data %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+            <i class="fas fa-sync-alt text-6xl text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-slate-700 mb-2">앞구르기 도전 기록이 없습니다</h3>
+            <p class="text-slate-500">앞구르기 도전 결과가 여기에 표시됩니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 탭 전환 기능
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.getAttribute('data-tab');
+            
+            // 모든 탭 버튼 비활성화
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active', 'text-purple-600', 'border-purple-600');
+                btn.classList.add('text-slate-600');
+            });
+            
+            // 모든 콘텐츠 숨기기
+            tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 선택된 탭 활성화
+            button.classList.add('active', 'text-purple-600', 'border-purple-600');
+            button.classList.remove('text-slate-600');
+            
+            // 선택된 콘텐츠 표시
+            const targetContent = document.getElementById(`${targetTab}-tab`);
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.card-hover {
+    transition: all 0.2s ease;
+}
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.tab-button {
+    transition: all 0.2s ease;
+}
+.tab-button.active {
+    border-bottom-width: 2px;
+}
+
+.line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+</style>
+{% endblock %}

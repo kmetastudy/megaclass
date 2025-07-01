@@ -1,0 +1,522 @@
+
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NCS 직업기초능력 문항 생성 시스템</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+/* 트리뷰 스타일 개선 */
+.tree-view { font-family: 'Pretendard', -apple-system, sans-serif; }
+.tree-view ul { list-style: none; padding-left: 1.5rem; }
+.tree-view li { margin-top: 0.25rem; }
+.tree-competency { 
+    font-weight: bold; 
+    font-size: 1.1rem;
+    color: #1e40af;
+    cursor: pointer;
+    padding: 0.5rem 0;
+}
+.tree-competency:hover { color: #2563eb; }
+.tree-sub-competency { 
+    font-weight: 600; 
+    color: #374151;
+    margin: 0.25rem 0;
+    padding-left: 0.5rem;
+}
+.tree-question { 
+    color: #6b7280; 
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+.tree-question:hover { 
+    background-color: #f3f4f6;
+    color: #1f2937;
+    padding-left: 1rem;
+}
+.question-type-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    margin-left: 0.5rem;
+}
+.badge-ox {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+.badge-multi {
+    background-color: #dcfce7;
+    color: #166534;
+}
+.competency-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    margin-right: 0.5rem;
+}
+
+/* 처리 중 오버레이 스타일 */
+.processing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.processing-content {
+    background: white;
+    padding: 2rem 3rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 400px;
+}
+
+.processing-spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem;
+    border: 4px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.processing-text {
+    font-size: 1.125rem;
+    color: #1f2937;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.processing-subtext {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.progress-dots {
+    display: inline-block;
+    margin-left: 0.25rem;
+}
+
+.progress-dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #3b82f6;
+    margin: 0 2px;
+    animation: pulse 1.4s infinite ease-in-out both;
+}
+
+.progress-dots span:nth-child(1) { animation-delay: -0.32s; }
+.progress-dots span:nth-child(2) { animation-delay: -0.16s; }
+.progress-dots span:nth-child(3) { animation-delay: 0; }
+
+@keyframes pulse {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+</style>
+</head>
+<body class="bg-gray-100 font-sans">
+<!-- 처리 중 오버레이 -->
+<div id="processing-overlay" class="processing-overlay hidden">
+<div class="processing-content">
+    <div class="processing-spinner"></div>
+    <div class="processing-text">문항을 처리하고 있습니다</div>
+    <div class="processing-subtext">
+        잠시만 기다려 주세요
+        <span class="progress-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+    </div>
+</div>
+</div>
+
+<div class="container mx-auto p-4 md:p-8 max-w-7xl">
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:dashboard' %}" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                교사 대시보드로 돌아가기
+            </a>
+        </div>
+        <div class="text-sm text-gray-500">
+            <i class="fas fa-robot mr-1"></i>
+            AI 문항 생성 시스템
+        </div>
+    </div>
+<header class="text-center mb-10">
+    <h1 class="text-4xl font-extrabold text-gray-800 mb-3">NCS 직업기초능력 문항 생성 시스템</h1>
+    <p class="text-gray-600 text-lg">JSON 형식의 문항과 마인드맵을 업로드하여 체계적으로 분류하고 관리하세요</p>
+    <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <span class="competency-badge bg-blue-100 text-blue-800">의사소통능력</span>
+        <span class="competency-badge bg-green-100 text-green-800">수리능력</span>
+        <span class="competency-badge bg-yellow-100 text-yellow-800">문제해결능력</span>
+        <span class="competency-badge bg-red-100 text-red-800">자기개발능력</span>
+        <span class="competency-badge bg-purple-100 text-purple-800">자원관리능력</span>
+        <span class="competency-badge bg-pink-100 text-pink-800">대인관계능력</span>
+        <span class="competency-badge bg-indigo-100 text-indigo-800">정보능력</span>
+        <span class="competency-badge bg-gray-100 text-gray-800">기술능력</span>
+        <span class="competency-badge bg-orange-100 text-orange-800">조직이해능력</span>
+        <span class="competency-badge bg-teal-100 text-teal-800">직업윤리</span>
+    </div>
+</header>
+
+<main class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- 왼쪽: 파일 업로드 패널 -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg h-fit">
+        <h2 class="text-2xl font-bold text-gray-700 mb-6 border-b pb-3">📁 JSON 파일 업로드</h2>
+        <form id="upload-form" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="space-y-6">
+                <div>
+                    <label for="questions_file" class="block text-sm font-medium text-gray-700 mb-2">
+                        문항 JSON 파일 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" name="questions_file" id="questions_file" required accept=".json"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <p class="mt-1 text-xs text-gray-500">※ 하위능력별 OX 및 5지선다 문항이 포함된 JSON 파일</p>
+                </div>
+                <div>
+                    <label for="mindmap_file" class="block text-sm font-medium text-gray-700 mb-2">
+                        마인드맵 JSON 파일 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="file" name="mindmap_file" id="mindmap_file" required accept=".json"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
+                    <p class="mt-1 text-xs text-gray-500">※ 직업기초능력 계층 구조가 정의된 JSON 파일</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-blue-50 rounded-lg p-4">
+                <h3 class="font-semibold text-blue-900 mb-2">📌 JSON 파일 형식 안내</h3>
+                <div class="text-sm text-blue-700 space-y-2">
+                    <div>
+                        <strong>문항 JSON 형식:</strong>
+                        <pre class="bg-white rounded p-2 mt-1 text-xs overflow-x-auto">
+[
+{
+"name": "기초연산능력",
+"ox": [
+{
+"question": "문제 내용",
+"answer": "O" 또는 "X",
+"explanation": "해설"
+}
+],
+"choice": [
+{
+"question": "문제 내용",
+"choices": ["선택지1", "선택지2", "선택지3", "선택지4", "선택지5"],
+"answer": 1,
+"explanation": "해설"
+}
+]
+}
+]</pre>
+                    </div>
+                    <div class="mt-3">
+                        <strong>마인드맵 JSON 형식:</strong>
+                        <pre class="bg-white rounded p-2 mt-1 text-xs overflow-x-auto">
+{
+"수리능력": {
+"기초연산능력": {
+"필수지식과 기술": [...],
+"description": "설명"
+},
+"기초통계능력": {
+"필수지식과 기술": [...],
+"description": "설명"
+}
+}
+}</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-right">
+                <button type="submit"
+                        class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">
+                    <svg id="loader" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="button-text">문항 생성 시작</span>
+                </button>
+            </div>
+        </form>
+        
+        <!-- 처리 결과 표시 영역 -->
+        <div id="result-message" class="mt-6 hidden">
+            <div class="rounded-md p-4">
+                <p class="text-sm font-medium"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 생성된 문항 트리 -->
+    <div class="bg-white p-8 rounded-2xl shadow-lg">
+        <div class="flex justify-between items-center mb-6 border-b pb-3">
+            <h2 class="text-2xl font-bold text-gray-700">📊 저장된 문항 현황</h2>
+            <button id="refresh-tree" class="text-sm text-blue-600 hover:text-blue-800">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                새로고침
+            </button>
+        </div>
+        <div id="tree-view" class="tree-view h-[600px] overflow-y-auto pr-2">
+            <p class="text-gray-500 text-center py-8">
+                <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                아직 생성된 문항이 없습니다.<br>
+                JSON 파일을 업로드하여 시작하세요.
+            </p>
+        </div>
+        
+        <!-- 통계 정보 -->
+        <div id="stats" class="mt-6 pt-6 border-t hidden">
+            <h3 class="font-semibold text-gray-700 mb-3">📈 문항 통계</h3>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="bg-gray-50 p-3 rounded">
+                    <span class="text-gray-600">전체 문항:</span>
+                    <span class="font-bold text-gray-800 ml-1" id="total-count">0</span>개
+                </div>
+                <div class="bg-gray-50 p-3 rounded">
+                    <span class="text-gray-600">역량 수:</span>
+                    <span class="font-bold text-gray-800 ml-1" id="competency-count">0</span>개
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</div>
+
+<script>
+$(document).ready(function() {
+console.log('===== 페이지 로드 완료 =====');
+// 페이지 로드 시 기존 문항 트리 로드
+loadQuestionTree();
+
+// 새로고침 버튼
+$('#refresh-tree').on('click', function() {
+    console.log('새로고침 버튼 클릭');
+    loadQuestionTree();
+});
+
+$('#upload-form').on('submit', function(e) {
+    e.preventDefault();
+    console.log('===== 폼 제출 시작 =====');
+    
+    let formData = new FormData(this);
+    
+    // FormData 내용 확인
+    console.log('FormData 내용:');
+    for (let pair of formData.entries()) {
+        console.log(`  ${pair[0]}: ${pair[1].name || pair[1]}`);
+    }
+    
+    // 파일 확인
+    const questionsFile = $('#questions_file')[0].files[0];
+    const mindmapFile = $('#mindmap_file')[0].files[0];
+    console.log('문항 파일:', questionsFile);
+    console.log('마인드맵 파일:', mindmapFile);
+    
+    // 로딩 상태 표시
+    $('#loader').removeClass('hidden');
+    $('#button-text').text('처리 중...');
+    $('button[type="submit"]').prop('disabled', true);
+    $('#result-message').addClass('hidden');
+    
+    // 처리 중 오버레이 표시
+    $('#processing-overlay').removeClass('hidden');
+
+    console.log('AJAX 요청 시작...');
+    $.ajax({
+        url: "{% url 'super_agent:process_files' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            console.log('===== AJAX 성공 =====');
+            console.log('응답:', response);
+            
+            // 성공 메시지 표시
+            showMessage(response.message, 'success');
+            if (response.competency) {
+                setTimeout(function() {
+                    showMessage(`처리된 역량: ${response.competency}`, 'info');
+                }, 500);
+            }
+            // 문항 트리 새로고침
+            loadQuestionTree();
+            // 폼 초기화
+            $('#upload-form')[0].reset();
+        },
+        error: function(xhr, status, error) {
+            console.log('===== AJAX 에러 =====');
+            console.log('상태:', xhr.status);
+            console.log('상태 텍스트:', xhr.statusText);
+            console.log('에러:', error);
+            console.log('응답:', xhr.responseText);
+            
+            let errorMsg = '오류가 발생했습니다.';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            showMessage(errorMsg, 'error');
+        },
+        complete: function() {
+            console.log('===== AJAX 완료 =====');
+            // 로딩 상태 해제
+            $('#loader').addClass('hidden');
+            $('#button-text').text('문항 생성 시작');
+            $('button[type="submit"]').prop('disabled', false);
+            
+            // 처리 중 오버레이 숨기기
+            $('#processing-overlay').addClass('hidden');
+        }
+    });
+});
+
+function showMessage(message, type) {
+    console.log(`메시지 표시: [${type}] ${message}`);
+    const messageDiv = $('#result-message');
+    const messageContent = messageDiv.find('div');
+    const messageText = messageDiv.find('p');
+    
+    messageText.text(message);
+    messageDiv.removeClass('hidden');
+    
+    // 타입별 스타일 적용
+    messageContent.removeClass('bg-green-50 bg-red-50 bg-blue-50 text-green-800 text-red-800 text-blue-800');
+    if (type === 'success') {
+        messageContent.addClass('bg-green-50');
+        messageText.addClass('text-green-800');
+    } else if (type === 'error') {
+        messageContent.addClass('bg-red-50');
+        messageText.addClass('text-red-800');
+    } else {
+        messageContent.addClass('bg-blue-50');
+        messageText.addClass('text-blue-800');
+    }
+    
+    // 5초 후 자동 숨김
+    setTimeout(() => {
+        messageDiv.addClass('hidden');
+    }, 5000);
+}
+
+function loadQuestionTree() {
+    console.log('문항 트리 로드 시작...');
+    // 트리뷰에 로딩 표시
+    const treeView = $('#tree-view');
+    treeView.html(`
+        <div class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+            <p class="text-gray-500">문항 목록을 불러오는 중...</p>
+        </div>
+    `);
+    
+    $.ajax({
+        url: "{% url 'super_agent:get_question_tree' %}",
+        type: 'GET',
+        success: function(data) {
+            console.log('문항 트리 로드 성공:', data);
+            treeView.empty();
+
+            if (Object.keys(data).length === 0) {
+                console.log('문항이 없음');
+                treeView.html(`
+                    <p class="text-gray-500 text-center py-8">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        아직 생성된 문항이 없습니다.<br>
+                        JSON 파일을 업로드하여 시작하세요.
+                    </p>
+                `);
+                $('#stats').addClass('hidden');
+                return;
+            }
+
+            let treeHtml = '<ul>';
+            let totalCount = 0;
+            let competencyCount = 0;
+            
+            for (const competency in data) {
+                competencyCount++;
+                console.log(`역량: ${competency}`);
+                treeHtml += `<li><span class="tree-competency">📚 ${competency}</span><ul>`;
+                
+                for (const subCompetency in data[competency]) {
+                    console.log(`  하위역량: ${subCompetency} (${data[competency][subCompetency].length}개)`);
+                    treeHtml += `<li><span class="tree-sub-competency">▸ ${subCompetency}</span><ul>`;
+                    
+                    data[competency][subCompetency].forEach(question => {
+                        totalCount++;
+                        const typeBadge = question.type === 'ox' 
+                            ? '<span class="question-type-badge badge-ox">OX</span>' 
+                            : '<span class="question-type-badge badge-multi">5지선다</span>';
+                        treeHtml += `<li class="tree-question">• ${question.title}${typeBadge}</li>`;
+                    });
+                    
+                    treeHtml += `</ul></li>`;
+                }
+                treeHtml += `</ul></li>`;
+            }
+            treeHtml += '</ul>';
+            
+            treeView.html(treeHtml);
+            
+            console.log(`총 ${totalCount}개 문항, ${competencyCount}개 역량`);
+            // 통계 업데이트
+            $('#total-count').text(totalCount);
+            $('#competency-count').text(competencyCount);
+            $('#stats').removeClass('hidden');
+            
+            // 트리 토글 기능
+            $('.tree-competency').on('click', function() {
+                $(this).next('ul').slideToggle(200);
+            });
+        },
+        error: function(xhr, status, error) {
+            console.log('문항 트리 로드 실패:', error);
+            treeView.html('<p class="text-red-500 text-center py-8">문항 목록을 불러오는 데 실패했습니다.</p>');
+        }
+    });
+}
+});
+</script>
+</body>
+</html>

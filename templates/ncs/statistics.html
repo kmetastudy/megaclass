@@ -1,0 +1,338 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}NCS 통계 분석{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-box {
+        transition: all 0.3s ease;
+    }
+    .stat-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .student-row:hover {
+        background-color: #f9fafb;
+    }
+    .weakness-badge {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">NCS 통계 분석</h1>
+                <p class="text-lg text-gray-600">상세 학습 현황 및 분석</p>
+            </div>
+            <a href="{% url 'ncs:teacher_dashboard' %}" 
+               class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                <i class="fas fa-arrow-left mr-2"></i>대시보드로
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 -->
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-4">
+            <i class="fas fa-filter mr-2"></i>필터
+        </h2>
+        
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="class_id" class="block text-sm font-medium text-gray-700 mb-1">반</label>
+                <select name="class_id" id="class_id" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}" {% if filters.class_id == class.id|stringformat:"s" %}selected{% endif %}>
+                        {{ class.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="competency_id" class="block text-sm font-medium text-gray-700 mb-1">역량</label>
+                <select name="competency_id" id="competency_id" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">전체</option>
+                    {% for comp in competencies %}
+                    <option value="{{ comp.id }}" {% if filters.competency_id == comp.id|stringformat:"s" %}selected{% endif %}>
+                        {{ comp.competency_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">시작일</label>
+                <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">종료일</label>
+                <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div class="md:col-span-4 flex gap-3">
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-search mr-2"></i>검색
+                </button>
+                <a href="{% url 'ncs:statistics' %}" 
+                   class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    초기화
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 전체 통계 요약 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-box bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                </div>
+                <span class="text-sm font-medium text-blue-600">전체 학생</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.total_students|default:0 }}명</div>
+            <p class="text-sm text-gray-500 mt-1">참여 학생 수</p>
+        </div>
+
+        <div class="stat-box bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                </div>
+                <span class="text-sm font-medium text-green-600">평균 정답률</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.avg_accuracy|floatformat:1|default:0 }}%</div>
+            <p class="text-sm text-gray-500 mt-1">전체 평균</p>
+        </div>
+
+        <div class="stat-box bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-edit text-purple-600 text-xl"></i>
+                </div>
+                <span class="text-sm font-medium text-purple-600">총 시도</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.total_attempts|default:0 }}회</div>
+            <p class="text-sm text-gray-500 mt-1">문제 풀이 횟수</p>
+        </div>
+
+        <div class="stat-box bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <span class="text-sm font-medium text-red-600">평균 취약도</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900">{{ stats.avg_weakness|floatformat:1|default:0 }}</div>
+            <p class="text-sm text-gray-500 mt-1">취약도 점수</p>
+        </div>
+    </div>
+
+    <!-- 학생별 상세 통계 -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-user-graduate mr-2"></i>학생별 상세 현황
+        </h2>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            학생
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            반
+                        </th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            평균 정답률
+                        </th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            총 시도
+                        </th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            취약 역량
+                        </th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            상태
+                        </th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            액션
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for student in student_stats %}
+                    <tr class="student-row">
+                        <td class="px-4 py-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ student.student__user__last_name }}{{ student.student__user__first_name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4">
+                            <div class="text-sm text-gray-500">
+                                {{ student.student__school_class__name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            <span class="text-lg font-semibold {% if student.avg_accuracy >= 80 %}text-green-600{% elif student.avg_accuracy >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                                {{ student.avg_accuracy|floatformat:1 }}%
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            <span class="text-sm text-gray-900">
+                                {{ student.total_attempts }}회
+                            </span>
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            {% if student.weak_count > 0 %}
+                            <span class="weakness-badge inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                {{ student.weak_count }}개
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                없음
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4 text-center">
+                            {% if student.avg_accuracy >= 80 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    우수
+                                </span>
+                            {% elif student.avg_accuracy >= 60 %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    보통
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    주의
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-4 text-right">
+                            <button onclick="viewStudentDetail({{ student.student__id }})" 
+                                    class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                상세 보기
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                            데이터가 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 학생 상세 모달 -->
+<div id="studentDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-bold text-gray-900" id="modalStudentName">학생 상세 정보</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modalContent" class="mt-4">
+                <!-- AJAX로 로드됨 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function viewStudentDetail(studentId) {
+    const modal = document.getElementById('studentDetailModal');
+    const content = document.getElementById('modalContent');
+    
+    modal.classList.remove('hidden');
+    content.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+    
+    // AJAX로 학생 상세 정보 로드
+    fetch(`{% url 'ncs:api_student_progress' 0 %}`.replace('0', studentId))
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('modalStudentName').textContent = data.student.name + ' - ' + data.student.class;
+            
+            let html = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">총 시도</p>
+                            <p class="text-xl font-bold">${data.summary.total_attempts}회</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded">
+                            <p class="text-sm text-gray-600">평균 정답률</p>
+                            <p class="text-xl font-bold">${data.summary.avg_accuracy}%</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">역량별 현황</h4>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+            `;
+            
+            data.competencies.forEach(comp => {
+                const color = comp.accuracy >= 80 ? 'green' : comp.accuracy >= 60 ? 'yellow' : 'red';
+                html += `
+                    <div class="border rounded p-3">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-medium">${comp.name}</span>
+                            <span class="text-${color}-600 font-bold">${comp.accuracy}%</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-500">
+                            <span>시도: ${comp.attempts}회</span>
+                            <span>취약도: ${comp.weakness_score}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                            <div class="bg-${color}-500 h-2 rounded-full" style="width: ${comp.accuracy}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            content.innerHTML = '<p class="text-red-600">데이터를 불러오는데 실패했습니다.</p>';
+        });
+}
+
+function closeModal() {
+    document.getElementById('studentDetailModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

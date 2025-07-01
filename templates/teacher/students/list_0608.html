@@ -1,0 +1,267 @@
+<!-- teacher/templates/teacher/students/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}학생 관리 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="flex h-full">
+    <!-- 좌측: 학급 목록 -->
+    <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <!-- 헤더 -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-users mr-2"></i>학급 목록
+                </h2>
+                <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    총 {{ total_students }}명
+                </span>
+            </div>
+            <a href="{% url 'teacher:bulk_student_create_from_csv' %}{% if selected_class %}?class_id={{ selected_class.id }}{% endif %}"
+            class="w-full bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition duration-200 text-center block text-sm my-2">
+                <i class="fas fa-file-csv mr-2"></i>CSV로 일괄 등록
+            </a>
+            <!-- 새 학생 등록 버튼 -->
+            <a href="{% url 'teacher:student_create' %}{% if selected_class %}?class_id={{ selected_class.id }}{% endif %}" 
+               class="w-full bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition duration-200 text-center block text-sm mb-2">
+                <i class="fas fa-user-plus mr-2"></i>새 학생 등록
+            </a>
+        </div>
+        
+        <!-- 학급 리스트 -->
+        <div class="flex-1 overflow-y-auto">
+            {% for class in classes %}
+            <a href="?class_id={{ class.id }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+               class="block p-4 border-b border-gray-100 hover:bg-gray-50 transition duration-200 {% if selected_class.id == class.id %}bg-blue-50 border-l-4 border-l-blue-500{% endif %}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-medium text-gray-800">{{ class.name }}</h3>
+                        <p class="text-sm text-gray-500">
+                            {{ class.student_set.count }}명
+                        </p>
+                    </div>
+                    {% if selected_class.id == class.id %}
+                    <i class="fas fa-chevron-right text-blue-500"></i>
+                    {% endif %}
+                </div>
+            </a>
+            {% empty %}
+            <div class="p-4 text-center text-gray-500">
+                <i class="fas fa-info-circle mb-2"></i>
+                <p>등록된 학급이 없습니다.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- 우측: 학생 목록 -->
+    <div class="flex-1 flex flex-col">
+        {% if selected_class %}
+        <!-- 학생 목록 헤더 -->
+        <div class="p-6 bg-white border-b border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">{{ selected_class.name }}</h2>
+                    <p class="text-gray-600">총 {{ class_student_count }}명의 학생</p>
+                </div>
+                <div class="flex space-x-2">
+                    <a href="{% url 'teacher:student_create' %}?class_id={{ selected_class.id }}" 
+                       class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                        <i class="fas fa-user-plus mr-2"></i>학생 추가
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 검색 -->
+            <form method="get" class="relative">
+                <input type="hidden" name="class_id" value="{{ selected_class.id }}">
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="이름, 학번으로 검색..." 
+                       class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                {% if search_query %}
+                <a href="?class_id={{ selected_class.id }}" 
+                   class="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </form>
+        </div>
+        
+        <!-- 학생 목록 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            {% if students %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for student in students %}
+                <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition duration-200 border border-gray-200">
+                    <div class="p-4">
+                        <!-- 학생 기본 정보 -->
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">
+                                {{ student.user.first_name|first|default:student.user.username|first }}
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-gray-800">{{ student.user.get_full_name }}</h3>
+                                <p class="text-sm text-gray-500">학번: {{ student.student_id }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 추가 정보 -->
+                        <div class="space-y-1 mb-4">
+                            <div class="flex items-center text-xs text-gray-600">
+                                <i class="fas fa-id-card w-4"></i>
+                                <span>{{ student.user.username }}</span>
+                            </div>
+                            {% if student.birth_date %}
+                            <div class="flex items-center text-xs text-gray-600">
+                                <i class="fas fa-birthday-cake w-4"></i>
+                                <span>{{ student.birth_date|date:"Y.m.d" }}</span>
+                            </div>
+                            {% endif %}
+                            {% if student.user.email %}
+                            <div class="flex items-center text-xs text-gray-600">
+                                <i class="fas fa-envelope w-4"></i>
+                                <span>{{ student.user.email }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 액션 버튼 -->
+                        <div class="flex space-x-2">
+                            <a href="{% url 'teacher:student_detail' student.id %}" 
+                               class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                                <i class="fas fa-eye mr-1"></i>상세
+                            </a>
+                            <a href="{% url 'teacher:student_edit' student.id %}" 
+                               class="flex-1 bg-gray-600 text-white text-center py-2 px-3 rounded-lg hover:bg-gray-700 transition duration-200 text-sm">
+                                <i class="fas fa-edit mr-1"></i>수정
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 페이지네이션 -->
+            {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?class_id={{ selected_class.id }}&page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <span class="px-3 py-2 bg-blue-600 text-white rounded-lg">{{ num }}</span>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?class_id={{ selected_class.id }}&page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">{{ num }}</a>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?class_id={{ selected_class.id }}&page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}" 
+                       class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- 학생이 없는 경우 -->
+            <div class="text-center py-12">
+                <i class="fas fa-user-graduate text-6xl text-gray-300 mb-4"></i>
+                {% if search_query %}
+                <h3 class="text-lg font-medium text-gray-600 mb-2">검색 결과가 없습니다</h3>
+                <p class="text-gray-500 mb-4">"{{ search_query }}"에 대한 검색 결과를 찾을 수 없습니다.</p>
+                <a href="?class_id={{ selected_class.id }}" 
+                   class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    전체 학생 보기
+                </a>
+                {% else %}
+                <h3 class="text-lg font-medium text-gray-600 mb-2">등록된 학생이 없습니다</h3>
+                <p class="text-gray-500 mb-4">{{ selected_class.name }}에 등록된 학생이 없습니다.</p>
+                <a href="{% url 'teacher:student_create' %}?class_id={{ selected_class.id }}" 
+                   class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="fas fa-user-plus mr-2"></i>첫 번째 학생 등록하기
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        {% else %}
+        <!-- 학급이 선택되지 않은 경우 -->
+        <div class="flex-1 flex items-center justify-center bg-gray-50">
+            <div class="text-center">
+                <i class="fas fa-users text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-medium text-gray-600 mb-2">학급을 선택하세요</h3>
+                <p class="text-gray-500">좌측에서 학급을 선택하면 해당 학급의 학생 목록을 볼 수 있습니다.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 메시지 표시 -->
+{% if messages %}
+<div class="fixed top-4 right-4 z-50">
+    {% for message in messages %}
+    <div class="bg-white border-l-4 {% if message.tags == 'success' %}border-green-500{% else %}border-red-500{% endif %} p-4 mb-4 shadow-lg rounded-lg">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                {% if message.tags == 'success' %}
+                <i class="fas fa-check-circle text-green-500"></i>
+                {% else %}
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                {% endif %}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-gray-700">{{ message }}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 메시지 자동 숨김
+    setTimeout(function() {
+        const messages = document.querySelectorAll('[class*="border-green-500"], [class*="border-red-500"]');
+        messages.forEach(function(message) {
+            message.style.transition = 'opacity 0.5s';
+            message.style.opacity = '0';
+            setTimeout(function() {
+                message.remove();
+            }, 500);
+        });
+    }, 5000);
+    
+    // 검색 폼 자동 제출
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let debounceTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function() {
+                if (searchInput.value.length === 0 || searchInput.value.length >= 2) {
+                    searchInput.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}

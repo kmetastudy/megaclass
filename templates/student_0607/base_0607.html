@@ -1,0 +1,216 @@
+<!-- (student/templates/student/base.html)
+html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}학습 관리 시스템{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        .sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar-closed {
+            transform: translateX(-100%);
+        }
+        @media (min-width: 1024px) {
+            .sidebar-closed {
+                transform: translateX(0);
+            }
+        }
+        .card-hover {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar w-64 bg-white shadow-lg flex-shrink-0 fixed lg:relative h-full z-30">
+            <div class="flex flex-col h-full">
+                <!-- Logo -->
+                <div class="p-6 border-b">
+                    <h1 class="text-2xl font-bold text-blue-600">
+                        <i class="fas fa-graduation-cap mr-2"></i>학습 시스템
+                    </h1>
+                    <p class="text-sm text-gray-600 mt-1">학생용</p>
+                </div>
+                
+                <!-- User Info -->
+                <div class="p-4 border-b bg-gray-50">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {{ user.last_name|first }}{{ user.first_name|first }}
+                        </div>
+                        <div class="ml-3">
+                            <p class="font-medium text-gray-800">{{ user.get_full_name }}</p>
+                            <p class="text-xs text-gray-600">{{ user.student.school_class }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="flex-1 p-4 overflow-y-auto">
+                    <!-- 메인 메뉴 -->
+                    <div class="mb-6">
+                        <a href="{% url 'student:dashboard' %}" 
+                           class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 flex items-center {% if request.resolver_match.url_name == 'dashboard' %}bg-blue-50 text-blue-600{% endif %}">
+                            <i class="fas fa-home mr-3 w-5 text-center"></i>
+                            <span>대시보드</span>
+                        </a>
+                    </div>
+                    
+                    <!-- 학습 메뉴 -->
+                    <div class="mb-6">
+                        <h3 class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">학습</h3>
+                        
+                        <a href="{% url 'student:course_list' %}" 
+                           class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 flex items-center {% if 'course' in request.resolver_match.url_name %}bg-blue-50 text-blue-600{% endif %}">
+                            <i class="fas fa-book-open mr-3 w-5 text-center"></i>
+                            <span>내 코스</span>
+                        </a>
+                        
+                        <a href="{% url 'student:progress' %}" 
+                           class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 flex items-center {% if request.resolver_match.url_name == 'progress' %}bg-blue-50 text-blue-600{% endif %}">
+                            <i class="fas fa-chart-line mr-3 w-5 text-center"></i>
+                            <span>학습 진도</span>
+                        </a>
+                        
+                        <a href="{% url 'student:my_answers' %}" 
+                           class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 flex items-center {% if request.resolver_match.url_name == 'my_answers' %}bg-blue-50 text-blue-600{% endif %}">
+                            <i class="fas fa-file-alt mr-3 w-5 text-center"></i>
+                            <span>내 답안</span>
+                        </a>
+                    </div>
+                    
+                    <!-- 기타 메뉴 -->
+                    <div class="mb-6">
+                        <h3 class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">기타</h3>
+                        
+                        <a href="#" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 flex items-center">
+                            <i class="fas fa-cog mr-3 w-5 text-center"></i>
+                            <span>설정</span>
+                        </a>
+                        
+                        <a href="{% url 'accounts:logout' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition duration-200 flex items-center">
+                            <i class="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+                            <span>로그아웃</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <!-- Footer -->
+                <div class="p-4 border-t text-center text-xs text-gray-500">
+                    © 2024 학습 관리 시스템
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-white shadow-sm z-20">
+                <div class="flex items-center justify-between p-4">
+                    <!-- Mobile menu button -->
+                    <button onclick="toggleSidebar()" class="lg:hidden text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    
+                    <!-- Page Title -->
+                    <h1 class="text-xl font-semibold text-gray-800">
+                        {% block page_title %}학습 관리 시스템{% endblock %}
+                    </h1>
+                    
+                    <!-- Top Right Menu -->
+                    <div class="flex items-center space-x-4">
+                        <!-- Notifications -->
+                        <button class="relative text-gray-600 hover:text-gray-800">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">3</span>
+                        </button>
+                        
+                        <!-- Current Time -->
+                        <span class="text-sm text-gray-600" id="currentTime"></span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} bg-{{ message.tags }}-100 border border-{{ message.tags }}-400 text-{{ message.tags }}-700 px-4 py-3 rounded relative mb-2" role="alert">
+                        <span class="block sm:inline">{{ message }}</span>
+                        <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <i class="fas fa-times cursor-pointer" onclick="this.parentElement.parentElement.style.display='none';"></i>
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- Mobile Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden" onclick="toggleSidebar()"></div>
+    
+    <!-- Scripts -->
+    <script>
+        // Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('sidebar-closed');
+            overlay.classList.toggle('hidden');
+        }
+        
+        // Current Time
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('currentTime').textContent = timeString;
+        }
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Message Auto-hide
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            });
+        }, 5000);
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

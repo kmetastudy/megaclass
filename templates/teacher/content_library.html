@@ -1,0 +1,247 @@
+<!-- teacher/templates/teacher/content_library.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}컨텐츠 라이브러리 - 학습 관리 시스템{% endblock %}
+
+{% block extra_css %}
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+       
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .line-clamp-3 {
+        display: -webkit-box;
+       
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">컨텐츠 라이브러리</h1>
+                <p class="text-gray-600">학습 자료를 관리하고 코스에 활용하세요</p>
+            </div>
+            <button id="createContentBtn" 
+                    class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-plus mr-2"></i>새 컨텐츠 만들기
+            </button>
+        </div>
+        
+        <!-- 필터 및 검색 -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <form method="get" class="flex flex-wrap items-center gap-4">
+                <div class="flex-1 min-w-64">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="제목, 태그로 검색..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <select name="content_type" 
+                        class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">모든 타입</option>
+                    {% for content_type in content_types %}
+                    <option value="{{ content_type.id }}" {% if content_type.id|stringformat:"s" == selected_content_type %}selected{% endif %}>
+                        {{ content_type.type_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="difficulty" 
+                        class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">모든 난이도</option>
+                    <option value="1" {% if selected_difficulty == '1' %}selected{% endif %}>기초</option>
+                    <option value="2" {% if selected_difficulty == '2' %}selected{% endif %}>보통</option>
+                    <option value="3" {% if selected_difficulty == '3' %}selected{% endif %}>심화</option>
+                    <option value="4" {% if selected_difficulty == '4' %}selected{% endif %}>최고</option>
+                </select>
+                
+                <button type="submit" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-search mr-2"></i>검색
+                </button>
+                
+                {% if search_query or selected_content_type or selected_difficulty %}
+                <a href="{% url 'teacher:content_library' %}" 
+                   class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200">
+                    <i class="fas fa-times mr-2"></i>초기화
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- 컨텐츠 목록 -->
+    {% if contents %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="contentGrid">
+        {% for content in contents %}
+        <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition duration-200 overflow-hidden" 
+             data-content-id="{{ content.id }}">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="bg-{{ content.content_type.color }}-100 text-{{ content.content_type.color }}-800 px-2 py-1 rounded text-xs">
+                        <i class="{{ content.content_type.icon }} mr-1"></i>{{ content.content_type.type_name }}
+                    </span>
+                    <span class="text-gray-500 text-xs">{{ content.view_count }} 조회</span>
+                </div>
+                
+                <h3 class="font-semibold text-gray-800 mb-2 line-clamp-2">{{ content.title }}</h3>
+                
+                <div class="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {{ content.page|striptags|truncatewords:15 }}
+                </div>
+                
+                <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                    <span>{{ content.get_difficulty_level_display }}</span>
+                    <span>{{ content.estimated_time }}분</span>
+                    <span>{{ content.created_at|date:"Y.m.d" }}</span>
+                </div>
+                
+                {% if content.tags %}
+                <div class="flex flex-wrap gap-1 mb-4">
+                    {% for tag in content.tags|slice:":3" %}
+                    <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">#{{ tag|trim }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="flex space-x-2">
+                    <button onclick="ContentLibrary.viewContent({{ content.id }})" 
+                            class="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                        <i class="fas fa-eye mr-1"></i>보기
+                    </button>
+                    <button onclick="ContentLibrary.useContent({{ content.id }})" 
+                            class="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition duration-200 text-sm">
+                        <i class="fas fa-plus mr-1"></i>사용
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 페이지네이션 -->
+    {% if page_obj.has_other_pages %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_content_type %}&content_type={{ selected_content_type }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-2 bg-blue-600 text-white rounded-lg">{{ num }}</span>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_content_type %}&content_type={{ selected_content_type }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}" 
+                   class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_content_type %}&content_type={{ selected_content_type }}{% endif %}{% if selected_difficulty %}&difficulty={{ selected_difficulty }}{% endif %}" 
+               class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- 빈 상태 -->
+    <div class="text-center py-16">
+        <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+        {% if search_query or selected_content_type or selected_difficulty %}
+        <h3 class="text-lg font-medium text-gray-600 mb-2">검색 결과가 없습니다</h3>
+        <p class="text-gray-500 mb-4">다른 조건으로 검색해보세요.</p>
+        <a href="{% url 'teacher:content_library' %}" 
+           class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+            전체 컨텐츠 보기
+        </a>
+        {% else %}
+        <h3 class="text-lg font-medium text-gray-600 mb-2">컨텐츠가 없습니다</h3>
+        <p class="text-gray-500 mb-4">첫 번째 컨텐츠를 만들어보세요!</p>
+        <button id="createContentEmptyBtn"
+                class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>새 컨텐츠 만들기
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 컨텐츠 미리보기 모달 -->
+<div id="contentPreviewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div class="flex items-center justify-between p-6 border-b">
+                <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">컨텐츠 미리보기</h3>
+                <button onclick="ContentLibrary.closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6" id="modalContent">
+                <!-- 컨텐츠가 여기에 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 코스 선택 모달 -->
+<div id="courseSelectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-2xl w-full">
+            <div class="flex items-center justify-between p-6 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">코스 선택</h3>
+                <button onclick="ContentLibrary.closeCourseModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">이 컨텐츠를 추가할 차시를 선택하세요.</p>
+                <div id="courseList" class="space-y-2">
+                    <!-- 코스 목록이 여기에 로드됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Django 데이터를 JavaScript로 안전하게 전달 -->
+{{ block.super }}
+<script id="django-data" type="application/json">
+{
+    "urls": {
+        "contentPreview": "{% url 'teacher:api_content_preview' 0 %}".replace('0', 'CONTENT_ID'),
+        "courseList": "{% url 'teacher:api_course_list' %}",
+        "addToChasi": "{% url 'teacher:api_add_content_to_chasi' %}"
+    },
+    "csrfToken": "{{ csrf_token }}",
+    "messages": {
+        "createContentNotAvailable": "컨텐츠 제작은 CP 앱에서 가능합니다.",
+        "previewNotAvailable": "미리보기 기능을 준비 중입니다.",
+        "addToChasi": "차시에 컨텐츠를 추가하시겠습니까?",
+        "selectChasi": "컨텐츠를 추가할 차시를 선택하세요.",
+        "loadingError": "데이터를 불러오는 중 오류가 발생했습니다.",
+        "addSuccess": "컨텐츠가 성공적으로 추가되었습니다.",
+        "addError": "컨텐츠 추가 중 오류가 발생했습니다."
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/teacher/content_library.js' %}"></script>
+{% endblock %}

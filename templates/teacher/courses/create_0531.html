@@ -1,0 +1,150 @@
+<!-- teacher/templates/teacher/courses/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}새 코스 만들기 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="{% url 'teacher:course_list' %}" 
+               class="mr-4 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">새 코스 만들기</h1>
+                <p class="text-gray-600">새로운 교육 과정을 생성합니다</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오류 메시지 표시 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 코스 생성 폼 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post" id="courseForm">
+            {% csrf_token %}
+            
+            <!-- 기본 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-book mr-2"></i>기본 정보
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="subject_name" class="block text-sm font-medium text-gray-700 mb-2">과목명 *</label>
+                        <input type="text" name="subject_name" id="subject_name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="예: 국어, 수학, 영어 등"
+                               value="{{ request.POST.subject_name|default:'' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="target" class="block text-sm font-medium text-gray-700 mb-2">대상 *</label>
+                        <input type="text" name="target" id="target" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="예: 중학교 1학년, 고등학교 2학년 등"
+                               value="{{ request.POST.target|default:'' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" id="description" rows="4"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                  placeholder="코스에 대한 간단한 설명을 입력하세요...">{{ request.POST.description|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 코스 구성 안내 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-sitemap mr-2"></i>코스 구성 안내
+                </h3>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-800 mb-2">코스 생성 후 다음 단계를 진행하세요:</h4>
+                    <ol class="text-sm text-blue-700 space-y-1">
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">1</span>
+                            대단원 추가 (Chapter)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">2</span>
+                            소단원 추가 (SubChapter)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">3</span>
+                            차시 추가 (Chasi)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">4</span>
+                            슬라이드 구성 (Contents)
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                    <i class="fas fa-plus mr-2"></i>코스 생성하기
+                </button>
+                <a href="{% url 'teacher:course_list' %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-times mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 코스 생성 팁 -->
+    <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+        <h4 class="text-sm font-semibold text-green-800 mb-2">
+            <i class="fas fa-lightbulb mr-2"></i>코스 생성 팁
+        </h4>
+        <ul class="text-sm text-green-700 space-y-1">
+            <li>• 과목명은 간단하고 명확하게 작성하세요</li>
+            <li>• 대상은 구체적인 학년이나 수준을 명시하세요</li>
+            <li>• 설명에는 학습 목표나 주요 내용을 포함하세요</li>
+            <li>• 코스 생성 후 체계적으로 단원을 구성해보세요</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 첫 번째 필드에 포커스
+    document.getElementById('subject_name').focus();
+    
+    // 폼 제출 검증
+    document.getElementById('courseForm').addEventListener('submit', function(e) {
+        const subjectName = document.getElementById('subject_name').value.trim();
+        const target = document.getElementById('target').value.trim();
+        
+        if (!subjectName || !target) {
+            e.preventDefault();
+            alert('과목명과 대상은 필수 입력 항목입니다.');
+            return false;
+        }
+        
+        if (subjectName.length < 2) {
+            e.preventDefault();
+            alert('과목명은 2자 이상 입력해주세요.');
+            document.getElementById('subject_name').focus();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

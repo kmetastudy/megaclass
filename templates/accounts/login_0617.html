@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}로그인 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-bold text-gray-900 tracking-tight">
+                학습 관리 시스템
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                학번 또는 교직원 번호로 로그인하세요.
+            </p>
+        </div>
+
+        <form class="mt-8 space-y-6" method="POST" autocomplete="off">
+            {% csrf_token %}
+
+            {% if messages %}
+            <div class="rounded-md bg-red-50 p-4">
+                {% for message in messages %}
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-red-800">{{ message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="relative rounded-md shadow-sm">
+                <div>
+                    <label for="username" class="sr-only">학번 또는 사번</label>
+                    <input id="username" name="username" type="text" required
+                           class="appearance-none rounded-t-md relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           placeholder="학번 또는 사번" autocomplete="username">
+                </div>
+
+                <div>
+                    <label for="password" class="sr-only">비밀번호</label>
+                    <input id="password" name="password" type="password" required
+                           class="appearance-none rounded-b-md relative block w-full px-3 py-3 border-t-0 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                           placeholder="비밀번호" autocomplete="current-password">
+                </div>
+
+                <div id="schoolSelectDiv" class="hidden">
+                    <label for="school_code" class="sr-only">학교 선택</label>
+                    <select id="school_code" name="school_code"
+                            class="appearance-none rounded-b-md relative block w-full px-3 py-3 border-t-0 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">-- 학교를 선택하세요 --</option>
+                        {% for school in schools %}
+                        <option value="{{ school.code }}">{{ school.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <svg class="h-5 w-5 text-blue-500 group-hover:text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                    로그인
+                </button>
+            </div>
+        </form>
+
+        <div class="text-center text-sm">
+            <a href="{% url 'accounts:teacher_register' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                교사 회원가입
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const schoolSelectDiv = document.getElementById('schoolSelectDiv');
+    const schoolSelect = document.getElementById('school_code');
+
+    usernameInput.addEventListener('input', function(e) {
+        const value = e.target.value.trim();
+
+        // 첫 글자가 숫자이면 학생으로 간주
+        if (value && /^\d/.test(value)) {
+            // 학교 선택란 표시
+            schoolSelectDiv.classList.remove('hidden');
+            // UI를 자연스럽게 연결하기 위해 비밀번호 입력란의 하단 둥글기를 제거
+            passwordInput.classList.remove('rounded-b-md');
+        } else {
+            // 학교 선택란 숨김
+            schoolSelectDiv.classList.add('hidden');
+            schoolSelect.value = ''; // 값 초기화
+            // 비밀번호 입력란에 하단 둥글기 다시 적용
+            passwordInput.classList.add('rounded-b-md');
+        }
+    });
+});
+</script>
+{% endblock %}

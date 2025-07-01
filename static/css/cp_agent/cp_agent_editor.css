@@ -1,0 +1,545 @@
+/* static/css/cp_agent/cp_agent_editor.css - CodeMirror 및 편집 관련 스타일 (스크롤 문제 해결) */
+
+/* ========== CodeMirror 에디터 기본 스타일 ========== */
+.CodeMirror {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    height: auto;
+    background-color: #f9fafb;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.CodeMirror-focused {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.CodeMirror-scroll {
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+}
+
+/* ========== HTML 탭 아코디언 내 에디터 스타일 (완전 수정) ========== */
+
+/* 아코디언 내부 에디터 컨테이너 */
+#metaEditorContainer,
+#tagsEditorContainer {
+    height: 140px !important; /* 고정 높이 설정 */
+    width: 100% !important;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background-color: #ffffff;
+    overflow: hidden; /* 컨테이너 자체는 overflow hidden */
+}
+
+/* 아코디언 내부 CodeMirror 에디터 */
+.accordion-inner .CodeMirror {
+    height: 140px !important; /* 컨테이너와 동일한 고정 높이 */
+    min-height: 140px !important;
+    max-height: 140px !important; /* 최대 높이도 제한 */
+    border: none; /* 컨테이너에 이미 border가 있으므로 제거 */
+    border-radius: 0;
+    font-size: 12px;
+    background-color: #ffffff;
+    overflow: hidden; /* CodeMirror 자체는 overflow hidden */
+}
+
+/* CodeMirror 스크롤 영역 - 여기서 실제 스크롤 처리 */
+.accordion-inner .CodeMirror .CodeMirror-scroll {
+    height: 140px !important;
+    max-height: 140px !important;
+    overflow-y: auto !important; /* 세로 스크롤 활성화 */
+    overflow-x: auto !important; /* 가로 스크롤 활성화 */
+    padding-right: 10px; /* 스크롤바 여백 */
+}
+
+/* CodeMirror 라인 영역 */
+.accordion-inner .CodeMirror .CodeMirror-lines {
+    padding: 8px;
+}
+
+/* 다른 탭의 에디터들 */
+#htmlEditorContainer {
+    height: 220px !important; /* HTML 콘텐츠 영역에 맞춤 */
+    min-height: 220px !important;
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#answerEditorContainer {
+    height: 160px !important; /* 정답 영역에 맞춤 */
+    min-height: 160px !important;
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#answerInputEditor {
+    min-height: 150px;
+}
+
+#metaEditor,
+#tagsEditor {
+    min-height: 150px;
+}
+
+/* ========== 에디터 가시성 보장 (중요!) ========== */
+
+/* 펼쳐진 아코디언의 에디터 강제 표시 */
+.accordion-section.expanded .CodeMirror {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    height: 140px !important;
+}
+
+.accordion-section.expanded #metaEditorContainer,
+.accordion-section.expanded #tagsEditorContainer {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    height: 140px !important;
+}
+
+/* Tailwind 클래스 덮어쓰기 */
+.accordion-section.expanded .CodeMirror.h-0,
+.accordion-section.expanded .CodeMirror.hidden {
+    height: 140px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ========== 텍스트 편집 시스템 ========== */
+.editable-word {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin: 1px;
+    border: 1px solid transparent;
+    position: relative;
+}
+
+.editable-word:hover {
+    background-color: #dbeafe;
+    border-color: #93c5fd;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+}
+
+.editing-word {
+    background-color: #fef3c7;
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px #f59e0b;
+}
+
+.edit-input {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    background-color: #fffbeb;
+    border: none;
+    outline: none !important;
+    border-radius: 0.25rem;
+    padding: 2px 6px;
+    box-shadow: 0 0 0 1px #ef4444;
+    min-width: 50px;
+}
+
+.edit-input:focus {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px #ef4444;
+}
+
+.text-changed {
+    color: #ef4444 !important;
+    font-weight: 500;
+    position: relative;
+}
+
+.text-changed::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #ef4444;
+    border-radius: 1px;
+}
+
+/* ========== 이미지 편집 시스템 ========== */
+.editable-image {
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    position: relative;
+    display: inline-block;
+}
+
+.editable-image:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+    transform: scale(1.02);
+}
+
+.editable-image[data-changed="true"] {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px #ef4444;
+}
+
+.editable-image[data-changed="true"]::before {
+    content: "변경됨";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    z-index: 10;
+}
+
+.editable-image::after {
+    content: "📸 클릭하여 변경";
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.editable-image:hover::after {
+    opacity: 1;
+}
+
+.image-upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px dashed #3b82f6;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-weight: 500;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.editable-image:hover .image-upload-overlay {
+    display: flex;
+}
+
+/* ========== 이미지 로딩 상태 ========== */
+.image-loading {
+    position: relative;
+    opacity: 0.6;
+}
+
+.image-loading::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 10;
+}
+
+/* ========== 편집 도움말 ========== */
+.edit-help {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.edit-help i {
+    margin-right: 8px;
+}
+
+/* ========== 편집 컨트롤 ========== */
+#editControls {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    animation: slideUp 0.3s ease-out;
+}
+
+#editStatus {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    animation: slideUp 0.3s ease-out;
+}
+
+.changes-count {
+    font-weight: 500;
+    color: #1e40af;
+}
+
+/* ========== 대화형 문항 스타일 ========== */
+.selected-choice {
+    background-color: #EBF4FF !important;
+    border-color: #3B82F6 !important;
+    border-width: 2px !important;
+}
+
+.has-content {
+    border-color: #10B981 !important;
+    background-color: #F0FDF4 !important;
+}
+
+.check-answer-btn {
+    transition: all 0.2s ease-in-out;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.check-answer-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.answer-result {
+    animation: slideIn 0.3s ease-out;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.answer-result.correct {
+    background-color: #d1fae5;
+    border: 1px solid #10b981;
+    color: #065f46;
+}
+
+.answer-result.incorrect {
+    background-color: #fee2e2;
+    border: 1px solid #ef4444;
+    color: #991b1b;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== 에디터 테마 커스터마이징 ========== */
+.CodeMirror.cm-s-material {
+    background: #263238;
+    color: #eeffff;
+}
+
+.CodeMirror.cm-s-material .CodeMirror-gutters {
+    background: #263238;
+    color: #546e7a;
+    border: none;
+}
+
+.CodeMirror.cm-s-material .CodeMirror-cursor {
+    border-left: 1px solid #ffcc02;
+}
+
+.CodeMirror.cm-s-material .CodeMirror-linenumber {
+    color: #546e7a;
+}
+
+/* ========== JSON 유효성 표시 ========== */
+.json-valid {
+    border-color: #10b981 !important;
+    background-color: #f0fdf4 !important;
+}
+
+.json-invalid {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+.json-validation-message {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.json-validation-message.valid {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.json-validation-message.invalid {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* ========== 코드 하이라이팅 개선 ========== */
+.CodeMirror .cm-string {
+    color: #82b366;
+}
+
+.CodeMirror .cm-number {
+    color: #f78c6c;
+}
+
+.CodeMirror .cm-keyword {
+    color: #c792ea;
+}
+
+.CodeMirror .cm-property {
+    color: #82aaff;
+}
+
+/* ========== 스크롤바 커스터마이징 (에디터 전용) ========== */
+.CodeMirror-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.CodeMirror-scroll::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.CodeMirror-scroll::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.CodeMirror-scroll::-webkit-scrollbar-corner {
+    background: #f1f1f1;
+}
+
+/* ========== 반응형 에디터 ========== */
+@media (max-width: 768px) {
+    .CodeMirror {
+        font-size: 12px;
+    }
+    
+    .accordion-inner .CodeMirror {
+        font-size: 11px;
+        height: 120px !important;
+        min-height: 120px !important;
+        max-height: 120px !important;
+    }
+    
+    .accordion-inner .CodeMirror .CodeMirror-scroll {
+        height: 120px !important;
+        max-height: 120px !important;
+    }
+    
+    #metaEditorContainer,
+    #tagsEditorContainer {
+        height: 120px !important;
+    }
+    
+    .edit-help {
+        font-size: 13px;
+        padding: 10px;
+    }
+}
+
+@media (max-height: 600px) {
+    .accordion-inner .CodeMirror {
+        height: 100px !important;
+        min-height: 100px !important;
+        max-height: 100px !important;
+    }
+    
+    .accordion-inner .CodeMirror .CodeMirror-scroll {
+        height: 100px !important;
+        max-height: 100px !important;
+    }
+    
+    #metaEditorContainer,
+    #tagsEditorContainer {
+        height: 100px !important;
+    }
+}
+
+/* ========== 디버깅용 스타일 ========== */
+.debug-editor .CodeMirror {
+    border: 2px solid red !important;
+}
+
+.debug-editor .accordion-inner {
+    border: 2px solid green !important;
+}
+
+.debug-editor #metaEditorContainer,
+.debug-editor #tagsEditorContainer {
+    border: 2px solid blue !important;
+}
+
+/* ========== 강제 스크롤 활성화 (응급용) ========== */
+.force-scroll .CodeMirror {
+    overflow: visible !important;
+}
+
+.force-scroll .CodeMirror-scroll {
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    height: auto !important;
+    max-height: 140px !important;
+}
+
+/* ========== 에디터 초기화 후 스타일 ========== */
+.editor-initialized .CodeMirror {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+}
+
+.editor-initialized .CodeMirror-scroll {
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+}

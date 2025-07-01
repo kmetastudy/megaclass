@@ -1,0 +1,1204 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}AI 문항 생성기{% endblock %}
+
+{% block extra_css %}
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+
+<!-- CP Agent CSS 파일들 -->
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_base.css">
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_editor.css">
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_components.css">
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 gap-6">
+    <!-- 좌측 패널 (1/3) -->
+    <div id="leftPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">🎇 문항 & 템플릿</h2>
+            <button onclick="togglePanel('left')" class="text-gray-600 hover:text-white hover:bg-orange-400 p-2 rounded transition">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto">
+            <!-- 탭 메뉴 -->
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button onclick="switchTab('contents')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-orange-400 bg-white" data-tab="contents">
+                    문항 리스트
+                </button>
+                <button onclick="switchTab('templates')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="templates">
+                    템플릿 리스트
+                </button>
+            </div>
+            
+            <!-- 문항 리스트 탭 -->
+            <div id="contentsTab" class="tab-content active p-4">
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="contentCategory" class="form-select">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="contentType" class="form-select">
+                            <option value="">타입 선택</option>
+                        </select>
+                        
+                        <select id="contentCourse" class="form-select">
+                            <option value="">코스 선택</option>
+                        </select>
+                        
+                        <select id="contentChapter" class="form-select">
+                            <option value="">대단원 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="contentSearch" placeholder="키워드 검색..." class="form-input">
+                        <button onclick="CPAgent.Data.searchContents()" class="btn-secondary px-4 py-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="contentsCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 문항 리스트 -->
+                <div id="contentsList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+            
+            <!-- 템플릿 리스트 탭 -->
+            <div id="templatesTab" class="tab-content p-4">
+                <!-- 템플릿 만들기 버튼 -->
+                <button onclick="CPAgent.UI.openTemplateModal()" class="w-full btn-secondary py-2 px-4 mb-4">
+                    <i class="fas fa-plus mr-2"></i>템플릿 만들기
+                </button>
+                
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="templateCategory" class="form-select">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="templateType" class="form-select">
+                            <option value="">타입 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="templateSearch" placeholder="키워드 검색..." class="form-input">
+                        <button onclick="CPAgent.Data.searchTemplates()" class="btn-secondary px-4 py-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="templatesCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 템플릿 리스트 -->
+                <div id="templatesList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 좌측 패널 토글 버튼 (숨김 상태일 때) -->
+    <button id="leftToggleBtn" onclick="togglePanel('left')" class="bg-gray-600 hover:bg-orange-400 text-white p-2 rounded-r transition fixed left-0 top-1/2 transform -translate-y-1/2 z-10" style="display: none;">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- 중간 패널 (1/3) -->
+    <div id="middlePanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-medium text-gray-800">✨ 문항 제작</h2>
+                <button onclick="CPAgent.Content.createNewContent()" class="text-sm btn-primary px-3 py-1">
+                    <i class="fas fa-plus mr-1"></i>새 문항
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <form id="contentForm">
+                <!-- 기본 정보 -->
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">제목 *</label>
+                        <input type="text" id="title" name="title" required class="form-input">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">타입 *</label>
+                        <select id="content_type" name="content_type" required class="form-select">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">템플릿</label>
+                        <select id="template_select" name="template_select" class="form-select" onchange="CPAgent.Content.applyTemplate(this.value)">
+                            <option value="">템플릿 없음</option>
+                        </select>
+                        <button type="button" onclick="previewSelectedTemplate()" class="btn-info px-2 py-1 text-xs">
+                            미리보기
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">문항 생성 지시사항 (Markdown 지원)</label>
+                    <textarea id="prompt_content" name="prompt" rows="20" class="form-textarea font-mono text-sm"
+                              placeholder="문항 생성을 위한 상세한 지시사항을 입력하세요...
+
+예시:
+- 수학 중1 과정의 일차방정식 문제
+- 난이도: 중
+- 4지 선다 객관식
+- 실생활 연계 문제
+- 단계별 풀이과정 포함"></textarea>
+                </div>
+                
+                <!-- 답안 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">답안 (JSON)</label>
+                    <textarea id="answer_input" name="answer_input" class="hidden">{}</textarea>
+                    <div id="answerInputEditor"></div>
+                </div>
+                
+                <!-- 아코디언 섹션 -->
+                <div class="mb-6">
+                    <div class="accordion-header flex items-center justify-between p-3 bg-gray-100 rounded-lg cursor-pointer" onclick="toggleAccordion(this)">
+                        <span class="text-sm font-medium text-gray-700">고급 설정</span>
+                        <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="pt-4 space-y-4">
+                            <!-- 메타데이터 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                                <textarea id="meta_content" name="meta_data" class="hidden">{}</textarea>
+                                <div id="metaEditor"></div>
+                            </div>
+                            
+                            <!-- 태그 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">태그/평가기준 (JSON)</label>
+                                <textarea id="tags_content" name="tags" class="hidden">{}</textarea>
+                                <div id="tagsEditor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI 요청 버튼 -->
+                <button type="button" onclick="CPAgent.Content.requestAI()" class="w-full btn-primary py-3 px-4">
+                    <i class="fas fa-magic mr-2"></i>AI로 문항 생성하기
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 우측 패널 (1/3) -->
+    <div id="rightPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-medium text-gray-800">🎊 미리보기 & 편집</h2>
+                
+                <!-- 정답 체크 컨트롤 -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="CPAgent.AnswerChecker.toggleAutoCheck()" 
+                            class="text-xs btn-info px-2 py-1" 
+                            title="자동 정답 체크 토글">
+                        <i class="fas fa-robot"></i>
+                    </button>
+                    <button onclick="resetQuestionState()" 
+                            class="text-xs btn-secondary px-2 py-1" 
+                            title="문항 상태 초기화">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="flex border-b border-gray-200 bg-gray-50">
+            <button onclick="switchPreviewTab('render')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-gray-600 bg-white" data-tab="render">
+                렌더링
+            </button>
+            <button onclick="switchPreviewTab('html')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="html">
+                HTML
+            </button>
+            <button onclick="switchPreviewTab('text')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="text">
+                텍스트 편집
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto bg-gray-50">
+            <!-- 렌더링 탭 -->
+            <div id="renderTab" class="preview-tab-content active p-6">
+                <!-- 렌더링 상태 표시 -->
+                <div id="renderStatus" class="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700 hidden">
+                    <div class="flex items-center justify-between">
+                        <span id="renderStatusText">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            대화형 문항이 준비되었습니다
+                        </span>
+                        <button onclick="hideRenderStatus()" class="text-blue-500 hover:text-blue-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 문항 컨텐츠 -->
+                <div id="previewContent" class="prose max-w-none">
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-eye text-6xl mb-4"></i>
+                        <p>AI로 문항을 생성하면 여기에 표시됩니다</p>
+                        <p class="text-sm mt-2">생성된 문항은 실시간으로 정답을 체크할 수 있습니다</p>
+                    </div>
+                </div>
+                
+                <!-- 문항 통계 표시 (선택사항) -->
+                <div id="questionStats" class="mt-4 p-3 bg-gray-100 rounded-lg text-sm text-gray-600 hidden">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="font-medium">문항 타입:</span>
+                            <span id="detectedType">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">입력 요소:</span>
+                            <span id="inputCount">0개</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">예상 시간:</span>
+                            <span id="estimatedTime">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">난이도:</span>
+                            <span id="difficulty">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HTML 탭 (아코디언 적용으로 HTML 영역 최대화) -->
+            <div id="htmlTab" class="preview-tab-content h-full flex flex-col">
+                <!-- HTML 영역 (기본 70%, 아코디언 접으면 최대 90%) -->
+                <div class="flex-1 html-main-area" style="min-height: 60%;">
+                    <div class="p-2 bg-gray-100 border-b border-gray-200 flex justify-between items-center">
+                        <label class="text-sm font-medium text-gray-700">HTML 콘텐츠</label>
+                        <div class="flex space-x-1">
+                            <button onclick="formatHtmlEditor()" class="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600" title="코드 정리">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                            <button onclick="validateHtmlSyntax()" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="문법 검사">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button onclick="toggleAllAccordions()" class="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600" title="모든 아코디언 토글">
+                                <i class="fas fa-expand-arrows-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="htmlEditor" class="hidden"></textarea>
+                    <div id="htmlEditorContainer" class="h-full"></div>
+                </div>
+                
+                <!-- 정답 영역 (고정 20%) -->
+                <div class="answer-area" style="height: 20%;" class="border-t border-gray-200">
+                    <div class="p-2 bg-gray-100 border-b border-gray-200 flex justify-between items-center">
+                        <label class="text-sm font-medium text-gray-700">정답 (JSON)</label>
+                        <div class="flex space-x-1">
+                            <button onclick="generateAnswerTemplate()" class="text-xs px-2 py-1 bg-purple-500 text-white rounded hover:bg-purple-600" title="답안 템플릿 생성">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button onclick="validateAnswerJson()" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="JSON 검증">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="answerEditorContainer" class="h-full"></div>
+                </div>
+                
+                <!-- 아코디언 영역들 (가변 높이) -->
+                <div class="accordion-areas border-t border-gray-200">
+                    <!-- 메타데이터 아코디언 -->
+                    <div class="accordion-section" data-section="metadata">
+                        <div class="accordion-header flex items-center justify-between p-2 bg-gray-100 cursor-pointer border-b border-gray-200 hover:bg-gray-200 transition-colors" onclick="toggleHtmlTabAccordion(this)">
+                            <label class="text-sm font-medium text-gray-700 pointer-events-none flex items-center">
+                                <i class="fas fa-info-circle mr-2 text-indigo-600"></i>
+                                메타데이터 (JSON)
+                            </label>
+                            <div class="flex items-center space-x-1">
+                                <button onclick="generateMetadataTemplate(); event.stopPropagation();" class="text-xs px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600" title="메타데이터 템플릿 생성">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button onclick="validateMetadataJson(); event.stopPropagation();" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="JSON 검증">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <i class="fas fa-chevron-down text-gray-500 transition-transform accordion-icon"></i>
+                            </div>
+                        </div>
+                        <div class="accordion-content h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                            <div class="accordion-inner" style="height: 120px;">
+                                <textarea id="metaEditor_html" class="hidden"></textarea>
+                                <div id="metaEditorContainer" class="h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 태그/평가기준 아코디언 -->
+                    <div class="accordion-section" data-section="tags">
+                        <div class="accordion-header flex items-center justify-between p-2 bg-gray-100 cursor-pointer border-b border-gray-200 hover:bg-gray-200 transition-colors" onclick="toggleHtmlTabAccordion(this)">
+                            <label class="text-sm font-medium text-gray-700 pointer-events-none flex items-center">
+                                <i class="fas fa-tags mr-2 text-orange-600"></i>
+                                태그/평가기준 (JSON)
+                            </label>
+                            <div class="flex items-center space-x-1">
+                                <button onclick="generateTagsTemplate(); event.stopPropagation();" class="text-xs px-2 py-1 bg-orange-500 text-white rounded hover:bg-orange-600" title="태그 템플릿 생성">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button onclick="validateTagsJson(); event.stopPropagation();" class="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600" title="JSON 검증">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <i class="fas fa-chevron-down text-gray-500 transition-transform accordion-icon"></i>
+                            </div>
+                        </div>
+                        <div class="accordion-content h-0 overflow-hidden transition-all duration-300 ease-in-out">
+                            <div class="accordion-inner" style="height: 120px;">
+                                <textarea id="tagsEditor_html" class="hidden"></textarea>
+                                <div id="tagsEditorContainer" class="h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 텍스트 편집 탭 -->
+            <div id="textTab" class="preview-tab-content p-6">
+                <div class="edit-help">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>편집 가이드:</strong> 
+                    텍스트를 더블클릭하여 편집하고 엔터키로 저장하세요. 
+                    이미지를 클릭하면 새 이미지로 교체할 수 있습니다.
+                    <div class="mt-2 text-sm opacity-90">
+                        <i class="fas fa-keyboard mr-1"></i>
+                        엔터: 저장 | ESC: 취소 | 더블클릭: 편집 시작
+                    </div>
+                </div>
+                
+                <!-- 편집 상태 표시 -->
+                <div id="editStatus" class="mb-4 p-2 bg-gray-100 rounded text-sm text-gray-600 hidden">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <span id="editStatusText">편집 가능한 요소: 0개</span>
+                </div>
+                
+                <!-- 변경 사항 컨트롤 버튼 -->
+                <div id="editControls" class="mb-4 hidden">
+                    <div class="flex space-x-2 mb-2">
+                        <button onclick="CPAgent.TextEditing.resetAllChanges()" class="flex-1 btn-secondary py-2 px-3 text-sm">
+                            <i class="fas fa-undo mr-1"></i>모든 변경사항 취소
+                        </button>
+                        <button onclick="CPAgent.TextEditing.showChangedElements()" class="flex-1 btn-primary py-2 px-3 text-sm">
+                            <i class="fas fa-search mr-1"></i>변경사항 보기
+                        </button>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="CPAgent.Image.cleanupCorruptedImageSrcs()" class="flex-1 btn-warning py-2 px-3 text-sm">
+                            <i class="fas fa-tools mr-1"></i>손상된 이미지 경로 정리
+                        </button>
+                        <button onclick="CPAgent.Image.validateAllImages()" class="flex-1 btn-success py-2 px-3 text-sm">
+                            <i class="fas fa-check-circle mr-1"></i>이미지 유효성 검사
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="editableContent" class="space-y-4 min-h-[200px] border border-gray-200 rounded-lg p-4 bg-white">
+                    <p class="text-gray-400 text-center py-8">
+                        <i class="fas fa-edit text-4xl mb-2 block"></i>
+                        AI로 문항을 생성하면 편집 가능한 텍스트가 여기에 표시됩니다
+                    </p>
+                </div>
+                
+                <!-- 숨겨진 파일 입력 -->
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- 저장 버튼 -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <button onclick="CPAgent.Content.saveContent()" class="w-full btn-secondary py-3 px-4">
+                <i class="fas fa-save mr-2"></i>저장하기
+            </button>
+        </div>
+        
+        <!-- 개발자/디버깅용 응급 제어 패널 (숨김 상태) -->
+        <div id="emergencyControls" class="hidden fixed bottom-4 right-4 z-50 bg-red-100 border border-red-300 rounded-lg p-3 shadow-lg">
+            <h4 class="text-sm font-bold text-red-800 mb-2">응급 제어</h4>
+            <div class="space-y-2">
+                <button onclick="window.emergencyRemoveSpinner()" class="w-full text-xs px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                    스피너 강제 제거
+                </button>
+                <button onclick="checkAllEditorsStatus()" class="w-full text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    에디터 상태 체크
+                </button>
+                <button onclick="reinitializeHtmlTabEditors()" class="w-full text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                    HTML탭 에디터 재초기화
+                </button>
+                <button onclick="CPAgent.Editor.refreshAll()" class="w-full text-xs px-2 py-1 bg-purple-500 text-white rounded hover:bg-purple-600">
+                    모든 에디터 새로고침
+                </button>
+                <button onclick="$('#emergencyControls').addClass('hidden')" class="w-full text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    숨기기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- 기존 스크립트들 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+
+<!-- CP Agent JavaScript 파일들 (순서 중요!) -->
+<script src="{% static 'js/cp_agent/core.js' %}"></script>
+<script src="{% static 'js/cp_agent/ui.js' %}"></script>
+<script src="{% static 'js/cp_agent/data.js' %}"></script>
+<script src="{% static 'js/cp_agent/content.js' %}"></script>
+<script src="{% static 'js/cp_agent/template.js' %}"></script>
+<script src="{% static 'js/cp_agent/editor.js' %}"></script>
+<script src="{% static 'js/cp_agent/text-editing.js' %}"></script>
+<script src="{% static 'js/cp_agent/image.js' %}"></script>
+<script src="{% static 'js/cp_agent/answer-checker.js' %}"></script>
+<script src="{% static 'js/cp_agent/events.js' %}"></script>
+<script src="{% static 'js/cp_agent/init.js' %}"></script>
+
+<!-- 전역 함수들 및 새로운 함수들 -->
+<script>
+// 기존 함수들을 전역으로 노출 (하위 호환성)// HTML 파일 내 JavaScript 섹션 수정사항
+
+// 기존 함수들을 전역으로 노출 (하위 호환성) - 수정됨
+function togglePanel(panel) { CPAgent.UI.togglePanel(panel); }
+function switchTab(tab) { CPAgent.UI.switchTab(tab); }
+function switchPreviewTab(tab) { CPAgent.UI.switchPreviewTab(tab); }
+function toggleAccordion(header) { CPAgent.UI.toggleAccordion(header); }
+function loadContent(id) { 
+    console.log('loadContent 호출됨, ID:', id);
+    if (window.CPAgent && CPAgent.Content && typeof CPAgent.Content.loadContent === 'function') {
+        CPAgent.Content.loadContent(id);
+    } else {
+        console.error('CPAgent.Content.loadContent가 정의되지 않음');
+    }
+}
+function selectTemplateFromList(id) { 
+    console.log('selectTemplateFromList 호출됨, ID:', id);
+    if (window.CPAgent && CPAgent.Template && typeof CPAgent.Template.selectTemplateFromList === 'function') {
+        CPAgent.Template.selectTemplateFromList(id);
+    } else {
+        console.error('CPAgent.Template.selectTemplateFromList가 정의되지 않음');
+        // 대체 함수 호출
+        if (window.CPAgent && CPAgent.Content && typeof CPAgent.Content.applyTemplate === 'function') {
+            CPAgent.Content.applyTemplate(id);
+        }
+    }
+}
+function searchContents() { 
+    if (window.CPAgent && CPAgent.Data && typeof CPAgent.Data.searchContents === 'function') {
+        CPAgent.Data.searchContents();
+    } else {
+        console.warn('CPAgent.Data.searchContents가 정의되지 않음');
+    }
+}
+function searchTemplates() { 
+    if (window.CPAgent && CPAgent.Data && typeof CPAgent.Data.searchTemplates === 'function') {
+        CPAgent.Data.searchTemplates();
+    } else {
+        console.warn('CPAgent.Data.searchTemplates가 정의되지 않음');
+    }
+}
+
+/**
+ * HTML탭 아코디언 토글 함수 - 수정됨
+ */
+ function toggleHtmlTabAccordion(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.accordion-icon');
+    const section = header.closest('.accordion-section');
+    const sectionType = section.getAttribute('data-section');
+    const isOpen = content.style.height && content.style.height !== '0px';
+    
+    console.log(`아코디언 토글: ${sectionType}, 현재 상태: ${isOpen ? '열림' : '닫힘'}`);
+    
+    if (isOpen) {
+        // 닫기
+        content.style.height = '0px';
+        icon.style.transform = 'rotate(0deg)';
+        section.classList.remove('expanded');
+        console.log(`${sectionType} 아코디언 닫힘`);
+    } else {
+        // 열기 - 높이 계산 개선
+        const innerElement = content.querySelector('.accordion-inner');
+        if (innerElement) {
+            // 임시로 보이게 하여 실제 높이 측정
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+            const realHeight = content.scrollHeight;
+            
+            // 다시 0으로 설정한 후 애니메이션으로 열기
+            content.style.height = '0px';
+            content.style.overflow = 'hidden';
+            
+            // 브라우저가 변경사항을 렌더링하도록 강제
+            content.offsetHeight;
+            
+            // 실제 높이로 설정
+            content.style.height = Math.max(realHeight, 150) + 'px';
+            icon.style.transform = 'rotate(180deg)';
+            section.classList.add('expanded');
+            
+            console.log(`${sectionType} 아코디언 열림, 높이: ${realHeight}px`);
+        }
+        
+        // 에디터 리프레시 (열릴 때)
+        setTimeout(() => {
+            if (sectionType === 'metadata' && window.metaEditorInstance_html) {
+                try {
+                    window.metaEditorInstance_html.refresh();
+                    console.log('메타데이터 에디터 리프레시 완료');
+                } catch (e) {
+                    console.warn('메타데이터 에디터 리프레시 실패:', e);
+                }
+            } else if (sectionType === 'tags' && window.tagsEditorInstance_html) {
+                try {
+                    window.tagsEditorInstance_html.refresh();
+                    console.log('태그 에디터 리프레시 완료');
+                } catch (e) {
+                    console.warn('태그 에디터 리프레시 실패:', e);
+                }
+            }
+        }, 350); // 애니메이션 완료 후
+    }
+    
+    // HTML 영역 크기 조정
+    adjustHtmlAreaHeight();
+}
+/**
+ * 모든 아코디언 토글 - 수정됨
+ */
+ function toggleAllAccordions() {
+    const accordions = document.querySelectorAll('#htmlTab .accordion-header');
+    const expandedCount = document.querySelectorAll('#htmlTab .accordion-section.expanded').length;
+    const shouldCollapse = expandedCount > 0;
+    
+    console.log(`모든 아코디언 토글, 현재 ${expandedCount}개 열림, ${shouldCollapse ? '닫기' : '열기'} 모드`);
+    
+    accordions.forEach(header => {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector('.accordion-icon');
+        const section = header.closest('.accordion-section');
+        const isOpen = content.style.height && content.style.height !== '0px';
+        
+        if (shouldCollapse && isOpen) {
+            // 모두 닫기
+            content.style.height = '0px';
+            icon.style.transform = 'rotate(0deg)';
+            section.classList.remove('expanded');
+        } else if (!shouldCollapse && !isOpen) {
+            // 모두 열기 - 높이 계산 개선
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+            const realHeight = content.scrollHeight;
+            content.style.height = '0px';
+            content.style.overflow = 'hidden';
+            content.offsetHeight; // 강제 렌더링
+            
+            content.style.height = Math.max(realHeight, 150) + 'px';
+            icon.style.transform = 'rotate(180deg)';
+            section.classList.add('expanded');
+        }
+    });
+    
+    // HTML 영역 크기 조정
+    setTimeout(adjustHtmlAreaHeight, 350);
+    
+    // 에디터들 리프레시
+    setTimeout(() => {
+        if (window.metaEditorInstance_html) {
+            try {
+                window.metaEditorInstance_html.refresh();
+                console.log('메타데이터 에디터 일괄 리프레시 완료');
+            } catch (e) {
+                console.warn('메타데이터 에디터 일괄 리프레시 실패:', e);
+            }
+        }
+        if (window.tagsEditorInstance_html) {
+            try {
+                window.tagsEditorInstance_html.refresh();
+                console.log('태그 에디터 일괄 리프레시 완료');
+            } catch (e) {
+                console.warn('태그 에디터 일괄 리프레시 실패:', e);
+            }
+        }
+    }, 400);
+}
+/**
+ * HTML 영역 높이 조정 - 수정됨
+ */
+ function adjustHtmlAreaHeight() {
+    const htmlTab = document.getElementById('htmlTab');
+    if (!htmlTab) return;
+    
+    const expandedSections = htmlTab.querySelectorAll('.accordion-section.expanded');
+    const expandedCount = expandedSections.length;
+    
+    console.log(`HTML 영역 높이 조정, 확장된 아코디언: ${expandedCount}개`);
+    
+    // 확장된 아코디언 수에 따라 HTML 영역 높이 조정
+    const htmlArea = htmlTab.querySelector('.html-main-area');
+    const answerArea = htmlTab.querySelector('.answer-area');
+    
+    if (expandedCount === 0) {
+        // 모두 닫힌 경우: HTML 70%, 답안 30%
+        htmlArea.style.height = '70%';
+        answerArea.style.height = '30%';
+    } else if (expandedCount === 1) {
+        // 하나 열린 경우: HTML 50%, 답안 25%, 아코디언 25%
+        htmlArea.style.height = '50%';
+        answerArea.style.height = '25%';
+    } else {
+        // 둘 다 열린 경우: HTML 40%, 답안 20%, 아코디언들 40%
+        htmlArea.style.height = '40%';
+        answerArea.style.height = '20%';
+    }
+    
+    // HTML 에디터 리프레시
+    setTimeout(() => {
+        if (window.htmlEditorInstance) {
+            try {
+                window.htmlEditorInstance.refresh();
+                console.log('HTML 에디터 리프레시 완료');
+            } catch (e) {
+                console.warn('HTML 에디터 리프레시 실패:', e);
+            }
+        }
+    }, 100);
+}
+
+/**
+ * HTML탭 아코디언 초기화 - 수정됨
+ */
+ function initializeHtmlTabAccordions() {
+    console.log('HTML탭 아코디언 초기화 시작 - 기본 열림 상태로 설정');
+    
+    // 기본적으로 모든 아코디언을 열어둠
+    const accordionSections = document.querySelectorAll('#htmlTab .accordion-section');
+    
+    accordionSections.forEach((section, index) => {
+        const content = section.querySelector('.accordion-content');
+        const icon = section.querySelector('.accordion-icon');
+        const sectionType = section.getAttribute('data-section');
+        
+        if (content && icon) {
+            // 아코디언을 열린 상태로 초기화
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+            const realHeight = content.scrollHeight;
+            content.style.overflow = 'hidden';
+            content.style.height = Math.max(realHeight, 150) + 'px';
+            
+            icon.style.transform = 'rotate(180deg)';
+            section.classList.add('expanded');
+            
+            console.log(`${sectionType} 아코디언 초기화 완료 (열림), 높이: ${realHeight}px`);
+        }
+    });
+    
+    // HTML 영역 크기 초기 조정
+    adjustHtmlAreaHeight();
+    
+    // 에디터들 초기화 및 리프레시
+    setTimeout(() => {
+        if (window.metaEditorInstance_html) {
+            try {
+                window.metaEditorInstance_html.refresh();
+                console.log('메타데이터 에디터 초기 리프레시 완료');
+            } catch (e) {
+                console.warn('메타데이터 에디터 초기 리프레시 실패:', e);
+            }
+        }
+        if (window.tagsEditorInstance_html) {
+            try {
+                window.tagsEditorInstance_html.refresh();
+                console.log('태그 에디터 초기 리프레시 완료');
+            } catch (e) {
+                console.warn('태그 에디터 초기 리프레시 실패:', e);
+            }
+        }
+    }, 200);
+    
+    console.log('HTML탭 아코디언 초기화 완료 - 모든 아코디언 열림');
+}
+
+/**
+ * switchPreviewTab 함수 확장 (아코디언 강제 표시 포함) - 수정됨
+ */
+ const originalSwitchPreviewTab = window.switchPreviewTab;
+ window.switchPreviewTab = function(tab) {
+     console.log(`탭 전환: ${tab}`);
+     
+     // 기존 탭 전환 로직 실행
+     if (originalSwitchPreviewTab) {
+         originalSwitchPreviewTab(tab);
+     } else {
+         // 기본 탭 전환 로직
+         $('.preview-tab-content').removeClass('active').hide();
+         $('.preview-tab-btn').removeClass('border-gray-600 bg-white').addClass('border-transparent');
+         
+         $(`#${tab}Tab`).addClass('active').show();
+         $(`.preview-tab-btn[data-tab="${tab}"]`).addClass('border-gray-600 bg-white').removeClass('border-transparent');
+     }
+     
+     // HTML탭으로 전환시 아코디언 강제 표시 및 에디터 리프레시
+     if (tab === 'html') {
+         setTimeout(() => {
+             console.log('HTML탭 전환 완료, 아코디언 강제 표시 시작');
+             
+             // 아코디언 강제 표시
+             forceShowHtmlTabAccordions();
+             
+             // 모든 에디터 리프레시
+             if (window.htmlEditorInstance) {
+                 window.htmlEditorInstance.refresh();
+             }
+             if (window.answerEditor) {
+                 window.answerEditor.refresh();
+             }
+             if (window.metaEditorInstance_html) {
+                 window.metaEditorInstance_html.refresh();
+             }
+             if (window.tagsEditorInstance_html) {
+                 window.tagsEditorInstance_html.refresh();
+             }
+             
+             console.log('HTML탭 전환 완료, 모든 에디터 리프레시됨');
+         }, 100);
+     }
+ };
+
+/**
+ * HTML탭으로 전환 시 아코디언 상태 확인 및 강제 표시
+ */
+ function forceShowHtmlTabAccordions() {
+    console.log('HTML탭 아코디언 강제 표시 시작');
+    
+    const accordionSections = document.querySelectorAll('#htmlTab .accordion-section');
+    
+    accordionSections.forEach(section => {
+        const content = section.querySelector('.accordion-content');
+        const icon = section.querySelector('.accordion-icon');
+        const sectionType = section.getAttribute('data-section');
+        
+        if (content && icon) {
+            // 강제로 표시
+            content.style.height = 'auto';
+            content.style.overflow = 'visible';
+            const realHeight = content.scrollHeight;
+            content.style.overflow = 'hidden';
+            content.style.height = Math.max(realHeight, 150) + 'px';
+            
+            icon.style.transform = 'rotate(180deg)';
+            section.classList.add('expanded');
+            
+            console.log(`${sectionType} 아코디언 강제 표시 완료, 높이: ${realHeight}px`);
+        }
+    });
+    
+    // 에디터들 강제 리프레시
+    setTimeout(() => {
+        if (window.metaEditorInstance_html) {
+            window.metaEditorInstance_html.refresh();
+        }
+        if (window.tagsEditorInstance_html) {
+            window.tagsEditorInstance_html.refresh();
+        }
+        adjustHtmlAreaHeight();
+    }, 100);
+}
+
+
+// 새로운 함수들 - 수정됨
+function previewSelectedTemplate() {
+    const templateId = $('#template_select').val();
+    if (!templateId) {
+        showToast('템플릿을 선택해주세요', 'warning');
+        return;
+    }
+    if (window.CPAgent && CPAgent.Content && typeof CPAgent.Content.loadTemplatePreview === 'function') {
+        CPAgent.Content.loadTemplatePreview(templateId);
+    } else {
+        console.error('CPAgent.Content.loadTemplatePreview가 정의되지 않음');
+    }
+}
+
+function resetQuestionState() {
+    const $container = $('#previewContent');
+    
+    // 모든 입력 초기화
+    $container.find('input[type="radio"], input[type="checkbox"]').prop('checked', false);
+    $container.find('input[type="text"], textarea').val('');
+    $container.find('select').prop('selectedIndex', 0);
+    
+    // 스타일 초기화
+    $container.find('.selected-choice, .has-content').removeClass('selected-choice has-content');
+    $container.find('.answer-result').remove();
+    
+    showToast('문항 상태가 초기화되었습니다', 'info');
+}
+
+function hideRenderStatus() {
+    $('#renderStatus').addClass('hidden');
+}
+
+function updateQuestionStats(container) {
+    const $stats = $('#questionStats');
+    const $container = $(container);
+    
+    // 문항 타입 감지
+    const radioCount = $container.find('input[type="radio"]').length;
+    const checkboxCount = $container.find('input[type="checkbox"]').length;
+    const textCount = $container.find('input[type="text"], textarea').length;
+    
+    let questionType = '알 수 없음';
+    if (radioCount > 0) questionType = '객관식';
+    else if (checkboxCount > 0) questionType = '다중선택';
+    else if (textCount > 0) questionType = '주관식';
+    
+    $('#detectedType').text(questionType);
+    $('#inputCount').text(`${radioCount + checkboxCount + textCount}개`);
+    
+    // 메타데이터에서 정보 가져오기 - window 참조로 수정
+    try {
+        const metaData = JSON.parse(window.metaEditor ? window.metaEditor.getValue() : '{}');
+        $('#estimatedTime').text(metaData.estimated_time ? `${metaData.estimated_time}초` : '-');
+        $('#difficulty').text(metaData.difficulty || '-');
+    } catch (e) {
+        $('#estimatedTime').text('-');
+        $('#difficulty').text('-');
+    }
+    
+    $stats.removeClass('hidden');
+}
+
+// HTML 에디터 코드 정리 - 수정됨
+function formatHtmlEditor() {
+    if (window.htmlEditorInstance) {
+        const html = window.htmlEditorInstance.getValue();
+        try {
+            // 간단한 HTML 포맷팅 (들여쓰기)
+            const formatted = html
+                .replace(/></g, '>\n<')
+                .replace(/^\s+|\s+$/gm, '')
+                .split('\n')
+                .map((line, index) => {
+                    const level = (line.match(/</g) || []).length - (line.match(/</g) || []).length;
+                    return '  '.repeat(Math.max(0, level)) + line.trim();
+                })
+                .join('\n');
+            
+            window.htmlEditorInstance.setValue(formatted);
+            showToast('HTML 코드가 정리되었습니다', 'success');
+        } catch (e) {
+            showToast('HTML 포맷팅 중 오류가 발생했습니다', 'warning');
+        }
+    }
+}
+
+// HTML 문법 검사 - 수정됨
+function validateHtmlSyntax() {
+    if (window.htmlEditorInstance) {
+        const html = window.htmlEditorInstance.getValue();
+        if (!html.trim()) {
+            showToast('HTML 내용이 없습니다', 'warning');
+            return;
+        }
+        
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const errors = doc.querySelectorAll('parsererror');
+            
+            if (errors.length === 0) {
+                showToast('HTML 문법이 올바릅니다', 'success');
+            } else {
+                showToast('HTML 문법 오류가 있습니다', 'error');
+            }
+        } catch (e) {
+            showToast('HTML 검증 중 오류가 발생했습니다', 'error');
+        }
+    }
+}
+
+// 답안 템플릿 생성 - 수정됨
+function generateAnswerTemplate() {
+    const template = {
+        "correct": "",
+        "explanation": "",
+        "choices": ["선택지1", "선택지2", "선택지3", "선택지4"],
+        "type": "multiple-choice"
+    };
+    
+    if (window.answerEditor) {
+        window.answerEditor.setValue(JSON.stringify(template, null, 2));
+        showToast('답안 템플릿이 생성되었습니다', 'success');
+    }
+}
+
+// 답안 JSON 검증 - 수정됨
+function validateAnswerJson() {
+    if (window.answerEditor) {
+        try {
+            const json = window.answerEditor.getValue();
+            JSON.parse(json);
+            showToast('답안 JSON이 올바릅니다', 'success');
+        } catch (e) {
+            showToast('답안 JSON 형식이 올바르지 않습니다', 'error');
+        }
+    }
+}
+
+// 메타데이터 템플릿 생성 - 수정됨
+function generateMetadataTemplate() {
+    const template = {
+        "difficulty": "중",
+        "estimated_time": 300,
+        "subject": "",
+        "chapter": "",
+        "learning_objectives": [],
+        "keywords": []
+    };
+    
+    if (window.metaEditorInstance_html) {
+        window.metaEditorInstance_html.setValue(JSON.stringify(template, null, 2));
+        showToast('메타데이터 템플릿이 생성되었습니다', 'success');
+    }
+}
+
+// 메타데이터 JSON 검증 - 수정됨
+function validateMetadataJson() {
+    if (window.metaEditorInstance_html) {
+        try {
+            const json = window.metaEditorInstance_html.getValue();
+            JSON.parse(json);
+            showToast('메타데이터 JSON이 올바릅니다', 'success');
+        } catch (e) {
+            showToast('메타데이터 JSON 형식이 올바르지 않습니다', 'error');
+        }
+    }
+}
+
+// 태그 템플릿 생성 (템플릿 형식) - 수정됨
+function generateTagsTemplate() {
+    const template = {
+        "competency": "수리능력",
+        "sub_competency": "도표분석능력",
+        "difficulty": "중",
+        "question_type": "multiple-choice",
+        "order": 1
+    };
+    
+    if (window.tagsEditorInstance_html) {
+        window.tagsEditorInstance_html.setValue(JSON.stringify(template, null, 2));
+        showToast('태그 템플릿이 생성되었습니다', 'success');
+    }
+}
+
+// 태그 JSON 검증 - 수정됨
+function validateTagsJson() {
+    if (window.tagsEditorInstance_html) {
+        try {
+            const json = window.tagsEditorInstance_html.getValue();
+            const parsed = JSON.parse(json);
+            
+            // 필수 필드 확인
+            const requiredFields = ['competency', 'difficulty', 'question_type'];
+            const missingFields = requiredFields.filter(field => !parsed[field]);
+            
+            if (missingFields.length > 0) {
+                showToast(`필수 필드가 누락되었습니다: ${missingFields.join(', ')}`, 'warning');
+            } else {
+                showToast('태그 JSON이 올바릅니다', 'success');
+            }
+        } catch (e) {
+            showToast('태그 JSON 형식이 올바르지 않습니다', 'error');
+        }
+    }
+}
+
+/**
+ * 모든 에디터 상태 확인 및 디버깅 - 수정됨
+ */
+function checkAllEditorsStatus() {
+    console.log('=== 에디터 상태 체크 ===');
+    
+    const editors = {
+        'answerInputEditor': window.answerInputEditor,
+        'metaEditor': window.metaEditor,
+        'tagsEditor': window.tagsEditor,
+        'htmlEditorInstance': window.htmlEditorInstance,
+        'answerEditor': window.answerEditor,
+        'metaEditorInstance_html': window.metaEditorInstance_html,
+        'tagsEditorInstance_html': window.tagsEditorInstance_html
+    };
+    
+    Object.keys(editors).forEach(name => {
+        const editor = editors[name];
+        const status = {
+            exists: !!editor,
+            hasSetValue: editor && typeof editor.setValue === 'function',
+            hasGetValue: editor && typeof editor.getValue === 'function',
+            hasCM: editor && editor.constructor && editor.constructor.name === 'CodeMirror'
+        };
+        
+        console.log(`${name}:`, status);
+        
+        if (editor && editor.getValue) {
+            try {
+                const content = editor.getValue();
+                console.log(`  └ 내용 길이: ${content.length}자`);
+            } catch (e) {
+                console.log(`  └ 값 읽기 실패:`, e.message);
+            }
+        }
+    });
+    
+    // DOM 요소 상태도 체크
+    console.log('\n=== DOM 컨테이너 상태 ===');
+    const containers = [
+        'answerInputEditor',
+        'metaEditor', 
+        'tagsEditor',
+        'htmlEditorContainer',
+        'answerEditorContainer',
+        'metaEditorContainer',
+        'tagsEditorContainer'
+    ];
+    
+    containers.forEach(id => {
+        const elem = document.getElementById(id);
+        console.log(`${id}: ${elem ? '존재' : '없음'}`);
+        if (elem) {
+            console.log(`  └ CodeMirror 인스턴스: ${elem.CodeMirror ? '있음' : '없음'}`);
+        }
+    });
+}
+
+// HTML탭 에디터 재초기화 - 수정됨
+function reinitializeHtmlTabEditors() {
+    console.log('HTML탭 에디터 재초기화 시작');
+    
+    try {
+        if (window.CPAgent && CPAgent.Editor && CPAgent.Editor.forceReinitializeHtmlTab) {
+            CPAgent.Editor.forceReinitializeHtmlTab();
+        } else {
+            // 수동 재초기화
+            console.log('CPAgent.Editor.forceReinitializeHtmlTab 없음, 수동 재초기화');
+            
+            // 기존 에디터 제거
+            if (window.metaEditorInstance_html) {
+                try {
+                    window.metaEditorInstance_html.toTextArea();
+                } catch (e) {}
+                window.metaEditorInstance_html = null;
+            }
+            
+            if (window.tagsEditorInstance_html) {
+                try {
+                    window.tagsEditorInstance_html.toTextArea();
+                } catch (e) {}
+                window.tagsEditorInstance_html = null;
+            }
+            
+            // 메타데이터 에디터 재생성
+            const metaContainer = document.getElementById('metaEditorContainer');
+            if (metaContainer) {
+                metaContainer.innerHTML = '';
+                
+                window.metaEditorInstance_html = CodeMirror(metaContainer, {
+                    value: '{\n  "difficulty": "중",\n  "estimated_time": 300\n}',
+                    mode: 'javascript',
+                    theme: 'material',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    viewportMargin: Infinity
+                });
+                window.metaEditorInstance_html.setSize(null, '100%');
+                console.log('메타데이터 에디터 재생성 완료');
+            }
+            
+            // 태그 에디터 재생성
+            const tagsContainer = document.getElementById('tagsEditorContainer');
+            if (tagsContainer) {
+                tagsContainer.innerHTML = '';
+                
+                window.tagsEditorInstance_html = CodeMirror(tagsContainer, {
+                    value: '{\n  "competency": "수리능력",\n  "question_type": "multiple-choice"\n}',
+                    mode: 'javascript',
+                    theme: 'material',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    viewportMargin: Infinity
+                });
+                window.tagsEditorInstance_html.setSize(null, '100%');
+                console.log('태그 에디터 재생성 완료');
+            }
+        }
+        
+        showToast('HTML탭 에디터가 재초기화되었습니다', 'success');
+        
+    } catch (error) {
+        console.error('HTML탭 에디터 재초기화 실패:', error);
+        showToast('재초기화 중 오류 발생', 'error');
+    }
+}
+
+// 페이지 로드 완료 후 HTML탭 아코디언 상태 확인
+{% comment %} $(document).ready(function() {
+    // HTML탭이 이미 활성화되어 있다면 아코디언 표시
+    setTimeout(() => {
+        const currentTab = $('.preview-tab-btn.border-gray-600').data('tab');
+        if (currentTab === 'html') {
+            console.log('페이지 로드 시 HTML탭이 활성화되어 있음, 아코디언 표시');
+            forceShowHtmlTabAccordions();
+        }
+    }, 1000);
+}); {% endcomment %}
+
+console.log('HTML 탭 아코디언 수정 코드 로드 완료');
+</script>
+{% endblock %}

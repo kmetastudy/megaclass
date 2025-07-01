@@ -1,0 +1,165 @@
+<!-- teacher/templates/teacher/courses/chasis/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ subchapter.sub_chapter_title }} - 차시 목록{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:course_detail' course.id %}" class="text-blue-600 hover:text-blue-800">{{ course.subject_name }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:chapter_list' course.id %}" class="text-blue-600 hover:text-blue-800">{{ chapter.chapter_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:subchapter_list' chapter.id %}" class="text-blue-600 hover:text-blue-800">{{ subchapter.sub_chapter_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li class="text-gray-500">차시 목록</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">차시 목록</h1>
+                <p class="text-gray-600">{{ subchapter.sub_chapter_title }}의 차시들</p>
+            </div>
+            <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+               class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-plus mr-2"></i>새 차시 추가
+            </a>
+        </div>
+        
+        <!-- 소단원 정보 -->
+        {% if subchapter.description %}
+        <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-gray-700">{{ subchapter.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 차시 목록 -->
+    {% if chasis %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for chasi in chasis %}
+        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition duration-300">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            {{ chasi.chasi_order }}차시
+                        </h3>
+                        <h4 class="text-xl font-bold text-gray-900 mt-1">{{ chasi.chasi_title }}</h4>
+                    </div>
+                    <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                        {{ chasi.slide_count|default:0 }} 슬라이드
+                    </span>
+                </div>
+                
+                {% if chasi.description %}
+                <p class="text-gray-600 text-sm mb-4">{{ chasi.description|truncatewords:20 }}</p>
+                {% endif %}
+                
+                {% if chasi.learning_objectives %}
+                <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <h5 class="text-sm font-medium text-blue-800 mb-1">학습목표</h5>
+                    <p class="text-blue-700 text-sm">{{ chasi.learning_objectives|truncatewords:15 }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="flex items-center text-gray-500 text-xs mb-4">
+                    <i class="fas fa-calendar mr-1"></i>
+                    {{ chasi.created_at|date:"Y.m.d" }}
+                    {% if chasi.is_published %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-globe mr-1 text-green-600"></i>
+                    <span class="text-green-600">공개</span>
+                    {% else %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-lock mr-1 text-gray-600"></i>
+                    <span class="text-gray-600">비공개</span>
+                    {% endif %}
+                </div>
+                
+                <div class="flex space-x-2">
+                    <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                       class="flex-1 bg-purple-600 text-white text-center py-2 px-3 rounded-lg hover:bg-purple-700 transition duration-200 text-sm">
+                        <i class="fas fa-images mr-1"></i>슬라이드 관리
+                    </a>
+                    <a href="{% url 'teacher:chasi_edit' chasi.id %}" 
+                       class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </a>
+                    <a href="{% url 'teacher:chasi_preview' chasi.id %}" 
+                       class="bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-700 transition duration-200 text-sm">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 빈 상태 -->
+    <div class="text-center py-16">
+        <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">차시가 없습니다</h3>
+        <p class="text-gray-500 mb-6">{{ subchapter.sub_chapter_title }}의 첫 번째 차시를 추가해보세요</p>
+        <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+           class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>첫 번째 차시 추가
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 추가 액션 버튼 -->
+{% if chasis %}
+<div class="fixed bottom-8 right-8">
+    <div class="relative">
+        <button onclick="toggleActionMenu()" 
+                class="bg-purple-600 text-white rounded-full p-4 shadow-lg hover:bg-purple-700 transition duration-200">
+            <i class="fas fa-ellipsis-v"></i>
+        </button>
+        
+        <div id="actionMenu" class="hidden absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px]">
+            <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+               class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-plus mr-2"></i>새 차시 추가
+            </a>
+            <a href="{% url 'teacher:subchapter_edit' subchapter.id %}" 
+               class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-edit mr-2"></i>소단원 수정
+            </a>
+            <hr class="my-2">
+            <a href="{% url 'teacher:chapter_list' course.id %}" 
+               class="block px-4 py-2 text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-arrow-left mr-2"></i>대단원 목록으로
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleActionMenu() {
+    const menu = document.getElementById('actionMenu');
+    menu.classList.toggle('hidden');
+}
+
+// 외부 클릭 시 메뉴 닫기
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('actionMenu');
+    const button = event.target.closest('button');
+    
+    if (!button || !button.onclick || button.onclick.toString().indexOf('toggleActionMenu') === -1) {
+        if (!menu.contains(event.target)) {
+            menu.classList.add('hidden');
+        }
+    }
+});
+</script>
+{% endblock %}

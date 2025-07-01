@@ -1,0 +1,803 @@
+<!-- teacher/templates/teacher/contents/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}콘텐츠 관리{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">콘텐츠 관리</h1>
+                <p class="text-gray-600">수업에 사용할 콘텐츠를 관리합니다</p>
+            </div>
+            <a href="{% url 'teacher:contents_create' %}" 
+               class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-200">
+                <i class="fas fa-plus mr-2"></i>새 콘텐츠 만들기
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 및 검색 -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <form method="get" class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       name="search" 
+                       value="{{ search_query }}"
+                       placeholder="콘텐츠 검색..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+            </div>
+            <div class="md:w-48">
+                <select name="type" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="">모든 타입</option>
+                    {% for content_type in content_types %}
+                    <option value="{{ content_type.id }}" {% if selected_type == content_type.id|stringformat:"s" %}selected{% endif %}>
+                        {{ content_type.type_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                <i class="fas fa-search mr-2"></i>검색
+            </button>
+        </form>
+    </div>
+
+    <!-- 콘텐츠 목록 -->
+    {% if contents %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for content in contents %}
+        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition duration-300">
+            <div class="p-6">
+                <div class="flex items-start justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-gray-800 line-clamp-2">{{ content.title }}</h3>
+                    <span class="bg-{{ content.content_type.color|default:'blue' }}-100 text-{{ content.content_type.color|default:'blue' }}-800 px-2 py-1 rounded text-xs whitespace-nowrap ml-2">
+                        {{ content.content_type.type_name }}
+                    </span>
+                </div>
+                
+                <p class="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {{ content.get_preview }}
+                </p>
+                
+                <div class="flex items-center text-gray-500 text-xs mb-4">
+                    <i class="fas fa-calendar mr-1"></i>
+                    {{ content.created_at|date:"Y.m.d" }}
+                    {% if content.answer %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-check-circle mr-1"></i>
+                    정답 있음
+                    {% endif %}
+                    {% if content.tags %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-tag mr-1"></i>
+                    평가기준 있음
+                    {% endif %}
+                </div>
+                
+                <div class="flex space-x-2">
+                    <a href="{% url 'teacher:contents_edit' content.id %}" 
+                       class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </a>
+                    <button onclick="previewContent({{ content.id }})" 
+                            class="flex-1 bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-700 transition duration-200 text-sm">
+                        <i class="fas fa-eye mr-1"></i>미리보기
+                    </button>
+                    <a href="{% url 'teacher:contents_delete' content.id %}" 
+                       onclick="return confirm('정말 삭제하시겠습니까?')"
+                       class="bg-red-600 text-white py-2 px-3 rounded-lg hover:bg-red-700 transition duration-200 text-sm">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 페이지네이션 -->
+    {% if is_paginated %}
+    <div class="mt-8 flex justify-center">
+        <nav class="flex items-center space-x-2">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="px-3 py-2 bg-purple-600 text-white rounded">{{ num }}</span>
+                {% else %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+                   class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+               class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- 빈 상태 -->
+    <div class="text-center py-16">
+        <i class="fas fa-file-alt text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">콘텐츠가 없습니다</h3>
+        <p class="text-gray-500 mb-6">첫 번째 콘텐츠를 만들어보세요</p>
+        <a href="{% url 'teacher:contents_create' %}" 
+           class="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>콘텐츠 만들기
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 미리보기 모달 -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">콘텐츠 미리보기</h3>
+                <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="previewContent" class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <!-- 미리보기 내용이 여기에 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+   
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+
+<script>
+function previewContent(contentId) {
+    // API 호출하여 콘텐츠 내용 가져오기
+    fetch(`/teacher/api/contents/${contentId}/preview/`)
+        .then(response => response.json())
+        .then(data => {
+            const previewEl = document.getElementById('previewContent');
+            previewEl.innerHTML = `
+                <h4 class="text-xl font-semibold mb-2">${data.title}</h4>
+                <div class="mb-3">
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                        ${data.content_type}
+                    </span>
+                </div>
+                <div class="prose max-w-none">
+                    ${data.page}
+                </div>
+                ${data.answer ? `
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h5 class="font-semibold text-gray-700 mb-2">정답</h5>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            ${data.answer}
+                        </div>
+                    </div>
+                ` : ''}
+                ${data.tags && Object.keys(data.tags).length > 0 ? `
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h5 class="font-semibold text-gray-700 mb-2">평가 기준</h5>
+                        <pre class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm">${JSON.stringify(data.tags, null, 2)}</pre>
+                    </div>
+                ` : ''}
+            `;
+            document.getElementById('previewModal').classList.remove('hidden');
+        })
+        .catch(error => {
+            alert('미리보기 로딩 중 오류가 발생했습니다.');
+            console.error(error);
+        });
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closePreview();
+    }
+});
+</script>
+{% endblock %}
+
+<!-- teacher/templates/teacher/contents/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}새 콘텐츠 만들기{% endblock %}
+
+{% block extra_css %}
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<style>
+    .CodeMirror {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        height: 400px;
+    }
+    
+    .content-type-help {
+        display: none;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #1e40af;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">새 콘텐츠 만들기</h1>
+        <p class="text-gray-600">수업에서 사용할 콘텐츠를 생성합니다</p>
+    </div>
+
+    <form method="post" id="contentForm">
+        {% csrf_token %}
+        {% if from_chasi_id %}
+        <input type="hidden" name="from_chasi" value="{{ from_chasi_id }}">
+        {% endif %}
+        {% if return_url %}
+        <input type="hidden" name="return_url" value="{{ return_url }}">
+        {% endif %}
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 메인 폼 영역 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 기본 정보 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">기본 정보</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.title.label }} *
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.content_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.content_type.label }} *
+                            </label>
+                            {{ form.content_type }}
+                            {% if form.content_type.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.content_type.errors.0 }}</p>
+                            {% endif %}
+                            
+                            <!-- 콘텐츠 타입별 도움말 -->
+                            <div id="help-multiple-choice" class="content-type-help">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                객관식 문제: 보기를 HTML의 &lt;ol&gt; 또는 &lt;ul&gt; 태그로 작성하고, 정답란에 정답 번호를 입력하세요.
+                            </div>
+                            <div id="help-short-answer" class="content-type-help">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                단답형 문제: 답변 입력란은 &lt;input type="text"&gt; 태그로 생성되며, 정답란에 정확한 답을 입력하세요.
+                            </div>
+                            <div id="help-essay" class="content-type-help">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                서술형 문제: 답변 입력란은 &lt;textarea&gt; 태그로 생성됩니다. 평가 기준을 태그란에 JSON 형식으로 입력하세요.
+                            </div>
+                            <div id="help-report" class="content-type-help">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                리포트/기록 제출: 파일 업로드나 텍스트 입력 폼을 HTML로 구성하세요.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 콘텐츠 내용 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">콘텐츠 내용</h3>
+                    
+                    <div>
+                        <label for="{{ form.page.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.page.label }} *
+                        </label>
+                        <div class="mb-2">
+                            <button type="button" onclick="insertTemplate('multiple-choice')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded mr-2">
+                                객관식 템플릿
+                            </button>
+                            <button type="button" onclick="insertTemplate('short-answer')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded mr-2">
+                                단답형 템플릿
+                            </button>
+                            <button type="button" onclick="insertTemplate('essay')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                서술형 템플릿
+                            </button>
+                        </div>
+                        {{ form.page }}
+                        {% if form.page.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.page.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 정답 및 평가 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">정답 및 평가</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.answer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.answer.label }}
+                            </label>
+                            {{ form.answer }}
+                            <p class="mt-1 text-sm text-gray-500">객관식/단답형 문제의 경우 정답을 입력하세요</p>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.tags.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.tags.label }}
+                            </label>
+                            {{ form.tags }}
+                            <p class="mt-1 text-sm text-gray-500">평가 기준이나 채점 가이드를 JSON 형식으로 입력하세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 사이드바 -->
+            <div class="space-y-6">
+                <!-- 메타데이터 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">메타데이터</h3>
+                    
+                    <div>
+                        <label for="{{ form.meta_data.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.meta_data.label }}
+                        </label>
+                        {{ form.meta_data }}
+                        <p class="mt-1 text-sm text-gray-500">추가 정보를 JSON 형식으로 입력</p>
+                    </div>
+                </div>
+                
+                <!-- 미리보기 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">미리보기</h3>
+                    <button type="button" onclick="previewContent()" 
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-eye mr-2"></i>콘텐츠 미리보기
+                    </button>
+                </div>
+                
+                <!-- 액션 버튼 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <button type="submit" 
+                            class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-200 font-medium mb-3">
+                        <i class="fas fa-save mr-2"></i>콘텐츠 저장
+                    </button>
+                    <a href="{% if from_chasi_id %}{% url 'teacher:chasi_slide_add' from_chasi_id %}{% else %}{% url 'teacher:contents_list' %}{% endif %}" 
+                       class="block w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                        <i class="fas fa-arrow-left mr-2"></i>취소
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 미리보기 모달 -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">콘텐츠 미리보기</h3>
+                <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="previewContent" class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <!-- 미리보기 내용 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- CodeMirror JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
+<script>
+// CodeMirror 초기화
+let htmlEditor, jsonEditor, tagsEditor;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // HTML 에디터
+    htmlEditor = CodeMirror.fromTextArea(document.getElementById('content-editor'), {
+        mode: 'xml',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        autoCloseTags: true
+    });
+    
+    // JSON 에디터들
+    jsonEditor = CodeMirror.fromTextArea(document.getElementById('metadata-editor'), {
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true
+    });
+    
+    tagsEditor = CodeMirror.fromTextArea(document.getElementById('tags-editor'), {
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true
+    });
+    
+    // 초기 JSON 값 설정
+    jsonEditor.setValue('{}');
+    tagsEditor.setValue('{}');
+    
+    // 콘텐츠 타입 변경 시 도움말 표시
+    document.getElementById('id_content_type').addEventListener('change', function() {
+        const selectedText = this.options[this.selectedIndex].text.toLowerCase();
+        
+        // 모든 도움말 숨기기
+        document.querySelectorAll('.content-type-help').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // 선택된 타입의 도움말 표시
+        if (selectedText.includes('객관식')) {
+            document.getElementById('help-multiple-choice').style.display = 'block';
+        } else if (selectedText.includes('단답형')) {
+            document.getElementById('help-short-answer').style.display = 'block';
+        } else if (selectedText.includes('서술형') || selectedText.includes('논술형')) {
+            document.getElementById('help-essay').style.display = 'block';
+        } else if (selectedText.includes('리포트') || selectedText.includes('기록')) {
+            document.getElementById('help-report').style.display = 'block';
+        }
+    });
+});
+
+// 템플릿 삽입
+function insertTemplate(type) {
+    let template = '';
+    
+    switch(type) {
+        case 'multiple-choice':
+            template = `<div class="question">
+    <h4>문제: 다음 중 올바른 것은?</h4>
+    <ol type="1">
+        <li>첫 번째 보기</li>
+        <li>두 번째 보기</li>
+        <li>세 번째 보기</li>
+        <li>네 번째 보기</li>
+    </ol>
+</div>`;
+            break;
+            
+        case 'short-answer':
+            template = `<div class="question">
+    <h4>문제: 다음 빈칸에 알맞은 답을 쓰시오.</h4>
+    <p>_________는 우리나라의 수도입니다.</p>
+    <div class="answer-input">
+        <label>답: <input type="text" name="answer" class="form-input" /></label>
+    </div>
+</div>`;
+            break;
+            
+        case 'essay':
+            template = `<div class="question">
+    <h4>문제: 다음 주제에 대해 서술하시오.</h4>
+    <p>민주주의의 기본 원리에 대해 설명하시오. (200자 이상)</p>
+    <div class="answer-input">
+        <textarea name="answer" rows="10" class="form-textarea w-full" placeholder="답안을 작성하세요..."></textarea>
+    </div>
+</div>`;
+            break;
+    }
+    
+    htmlEditor.setValue(template);
+}
+
+// 미리보기
+function previewContent() {
+    const title = document.getElementById('id_title').value;
+    const contentType = document.getElementById('id_content_type').selectedOptions[0]?.text || '';
+    const content = htmlEditor.getValue();
+    const answer = document.getElementById('id_answer').value;
+    const tags = tagsEditor.getValue();
+    
+    const previewEl = document.getElementById('previewContent');
+    previewEl.innerHTML = `
+        <h4 class="text-xl font-semibold mb-2">${title || '제목 없음'}</h4>
+        <div class="mb-3">
+            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                ${contentType}
+            </span>
+        </div>
+        <div class="prose max-w-none mb-6">
+            ${content}
+        </div>
+        ${answer ? `
+            <div class="border-t border-gray-200 pt-4">
+                <h5 class="font-semibold text-gray-700 mb-2">정답</h5>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    ${answer}
+                </div>
+            </div>
+        ` : ''}
+        ${tags && tags !== '{}' ? `
+            <div class="border-t border-gray-200 pt-4 mt-4">
+                <h5 class="font-semibold text-gray-700 mb-2">평가 기준</h5>
+                <pre class="bg-gray-50 p-4 rounded-lg overflow-x-auto text-sm">${tags}</pre>
+            </div>
+        ` : ''}
+    `;
+    
+    document.getElementById('previewModal').classList.remove('hidden');
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+
+// 폼 제출 전 에디터 값 동기화
+document.getElementById('contentForm').addEventListener('submit', function(e) {
+    document.getElementById('content-editor').value = htmlEditor.getValue();
+    document.getElementById('metadata-editor').value = jsonEditor.getValue();
+    document.getElementById('tags-editor').value = tagsEditor.getValue();
+});
+</script>
+{% endblock %}
+
+<!-- teacher/templates/teacher/contents/edit.html -->
+{% extends 'teacher/contents/create.html' %}
+
+{% block title %}콘텐츠 수정 - {{ object.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">콘텐츠 수정</h1>
+        <p class="text-gray-600">{{ object.title }}의 내용을 수정합니다</p>
+    </div>
+
+    {{ block.super }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<script>
+// 기존 값 로드
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        // 기존 JSON 값이 있으면 로드
+        {% if object.meta_data %}
+        jsonEditor.setValue(JSON.stringify({{ object.meta_data|safe }}, null, 2));
+        {% endif %}
+        
+        {% if object.tags %}
+        tagsEditor.setValue(JSON.stringify({{ object.tags|safe }}, null, 2));
+        {% endif %}
+    }, 100);
+});
+</script>
+{% endblock %}
+
+<!-- teacher/templates/teacher/courses/chasis/slide_edit.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}슬라이드 수정 - {{ object.chasi.chasi_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" class="text-blue-600 hover:text-blue-800">{{ chasi.chasi_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li class="text-gray-500">슬라이드 {{ object.slide_number }} 수정</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">슬라이드 수정</h1>
+        <p class="text-gray-600">{{ chasi.chasi_title }} - 슬라이드 {{ object.slide_number }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 메인 폼 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.slide_title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.slide_title.label }}
+                            </label>
+                            {{ form.slide_title }}
+                            {% if form.slide_title.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.slide_title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.content.label }} *
+                            </label>
+                            {{ form.content }}
+                            {% if form.content.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                            {% endif %}
+                            
+                            <!-- 현재 콘텐츠 정보 -->
+                            <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h5 class="font-medium text-blue-800 mb-2">현재 콘텐츠</h5>
+                                <p class="text-sm text-blue-700">{{ object.content.title }}</p>
+                                <span class="inline-block mt-1 bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                    {{ object.content_type.type_name }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.instructor_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.instructor_notes.label }}
+                            </label>
+                            {{ form.instructor_notes }}
+                            {% if form.instructor_notes.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.instructor_notes.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.estimated_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.estimated_time.label }}
+                            </label>
+                            {{ form.estimated_time }}
+                            {% if form.estimated_time.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.estimated_time.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 버튼 -->
+                    <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                        <button type="submit" 
+                                class="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-200 font-medium">
+                            <i class="fas fa-save mr-2"></i>변경사항 저장
+                        </button>
+                        <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                           class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                            <i class="fas fa-arrow-left mr-2"></i>취소
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 슬라이드 정보 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>슬라이드 정보
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">슬라이드 번호</p>
+                        <p class="font-medium text-gray-800">{{ object.slide_number }}번</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">생성일</p>
+                        <p class="font-medium text-gray-800">{{ object.created_at|date:"Y.m.d H:i" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">수정일</p>
+                        <p class="font-medium text-gray-800">{{ object.updated_at|date:"Y.m.d H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 콘텐츠 미리보기 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-eye mr-2"></i>콘텐츠 미리보기
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <div class="prose prose-sm max-w-none">
+                        {{ object.content.page|safe|truncatewords_html:50 }}
+                    </div>
+                </div>
+                <button onclick="viewFullContent()" 
+                        class="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                    <i class="fas fa-expand mr-1"></i>전체 보기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 전체 콘텐츠 보기 모달 -->
+<div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">{{ object.content.title }}</h3>
+                <button onclick="closeContentModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <div class="prose max-w-none">
+                    {{ object.content.page|safe }}
+                </div>
+                {% if object.content.answer %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="font-semibold text-gray-700 mb-2">정답</h4>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        {{ object.content.answer }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewFullContent() {
+    document.getElementById('contentModal').classList.remove('hidden');
+}
+
+function closeContentModal() {
+    document.getElementById('contentModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

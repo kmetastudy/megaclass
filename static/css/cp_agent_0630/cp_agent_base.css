@@ -1,0 +1,95 @@
+/* static/css/cp_agent_base.css - 기본 레이아웃, 패널, 탭 스타일 */
+
+/* ========== 패널 레이아웃 ========== */
+.panel {
+    transition: all 0.3s ease;
+}
+
+.panel-collapsed {
+    width: 0 !important;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0;
+}
+
+/* ========== 탭 시스템 ========== */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.preview-tab-content {
+    display: none;
+}
+
+.preview-tab-content.active {
+    display: block !important;
+}
+
+.tab-btn, .preview-tab-btn {
+    transition: all 0.2s ease;
+}
+
+/* ========== 필터 섹션 ========== */
+.filter-section {
+    background-color: #f9fafb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ========== 아코디언 ========== */
+.accordion-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.accordion-content.active {
+    max-height: 500px;
+    transition: max-height 0.3s ease-in;
+}
+
+/* ========== 스크롤바 ========== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f3f4f6;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* ========== 로딩 애니메이션 ========== */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 4px solid #6b7280;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

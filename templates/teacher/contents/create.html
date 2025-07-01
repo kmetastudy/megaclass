@@ -1,0 +1,419 @@
+<!-- teacher/templates/teacher/contents/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}새 콘텐츠 만들기{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<style>
+    .CodeMirror {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        height: 400px;
+    }
+    
+    .content-type-help {
+        display: none;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #1e40af;
+    }
+    
+    /* Hidden textarea를 위한 스타일 */
+    .hidden-textarea {
+        position: absolute;
+        left: -9999px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">새 콘텐츠 만들기</h1>
+        <p class="text-gray-600">수업에서 사용할 콘텐츠를 생성합니다</p>
+    </div>
+
+    <form method="post" id="contentForm" novalidate>
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 메인 폼 영역 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 기본 정보 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">기본 정보</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.title.label }} *
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.content_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.content_type.label }} *
+                            </label>
+                            {{ form.content_type }}
+                            {% if form.content_type.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.content_type.errors.0 }}</p>
+                            {% endif %}
+                            
+                            <!-- 콘텐츠 타입별 도움말 -->
+                            {% for content_type in content_types %}
+                            <div id="help-{{ content_type.id }}" class="content-type-help">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                {% if content_type.type_name == "객관식 문제" %}
+                                객관식 문제: 보기를 HTML의 &lt;ol&gt; 또는 &lt;ul&gt; 태그로 작성하고, 정답란에 정답 번호를 입력하세요.
+                                {% elif content_type.type_name == "단답형 문제" %}
+                                단답형 문제: 답변 입력란은 &lt;input type="text"&gt; 태그로 생성되며, 정답란에 정확한 답을 입력하세요.
+                                {% elif content_type.type_name == "서술형 문제" %}
+                                서술형 문제: 답변 입력란은 &lt;textarea&gt; 태그로 생성됩니다. 평가 기준을 태그란에 JSON 형식으로 입력하세요.
+                                {% else %}
+                                {{ content_type.description|default:"" }}
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 콘텐츠 내용 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">콘텐츠 내용</h3>
+                    
+                    <div>
+                        <label for="{{ form.page.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.page.label }} *
+                        </label>
+                        <div class="mb-2">
+                            <button type="button" onclick="insertTemplate('multiple-choice')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded mr-2">
+                                객관식 템플릿
+                            </button>
+                            <button type="button" onclick="insertTemplate('short-answer')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded mr-2">
+                                단답형 템플릿
+                            </button>
+                            <button type="button" onclick="insertTemplate('essay')" 
+                                    class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                서술형 템플릿
+                            </button>
+                        </div>
+                        <!-- Django form field (hidden) -->
+                        <div class="hidden-textarea">{{ form.page }}</div>
+                        <!-- CodeMirror container -->
+                        <div id="page-editor-container"></div>
+                        {% if form.page.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.page.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 정답 및 평가 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">정답 및 평가</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="{{ form.answer.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.answer.label }}
+                            </label>
+                            {{ form.answer }}
+                            <p class="mt-1 text-sm text-gray-500">객관식/단답형 문제의 경우 정답을 입력하세요</p>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.tags.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.tags.label }}
+                            </label>
+                            <!-- Django form field (hidden) -->
+                            <div class="hidden-textarea">{{ form.tags }}</div>
+                            <!-- CodeMirror container -->
+                            <div id="tags-editor-container"></div>
+                            <p class="mt-1 text-sm text-gray-500">평가 기준이나 채점 가이드를 JSON 형식으로 입력하세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 사이드바 -->
+            <div class="space-y-6">
+                <!-- 메타데이터 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">메타데이터</h3>
+                    
+                    <div>
+                        <label for="{{ form.meta_data.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.meta_data.label }}
+                        </label>
+                        <!-- Django form field (hidden) -->
+                        <div class="hidden-textarea">{{ form.meta_data }}</div>
+                        <!-- CodeMirror container -->
+                        <div id="metadata-editor-container"></div>
+                        <p class="mt-1 text-sm text-gray-500">추가 정보를 JSON 형식으로 입력</p>
+                    </div>
+                </div>
+                
+                <!-- 미리보기 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">미리보기</h3>
+                    <button type="button" onclick="previewContent()" 
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-eye mr-2"></i>콘텐츠 미리보기
+                    </button>
+                </div>
+                
+                <!-- 액션 버튼 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <button type="submit" 
+                            class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-200 font-medium mb-3">
+                        <i class="fas fa-save mr-2"></i>콘텐츠 저장
+                    </button>
+                    <a href="{% if from_chasi_id %}{% url 'teacher:chasi_slide_add' from_chasi_id %}{% else %}{% url 'teacher:contents_list' %}{% endif %}" 
+                       class="block w-full bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                        <i class="fas fa-arrow-left mr-2"></i>취소
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 미리보기 모달 -->
+<div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">콘텐츠 미리보기</h3>
+                <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="previewContent" class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <!-- 미리보기 내용 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
+<script>
+let htmlEditor, jsonEditor, tagsEditor;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // HTML 에디터 (page 필드)
+    const pageTextarea = document.querySelector('textarea[name="page"]');
+    const pageContainer = document.getElementById('page-editor-container');
+    
+    if (pageTextarea && pageContainer) {
+        htmlEditor = CodeMirror(pageContainer, {
+            value: pageTextarea.value || '',
+            mode: 'xml',
+            theme: 'material',
+            lineNumbers: true,
+            lineWrapping: true,
+            autoCloseTags: true
+        });
+        
+        // 변경사항을 원본 textarea에 반영
+        htmlEditor.on('change', function() {
+            pageTextarea.value = htmlEditor.getValue();
+        });
+    }
+    
+    // JSON 에디터 - metadata
+    const metadataTextarea = document.querySelector('textarea[name="meta_data"]');
+    const metadataContainer = document.getElementById('metadata-editor-container');
+    
+    if (metadataTextarea && metadataContainer) {
+        jsonEditor = CodeMirror(metadataContainer, {
+            value: metadataTextarea.value || '{}',
+            mode: 'javascript',
+            theme: 'material',
+            lineNumbers: true,
+            lineWrapping: true
+        });
+        
+        jsonEditor.on('change', function() {
+            metadataTextarea.value = jsonEditor.getValue();
+        });
+    }
+    
+    // JSON 에디터 - tags
+    const tagsTextarea = document.querySelector('textarea[name="tags"]');
+    const tagsContainer = document.getElementById('tags-editor-container');
+    
+    if (tagsTextarea && tagsContainer) {
+        tagsEditor = CodeMirror(tagsContainer, {
+            value: tagsTextarea.value || '{}',
+            mode: 'javascript',
+            theme: 'material',
+            lineNumbers: true,
+            lineWrapping: true
+        });
+        
+        tagsEditor.on('change', function() {
+            tagsTextarea.value = tagsEditor.getValue();
+        });
+    }
+    
+    // 콘텐츠 타입 변경 시 도움말 표시
+    const contentTypeSelect = document.querySelector('select[name="content_type"]');
+    if (contentTypeSelect) {
+        contentTypeSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            
+            // 모든 도움말 숨기기
+            document.querySelectorAll('.content-type-help').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // 선택된 타입의 도움말 표시
+            if (selectedValue) {
+                const helpEl = document.getElementById(`help-${selectedValue}`);
+                if (helpEl) {
+                    helpEl.style.display = 'block';
+                }
+            }
+        });
+    }
+});
+
+// 템플릿 삽입
+function insertTemplate(type) {
+    let template = '';
+    
+    switch(type) {
+        case 'multiple-choice':
+            template = `<div class="question">
+    <h4>문제: 다음 중 올바른 것은?</h4>
+    <ol type="1">
+        <li>첫 번째 보기</li>
+        <li>두 번째 보기</li>
+        <li>세 번째 보기</li>
+        <li>네 번째 보기</li>
+    </ol>
+</div>`;
+            break;
+            
+        case 'short-answer':
+            template = `<div class="question">
+    <h4>문제: 다음 빈칸에 알맞은 답을 쓰시오.</h4>
+    <p>_________는 우리나라의 수도입니다.</p>
+    <div class="answer-input">
+        <label>답: <input type="text" name="answer" class="form-input" /></label>
+    </div>
+</div>`;
+            break;
+            
+        case 'essay':
+            template = `<div class="question">
+    <h4>문제: 다음 주제에 대해 서술하시오.</h4>
+    <p>민주주의의 기본 원리에 대해 설명하시오. (200자 이상)</p>
+    <div class="answer-input">
+        <textarea name="answer" rows="10" class="form-textarea w-full" placeholder="답안을 작성하세요..."></textarea>
+    </div>
+</div>`;
+            break;
+    }
+    
+    if (htmlEditor) {
+        htmlEditor.setValue(template);
+    }
+}
+
+// 미리보기
+function previewContent() {
+    const titleInput = document.querySelector('input[name="title"]');
+    const contentTypeSelect = document.querySelector('select[name="content_type"]');
+    const answerTextarea = document.querySelector('textarea[name="answer"]');
+    
+    const title = titleInput ? titleInput.value : '';
+    const contentType = contentTypeSelect ? contentTypeSelect.selectedOptions[0]?.text || '' : '';
+    const content = htmlEditor ? htmlEditor.getValue() : '';
+    const answer = answerTextarea ? answerTextarea.value : '';
+    const tags = tagsEditor ? tagsEditor.getValue() : '{}';
+    
+    const previewEl = document.getElementById('previewContent');
+    if (previewEl) {
+        previewEl.innerHTML = `
+            <h4 class="text-xl font-semibold mb-2">${title || '제목 없음'}</h4>
+            <div class="mb-3">
+                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                    ${contentType}
+                </span>
+            </div>
+            <div class="prose max-w-none mb-6">
+                ${content}
+            </div>
+            ${answer ? `
+                <div class="border-t border-gray-200 pt-4">
+                    <h5 class="font-semibold text-gray-700 mb-2">정답</h5>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        ${answer}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+
+// 폼 제출 처리
+const form = document.getElementById('contentForm');
+if (form) {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 유효성 검사
+        const titleInput = document.querySelector('input[name="title"]');
+        const contentTypeSelect = document.querySelector('select[name="content_type"]');
+        
+        if (!titleInput || !titleInput.value.trim()) {
+            alert('제목을 입력해주세요.');
+            if (titleInput) titleInput.focus();
+            return;
+        }
+        
+        if (!contentTypeSelect || !contentTypeSelect.value) {
+            alert('콘텐츠 타입을 선택해주세요.');
+            if (contentTypeSelect) contentTypeSelect.focus();
+            return;
+        }
+        
+        const pageContent = htmlEditor ? htmlEditor.getValue() : '';
+        if (!pageContent || pageContent.trim() === '') {
+            alert('콘텐츠 내용을 입력해주세요.');
+            if (htmlEditor) htmlEditor.focus();
+            return;
+        }
+        
+        // 실제 폼 제출
+        this.submit();
+    });
+}
+</script>
+{% endblock %}

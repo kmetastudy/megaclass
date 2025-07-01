@@ -1,0 +1,82 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}학생 등록 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800">새 학생 등록</h1>
+        <p class="text-gray-600">새로운 학생을 등록합니다.</p>
+    </div>
+
+    {% if form.errors %}
+        <div class="bg-red-50 border-l-4 border-red-400 text-red-700 p-4 mb-6" role="alert">
+            <p class="font-bold">입력 오류</p>
+            <p>입력 내용을 다시 확인해주세요.</p>
+        </div>
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post" id="studentForm" novalidate>
+            {% csrf_token %}
+            <div class="space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label for="{{ form.school_class.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.school_class.label }} <span class="text-red-500">*</span></label>
+                        {{ form.school_class }}
+                        {{ form.school_class.errors }}
+                    </div>
+                    <div>
+                        <label for="{{ form.student_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.student_id.label }} <span class="text-red-500">*</span></label>
+                        {{ form.student_id }}
+                        {{ form.student_id.errors }}
+                    </div>
+                </div>
+
+                <div class="border-t pt-6 space-y-4">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                             <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.last_name.label }} <span class="text-red-500">*</span></label>
+                             {{ form.last_name }}
+                             {{ form.last_name.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.first_name.label }} <span class="text-red-500">*</span></label>
+                            {{ form.first_name }}
+                            {{ form.first_name.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ form.birth_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.birth_date.label }} <span class="text-red-500">*</span></label>
+                            {{ form.birth_date }}
+                            {{ form.birth_date.errors }}
+                        </div>
+                        <div>
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.email.label }}</label>
+                            {{ form.email }}
+                            {{ form.email.errors }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t pt-6 space-y-4">
+                     <div>
+                        <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.password.label }} <span class="text-red-500">*</span></label>
+                        {{ form.password }}
+                        <p class="text-xs text-gray-500 mt-1">{{ form.password.help_text }}</p>
+                        {{ form.password.errors }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                <button type="submit" class="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition font-medium">
+                    <i class="fas fa-user-plus mr-2"></i>학생 등록
+                </button>
+                <a href="{% url 'teacher:student_list' %}" class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition font-medium text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>목록으로
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+
+<!-- student/templates/student/learning/slide_view.html -->
+{% extends 'student/base.html' %}
+
+{% block title %}{{ slide.chasi.chasi_title }} - 슬라이드 {{ slide.slide_number }}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-1">{{ slide.content.title }}</h2>
+            <p class="text-gray-600">{{ slide.chasi.chasi_title }} - 슬라이드 {{ slide.slide_number }}</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'student:learning_course' course.id %}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>코스로
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- 코스 구조 사이드바 -->
+    <div class="lg:col-span-1">
+        <div class="bg-white rounded-xl shadow-md p-4 sticky top-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">코스 구조</h3>
+            <div class="space-y-2">
+                {% for other_slide in course_slides %}
+                <a href="{% url 'student:learning_slide' other_slide.id %}" 
+                   class="block p-2 rounded {% if other_slide.id == slide.id %}bg-blue-50 border-l-4 border-blue-500{% else %}hover:bg-gray-50{% endif %}">
+                    <div class="text-sm font-medium {% if other_slide.id == slide.id %}text-blue-800{% else %}text-gray-800{% endif %}">
+                        슬라이드 {{ other_slide.slide_number }}
+                    </div>
+                    <div class="text-xs {% if other_slide.id == slide.id %}text-blue-600{% else %}text-gray-500{% endif %}">
+                        {{ other_slide.content_type.type_name }}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 학습 컨텐츠 영역 -->
+    <div class="lg:col-span-3">
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <!-- 컨텐츠 내용 -->
+            <div class="prose max-w-none mb-6">
+                {{ slide.content.page|safe }}
+            </div>
+            
+            <!-- 답안 제출 폼 -->
+            {% if not existing_answer %}
+            <form method="post" class="border-t pt-6">
+                {% csrf_token %}
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">답안 제출</h4>
+                
+                {% if slide.content_type.type_name == "choice" %}
+                <!-- 선택형 문제 -->
+                <div class="space-y-2">
+                    {% for choice in slide.content.meta_data.choices %}
+                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input type="radio" name="answer" value="{{ forloop.counter }}" class="mr-3">
+                        <span>{{ choice }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- 주관식 문제 -->
+                <textarea name="answer" required 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                          rows="5" placeholder="답안을 입력하세요..."></textarea>
+                {% endif %}
+                
+                <div class="flex justify-between mt-6">
+                    <div></div>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-paper-plane mr-2"></i>답안 제출
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <!-- 이미 제출된 답안 -->
+            <div class="border-t pt-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">제출된 답안</h4>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-gray-800">{{ existing_answer.answer_data.answer }}</p>
+                    <p class="text-sm text-gray-500 mt-2">
+                        제출일: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+                    </p>
+                </div>
+                
+                <div class="flex justify-between mt-6">
+                    <div></div>
+                    <a href="#" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                        다음 슬라이드 <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,340 @@
+{% extends 'student/base.html' %}
+
+{% block title %}내 기록 - 학습 관리 시스템{% endblock %}
+{% block page_title %}내 기록{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">내 신체 활동 기록</h1>
+    <p class="text-lg text-slate-600">체육 수업에서 측정한 모든 기록을 확인하세요.</p>
+</div>
+
+<!-- 통계 카드 -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- 총 기록 수 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                <i class="fas fa-clipboard-list text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">전체</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ records|length }}</h3>
+        <p class="text-sm text-slate-500">총 기록 수</p>
+    </div>
+
+    <!-- 이번 달 기록 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                <i class="fas fa-calendar-alt text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">월간</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">12</h3>
+        <p class="text-sm text-slate-500">이번 달 기록</p>
+    </div>
+
+    <!-- 최고 기록 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <i class="fas fa-trophy text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-purple-600 bg-purple-50 px-3 py-1 rounded-full">최고</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">8.2</h3>
+        <p class="text-sm text-slate-500">50m 달리기 (초)</p>
+    </div>
+
+    <!-- 평균 향상도 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                <i class="fas fa-chart-line text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">향상</span>
+        </div>
+        <h3 class="text-3xl font-bold text-green-600 mb-1">+12%</h3>
+        <p class="text-sm text-slate-500">평균 향상도</p>
+    </div>
+</div>
+
+<!-- 필터 및 검색 -->
+<div class="bg-white rounded-2xl p-6 border border-slate-200 mb-6">
+    <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <!-- 검색 바 -->
+        <div class="w-full lg:w-96">
+            <div class="relative">
+                <input type="text" 
+                       placeholder="종목명으로 검색" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+            </div>
+        </div>
+        
+        <!-- 필터 옵션 -->
+        <div class="flex flex-wrap gap-3">
+            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="all">모든 종목</option>
+                <option value="running">달리기</option>
+                <option value="jump">점프</option>
+                <option value="throw">던지기</option>
+            </select>
+            
+            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="recent">최신순</option>
+                <option value="oldest">오래된순</option>
+                <option value="best">최고기록순</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- 기록 목록 -->
+<div class="space-y-4">
+    {% for record in records %}
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover">
+        <!-- 기록 헤더 -->
+        <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900">{{ record.original.slide.chasi.chasi_title }}</h3>
+                    <p class="text-sm text-slate-600 mt-1">{{ record.original.slide.chasi.subject.subject_name }}</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-slate-500">
+                        <i class="far fa-calendar mr-1"></i>
+                        {{ record.original.submitted_at|date:"Y년 m월 d일" }}
+                    </span>
+                    <span class="text-sm text-slate-500">
+                        <i class="far fa-clock mr-1"></i>
+                        {{ record.original.submitted_at|date:"H:i" }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 기록 내용 -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for attempt in record.processed_attempts %}
+                <div class="relative">
+                    <div class="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br 
+                                        {% if attempt.회차 == 1 %}from-blue-500 to-blue-600{% else %}from-purple-500 to-purple-600{% endif %}
+                                        flex items-center justify-center">
+                                <span class="text-white font-bold">{{ attempt.회차 }}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-slate-600">{{ attempt.회차 }}차 시기</p>
+                                <p class="text-lg font-bold text-slate-900">{{ attempt.기록_포맷 }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                <i class="fas fa-running mr-1"></i>
+                                {{ attempt.종류 }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- 최고 기록 표시 -->
+                    {% if forloop.first %}
+                    <div class="absolute -top-2 -right-2">
+                        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-400 text-white rounded-full shadow-lg">
+                            <i class="fas fa-star text-sm"></i>
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 기록 비교 -->
+            {% if record.has_multiple_attempts %}
+            <div class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-chart-bar text-indigo-600"></i>
+                        <span class="text-sm font-medium text-slate-700">기록 향상도</span>
+                    </div>
+                    <span class="text-lg font-bold text-indigo-600">
+                        {{ record.improvement_percentage }}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 기록 푸터 -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4 text-sm text-slate-600">
+                    <span>
+                        <i class="fas fa-user mr-1"></i>
+                        기록자: {{ record.original.writer|default:"본인" }}
+                    </span>
+                    <span>
+                        <i class="fas fa-star mr-1"></i>
+                        점수: {{ record.original.score|default:"100" }}점
+                    </span>
+                </div>
+                <button class="text-sm text-purple-600 hover:text-purple-700 font-medium">
+                    상세 보기 →
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+        <i class="fas fa-running text-6xl text-slate-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-slate-700 mb-2">기록된 활동이 없습니다</h3>
+        <p class="text-slate-500">체육 수업에서 측정한 기록이 여기에 표시됩니다.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 차트 섹션 -->
+{% if records %}
+<div class="mt-8 bg-white rounded-2xl p-6 border border-slate-200">
+    <h3 class="text-lg font-semibold text-slate-900 mb-6">기록 추이</h3>
+    <!-- Canvas를 고정 높이 div로 감싸기 -->
+    <div style="position: relative; height: 300px;">
+        <canvas id="recordChart"></canvas>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js 스크롤 문제 해결을 위한 설정
+    const chartContainer = document.getElementById('recordChart');
+    if (!chartContainer) return;
+    
+    const ctx = chartContainer.getContext('2d');
+    
+    // 실제 데이터로 교체 필요
+    const recordData = {
+        labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
+        datasets: [{
+            label: '50m 달리기 (초)',
+            data: [9.2, 8.8, 8.5, 8.3, 8.1, 8.2],
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderColor: 'rgba(102, 126, 234, 1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+        }]
+    };
+
+    // 차트 인스턴스를 변수에 저장
+    const recordChart = new Chart(ctx, {
+        type: 'line',
+        data: recordData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, // 중요: 고정 높이 유지
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold',
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(1) + '초';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11,
+                            family: 'Inter'
+                        },
+                        color: '#64748b',
+                        callback: function(value) {
+                            return value.toFixed(1) + '초';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 11,
+                            family: 'Inter'
+                        },
+                        color: '#64748b'
+                    }
+                }
+            },
+            // 애니메이션 설정
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+    
+    // 윈도우 리사이즈 시 차트 크기 재조정
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            if (recordChart) {
+                recordChart.resize();
+            }
+        }, 250);
+    });
+    
+    // 페이지 로드 완료 후 차트 업데이트 (스크롤 방지)
+    window.addEventListener('load', function() {
+        if (recordChart) {
+            recordChart.update('none'); // 애니메이션 없이 업데이트
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

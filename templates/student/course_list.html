@@ -1,0 +1,208 @@
+{% extends 'student/base.html' %}
+
+{% block title %}내 코스 - 학습 관리 시스템{% endblock %}
+{% block page_title %}내 코스{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">내 코스</h1>
+    <p class="text-lg text-slate-600">총 {{ course_data|length }}개의 코스가 할당되어 있습니다.</p>
+</div>
+
+<!-- 필터 및 검색 -->
+<div class="bg-white rounded-2xl p-6 border border-slate-200 mb-8">
+    <div class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <!-- 검색 바 -->
+        <div class="w-full lg:w-96">
+            <div class="relative">
+                <input type="text" 
+                       placeholder="코스명, 선생님 이름으로 검색" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+            </div>
+        </div>
+        
+        <!-- 필터 옵션 -->
+        <div class="flex flex-wrap gap-3">
+            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="all">모든 상태</option>
+                <option value="in-progress">진행 중</option>
+                <option value="completed">완료</option>
+                <option value="not-started">미시작</option>
+            </select>
+            
+            <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="recent">최근 할당순</option>
+                <option value="progress">진도율순</option>
+                <option value="name">이름순</option>
+                <option value="deadline">마감일순</option>
+            </select>
+            
+            <button class="px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all text-sm font-medium flex items-center gap-2">
+                <i class="fas fa-filter"></i>
+                필터 적용
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 코스 그리드 -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    {% for data in course_data %}
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-200 card-hover group">
+        <!-- 코스 헤더 이미지 -->
+        <div class="h-48 relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br 
+                        {% cycle 'from-blue-400 to-blue-600' 'from-purple-400 to-purple-600' 'from-green-400 to-green-600' 'from-orange-400 to-orange-600' 'from-pink-400 to-pink-600' 'from-indigo-400 to-indigo-600' %}">
+                <div class="absolute inset-0 bg-black opacity-20"></div>
+            </div>
+            <div class="relative h-full flex flex-col justify-between p-6">
+                <div class="flex items-start justify-between">
+                    <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                        <i class="fas fa-book-open text-white text-xl"></i>
+                    </div>
+                    <span class="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full">
+                        {{ data.assignment.course.target }}
+                    </span>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white mb-1">{{ data.assignment.course.subject_name }}</h3>
+                    <p class="text-white/80 text-sm">{{ data.assignment.course.teacher.user.get_full_name }} 선생님</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 코스 내용 -->
+        <div class="p-6">
+            <!-- 코스 설명 -->
+            <p class="text-sm text-slate-600 mb-4 line-clamp-2">
+                {{ data.assignment.course.description|default:"이 코스에서는 다양한 학습 내용을 체계적으로 배울 수 있습니다." }}
+            </p>
+            
+            <!-- 진도 정보 -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <span class="text-slate-600">학습 진도</span>
+                    <span class="font-bold text-slate-900">{{ data.progress_percent|floatformat:0 }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 
+                                {% if data.progress_percent >= 80 %}bg-gradient-to-r from-green-500 to-green-600
+                                {% elif data.progress_percent >= 50 %}bg-gradient-to-r from-blue-500 to-blue-600
+                                {% elif data.progress_percent >= 20 %}bg-gradient-to-r from-yellow-500 to-yellow-600
+                                {% else %}bg-gradient-to-r from-slate-400 to-slate-500{% endif %}"
+                         style="width: {{ data.progress_percent }}%">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between text-xs text-slate-500 mt-2">
+                    <span>{{ data.completed_slides }}개 완료</span>
+                    <span>총 {{ data.total_slides }}개</span>
+                </div>
+            </div>
+            
+            <!-- 추가 정보 -->
+            <div class="flex items-center gap-4 text-xs text-slate-500 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-1">
+                    <i class="fas fa-calendar"></i>
+                    <span>{{ data.assignment.assigned_date|date:"Y.m.d" }} 할당</span>
+                </div>
+                {% if data.assignment.due_date %}
+                <div class="flex items-center gap-1">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ data.assignment.due_date|date:"m.d" }} 마감</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 액션 버튼 -->
+            <div class="flex gap-3 mt-4">
+                <a href="{% url 'student:learning_course' data.assignment.course.id %}" 
+                   class="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all text-center text-sm group-hover:shadow-lg">
+                    <i class="fas fa-play mr-2"></i>학습 시작
+                </a>
+                <button class="p-3 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+                        onclick="showCourseInfo({{ data.assignment.course.id }})">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 상태 배지 -->
+        {% if data.progress_percent == 100 %}
+        <div class="absolute top-4 right-4">
+            <span class="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <i class="fas fa-check-circle"></i> 완료
+            </span>
+        </div>
+        {% elif data.progress_percent > 0 %}
+        <div class="absolute top-4 right-4">
+            <span class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                <i class="fas fa-spinner"></i> 진행 중
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="col-span-full">
+        <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+            <i class="fas fa-graduation-cap text-6xl text-slate-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-slate-700 mb-2">할당받은 코스가 없습니다</h3>
+            <p class="text-slate-500">담당 선생님께 코스 할당을 요청하세요.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 페이지네이션 (필요시) -->
+{% if course_data|length > 9 %}
+<div class="mt-8 flex justify-center">
+    <nav class="flex gap-1">
+        <button class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="px-4 py-2 bg-purple-600 text-white rounded-lg">1</button>
+        <button class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">2</button>
+        <button class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">3</button>
+        <button class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </nav>
+</div>
+{% endif %}
+
+<!-- 코스 정보 모달 -->
+<div id="courseInfoModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <div class="p-6 border-b border-slate-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-semibold text-slate-900">코스 상세 정보</h3>
+                <button onclick="closeCourseInfo()" class="p-2 hover:bg-slate-100 rounded-lg transition-all">
+                    <i class="fas fa-times text-slate-400"></i>
+                </button>
+            </div>
+        </div>
+        <div class="p-6 overflow-y-auto" id="courseInfoContent">
+            <!-- 동적으로 내용이 채워집니다 -->
+        </div>
+    </div>
+</div>
+
+<script>
+function showCourseInfo(courseId) {
+    // 실제로는 AJAX로 코스 정보를 가져와야 합니다
+    document.getElementById('courseInfoModal').classList.remove('hidden');
+}
+
+function closeCourseInfo() {
+    document.getElementById('courseInfoModal').classList.add('hidden');
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeCourseInfo();
+    }
+});
+</script>
+{% endblock %}

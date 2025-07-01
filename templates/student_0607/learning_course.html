@@ -1,0 +1,123 @@
+{% extends 'student/base.html' %}
+
+{% block title %}{{ course.subject_name }} - 학습 관리 시스템{% endblock %}
+{% block page_title %}코스 학습{% endblock %}
+
+{% block content %}
+<!-- 코스 정보 -->
+<div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ course.subject_name }}</h2>
+    <p class="text-gray-600">{{ course.description }}</p>
+    <p class="text-sm text-gray-500 mt-2">
+        담당교사: {{ course.teacher.user.get_full_name }} | 
+        대상: {{ course.target }}
+    </p>
+</div>
+
+<!-- 디버깅 정보 -->
+<div class="bg-yellow-100 border border-yellow-400 p-4 mb-6 rounded">
+    <h3 class="font-bold mb-2">디버깅 정보</h3>
+    <p>대단원 수: {{ chapters.count }}</p>
+    <p>전체 슬라이드: {{ total_slides }}</p>
+    <p>완료한 슬라이드: {{ completed_slides }}</p>
+    <p>진도율: {{ overall_progress }}%</p>
+</div>
+
+<!-- 학습 콘텐츠 (간단 버전) -->
+<div class="bg-white rounded-xl shadow-md p-6">
+    <h3 class="text-xl font-bold mb-4">학습 내용</h3>
+    
+    {% for chapter in chapters %}
+    <div class="mb-6 border-b pb-4">
+        <h4 class="text-lg font-bold text-gray-800 mb-3">
+            {{ chapter.chapter_order }}. {{ chapter.chapter_title }}
+        </h4>
+        
+        {% with subchapters=chapter.subchapters.all %}
+        {% if subchapters %}
+            {% for subchapter in subchapters %}
+            <div class="ml-4 mb-4">
+                <h5 class="font-semibold text-gray-700 mb-2">
+                    {{ chapter.chapter_order }}.{{ subchapter.sub_chapter_order }} {{ subchapter.sub_chapter_title }}
+                </h5>
+                
+                {% with chasis=subchapter.chasis.all %}
+                {% if chasis %}
+                    {% for chasi in chasis %}
+                    {% if chasi.is_published %}
+                    <div class="ml-4 mb-3">
+                        <h6 class="font-medium text-gray-600 mb-2">
+                            <i class="fas fa-book-reader text-blue-500 mr-1"></i>
+                            {{ chasi.chasi_title }}
+                        </h6>
+                        
+                        {% with slides=chasi.teacher_slides.all %}
+                        {% if slides %}
+                            <div class="ml-4">
+                                {% for slide in slides %}
+                                {% if slide.is_active %}
+                                <div class="flex items-center justify-between p-2 mb-1 border rounded hover:bg-gray-50">
+                                    <div class="flex-1">
+                                        <span class="font-medium">
+                                            슬라이드 {{ slide.slide_number }}
+                                            {% if slide.slide_title %}- {{ slide.slide_title }}{% endif %}
+                                        </span>
+                                        <span class="text-xs text-gray-500 ml-2">
+                                            ({{ slide.content_type.type_name }})
+                                        </span>
+                                        {% if slide.content.answer %}
+                                        <span class="text-xs text-blue-600 ml-2">
+                                            <i class="fas fa-question-circle"></i> 문제
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{% url 'student:slide_view' slide.id %}" 
+                                       class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                        학습하기
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="ml-4 text-sm text-gray-500">슬라이드가 없습니다.</p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="ml-4 text-sm text-gray-500">차시가 없습니다.</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="ml-4 text-gray-500">소단원이 없습니다.</p>
+        {% endif %}
+        {% endwith %}
+    </div>
+    {% empty %}
+    <p class="text-gray-500">대단원이 없습니다.</p>
+    {% endfor %}
+</div>
+
+<!-- 데이터 구조 확인 (디버깅용) -->
+<div class="mt-6 bg-gray-100 p-4 rounded">
+    <h4 class="font-bold mb-2">데이터 구조 확인</h4>
+    <pre class="text-xs overflow-x-auto">
+{% for chapter in chapters %}
+Chapter: {{ chapter.chapter_title }} (ID: {{ chapter.id }})
+  {% for subchapter in chapter.subchapters.all %}
+  SubChapter: {{ subchapter.sub_chapter_title }} (ID: {{ subchapter.id }}, Chapter: {{ subchapter.chapter_id }})
+    {% for chasi in subchapter.chasis.all %}
+    Chasi: {{ chasi.chasi_title }} (ID: {{ chasi.id }}, Published: {{ chasi.is_published }})
+      {% for slide in chasi.teacher_slides.all %}
+      Slide {{ slide.slide_number }}: {{ slide.slide_title|default:"No title" }} (Active: {{ slide.is_active }})
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+{% endfor %}
+    </pre>
+</div>
+{% endblock %}

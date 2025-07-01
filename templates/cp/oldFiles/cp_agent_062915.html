@@ -1,0 +1,467 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}AI 문항 생성기{% endblock %}
+
+{% block extra_css %}
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+
+<!-- CP Agent CSS 파일들 -->
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_base.css">
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_editor.css">
+<link rel="stylesheet" href="/static/css/cp_agent/cp_agent_components.css">
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 gap-6">
+    <!-- 좌측 패널 (1/3) -->
+    <div id="leftPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">🎇 문항 & 템플릿</h2>
+            <button onclick="togglePanel('left')" class="text-gray-600 hover:text-white hover:bg-orange-400 p-2 rounded transition">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto">
+            <!-- 탭 메뉴 -->
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button onclick="switchTab('contents')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-orange-400 bg-white" data-tab="contents">
+                    문항 리스트
+                </button>
+                <button onclick="switchTab('templates')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="templates">
+                    템플릿 리스트
+                </button>
+            </div>
+            
+            <!-- 문항 리스트 탭 -->
+            <div id="contentsTab" class="tab-content active p-4">
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="contentCategory" class="form-select">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="contentType" class="form-select">
+                            <option value="">타입 선택</option>
+                        </select>
+                        
+                        <select id="contentCourse" class="form-select">
+                            <option value="">코스 선택</option>
+                        </select>
+                        
+                        <select id="contentChapter" class="form-select">
+                            <option value="">대단원 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="contentSearch" placeholder="키워드 검색..." class="form-input">
+                        <button onclick="CPAgent.Data.searchContents()" class="btn-secondary px-4 py-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="contentsCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 문항 리스트 -->
+                <div id="contentsList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+            
+            <!-- 템플릿 리스트 탭 -->
+            <div id="templatesTab" class="tab-content p-4">
+                <!-- 템플릿 만들기 버튼 -->
+                <button onclick="CPAgent.UI.openTemplateModal()" class="w-full btn-secondary py-2 px-4 mb-4">
+                    <i class="fas fa-plus mr-2"></i>템플릿 만들기
+                </button>
+                
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="templateCategory" class="form-select">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="templateType" class="form-select">
+                            <option value="">타입 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="templateSearch" placeholder="키워드 검색..." class="form-input">
+                        <button onclick="CPAgent.Data.searchTemplates()" class="btn-secondary px-4 py-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="templatesCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 템플릿 리스트 -->
+                <div id="templatesList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 좌측 패널 토글 버튼 (숨김 상태일 때) -->
+    <button id="leftToggleBtn" onclick="togglePanel('left')" class="bg-gray-600 hover:bg-orange-400 text-white p-2 rounded-r transition fixed left-0 top-1/2 transform -translate-y-1/2 z-10" style="display: none;">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- 중간 패널 (1/3) -->
+    <div id="middlePanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-medium text-gray-800">✨ 문항 제작</h2>
+                <button onclick="CPAgent.Content.createNewContent()" class="text-sm btn-primary px-3 py-1">
+                    <i class="fas fa-plus mr-1"></i>새 문항
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <form id="contentForm">
+                <!-- 기본 정보 -->
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">제목 *</label>
+                        <input type="text" id="title" name="title" required class="form-input">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">타입 *</label>
+                        <select id="content_type" name="content_type" required class="form-select">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">템플릿</label>
+                        <select id="template_select" name="template_select" class="form-select">
+                            <option value="">템플릿 없음</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">문항 생성 지시사항 (Markdown 지원)</label>
+                    <textarea id="prompt_content" name="prompt" rows="20" class="form-textarea font-mono text-sm"
+                              placeholder="문항 생성을 위한 상세한 지시사항을 입력하세요..."></textarea>
+                </div>
+                
+                <!-- 답안 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">답안 (JSON)</label>
+                    <textarea id="answer_input" name="answer_input" class="hidden">{}</textarea>
+                    <div id="answerInputEditor"></div>
+                </div>
+                
+                <!-- 아코디언 섹션 -->
+                <div class="mb-6">
+                    <div class="accordion-header flex items-center justify-between p-3 bg-gray-100 rounded-lg cursor-pointer" onclick="toggleAccordion(this)">
+                        <span class="text-sm font-medium text-gray-700">고급 설정</span>
+                        <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="pt-4 space-y-4">
+                            <!-- 메타데이터 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                                <textarea id="meta_content" name="meta_data" class="hidden">{}</textarea>
+                                <div id="metaEditor"></div>
+                            </div>
+                            
+                            <!-- 태그 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">태그/평가기준 (JSON)</label>
+                                <textarea id="tags_content" name="tags" class="hidden">{}</textarea>
+                                <div id="tagsEditor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI 요청 버튼 -->
+                <button type="button" onclick="CPAgent.Content.requestAI()" class="w-full btn-primary py-3 px-4">
+                    <i class="fas fa-magic mr-2"></i>AI로 문항 생성하기
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 우측 패널 (1/3) -->
+    <div id="rightPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">🎊 미리보기 & 편집</h2>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="flex border-b border-gray-200 bg-gray-50">
+            <button onclick="switchPreviewTab('render')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-gray-600 bg-white" data-tab="render">
+                렌더링
+            </button>
+            <button onclick="switchPreviewTab('html')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="html">
+                HTML
+            </button>
+            <button onclick="switchPreviewTab('text')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="text">
+                텍스트 편집
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto bg-gray-50">
+            <!-- 렌더링 탭 -->
+            <div id="renderTab" class="preview-tab-content active p-6">
+                <div id="previewContent" class="prose max-w-none">
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-eye text-6xl mb-4"></i>
+                        <p>AI로 문항을 생성하면 여기에 표시됩니다</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HTML 탭 -->
+            <div id="htmlTab" class="preview-tab-content h-full flex flex-col">
+                <div class="flex-1" style="height: 80%;">
+                    <textarea id="htmlEditor" class="hidden"></textarea>
+                    <div id="htmlEditorContainer" class="h-full"></div>
+                </div>
+                <div style="height: 20%;" class="border-t border-gray-200">
+                    <div class="p-2 bg-gray-100">
+                        <label class="text-sm font-medium text-gray-700">정답 (JSON)</label>
+                    </div>
+                    <div id="answerEditorContainer" class="h-full"></div>
+                </div>
+            </div>
+            
+            <!-- 텍스트 편집 탭 -->
+            <div id="textTab" class="preview-tab-content p-6">
+                <div class="edit-help">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>편집 가이드:</strong> 
+                    텍스트를 더블클릭하여 편집하고 엔터키로 저장하세요. 
+                    이미지를 클릭하면 새 이미지로 교체할 수 있습니다.
+                    <div class="mt-2 text-sm opacity-90">
+                        <i class="fas fa-keyboard mr-1"></i>
+                        엔터: 저장 | ESC: 취소 | 더블클릭: 편집 시작
+                    </div>
+                </div>
+                
+                <!-- 편집 상태 표시 -->
+                <div id="editStatus" class="mb-4 p-2 bg-gray-100 rounded text-sm text-gray-600 hidden">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <span id="editStatusText">편집 가능한 요소: 0개</span>
+                </div>
+                
+                <!-- 변경 사항 컨트롤 버튼 -->
+                <div id="editControls" class="mb-4 hidden">
+                    <div class="flex space-x-2 mb-2">
+                        <button onclick="CPAgent.TextEditing.resetAllChanges()" class="flex-1 btn-secondary py-2 px-3 text-sm">
+                            <i class="fas fa-undo mr-1"></i>모든 변경사항 취소
+                        </button>
+                        <button onclick="CPAgent.TextEditing.showChangedElements()" class="flex-1 btn-primary py-2 px-3 text-sm">
+                            <i class="fas fa-search mr-1"></i>변경사항 보기
+                        </button>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="CPAgent.Image.cleanupCorruptedImageSrcs()" class="flex-1 btn-warning py-2 px-3 text-sm">
+                            <i class="fas fa-tools mr-1"></i>손상된 이미지 경로 정리
+                        </button>
+                        <button onclick="CPAgent.Image.validateAllImages()" class="flex-1 btn-success py-2 px-3 text-sm">
+                            <i class="fas fa-check-circle mr-1"></i>이미지 유효성 검사
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="editableContent" class="space-y-4 min-h-[200px] border border-gray-200 rounded-lg p-4 bg-white">
+                    <p class="text-gray-400 text-center py-8">
+                        <i class="fas fa-edit text-4xl mb-2 block"></i>
+                        AI로 문항을 생성하면 편집 가능한 텍스트가 여기에 표시됩니다
+                    </p>
+                </div>
+                
+                <!-- 숨겨진 파일 입력 -->
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- 저장 버튼 -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <button onclick="CPAgent.Content.saveContent()" class="w-full btn-secondary py-3 px-4">
+                <i class="fas fa-save mr-2"></i>저장하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 템플릿 만들기 모달 -->
+<div id="templateModal" class="modal-overlay hidden">
+    <div class="modal-content max-w-5xl w-full">
+        <div class="modal-header">
+            <h3 class="text-lg font-medium text-gray-800">템플릿 만들기</h3>
+            <button onclick="CPAgent.UI.closeTemplateModal()" class="text-gray-500 hover:text-gray-700 transition">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="modal-body" style="max-height: calc(90vh - 200px);">
+            <form id="templateForm">
+                <!-- 기본 정보 -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">카테고리 *</label>
+                        <select id="templateFormCategory" class="form-select">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">타입 *</label>
+                        <select id="templateFormType" class="form-select" disabled>
+                            <option value="">타입 선택</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 템플릿 이름 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">템플릿 이름 *</label>
+                    <input type="text" id="templateName" class="form-input"
+                           placeholder="예: 객관식 5지 선다형 기본 템플릿">
+                </div>
+                
+                <!-- HTML 템플릿 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        HTML 템플릿
+                        <span class="text-gray-500 text-xs ml-2">(문항의 HTML 구조)</span>
+                    </label>
+                    <textarea id="templateHtml" rows="8" class="form-textarea font-mono text-sm"
+                              placeholder="<div class='question'>
+    <h2>문제: {문제 내용}</h2>
+    <div class='choices'>
+        <label><input type='radio' name='answer' value='1'> 선택지 1</label>
+        <label><input type='radio' name='answer' value='2'> 선택지 2</label>
+    </div>
+</div>"></textarea>
+                </div>
+                
+                <!-- 정답 템플릿 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        정답 템플릿 (JSON)
+                        <span class="text-gray-500 text-xs ml-2">(답안 형식 정의)</span>
+                    </label>
+                    <textarea id="templateAnswer" rows="4" class="form-textarea font-mono text-sm">{"correct": "", "explanation": "", "type": "multiple_choice"}</textarea>
+                </div>
+                
+                <!-- 메타데이터 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        메타데이터 (JSON)
+                        <span class="text-gray-500 text-xs ml-2">(난이도, 시간 등 부가 정보)</span>
+                    </label>
+                    <textarea id="templateMeta" rows="4" class="form-textarea font-mono text-sm">{"difficulty": "medium", "estimated_time": 180}</textarea>
+                </div>
+                
+                <!-- JavaScript 코드 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        JavaScript 코드 (선택사항)
+                        <span class="text-gray-500 text-xs ml-2">(문항 동작을 위한 스크립트)</span>
+                    </label>
+                    <textarea id="templateJs" rows="6" class="form-textarea font-mono text-sm"
+                              placeholder="// 예시: 선택지 클릭 시 스타일 변경
+document.querySelectorAll('input[name=&quot;answer&quot;]').forEach(input => {
+    input.addEventListener('change', function() {
+        // 선택된 답안 스타일링
+        document.querySelectorAll('label').forEach(label => 
+            label.classList.remove('selected')
+        );
+        this.parentElement.classList.add('selected');
+    });
+});"></textarea>
+                </div>
+                
+                <!-- 도움말 -->
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-blue-800 mb-2">📝 템플릿 작성 팁</h4>
+                    <ul class="text-xs text-blue-700 space-y-1">
+                        <li>• HTML에서 중괄호 {...}를 사용하여 동적 내용 위치를 표시하세요</li>
+                        <li>• 정답 템플릿은 채점에 사용되므로 정확한 JSON 형식으로 작성하세요</li>
+                        <li>• JavaScript는 문항의 상호작용 기능을 위해 사용됩니다 (선택사항)</li>
+                        <li>• 미리보기 테스트로 템플릿이 올바르게 작동하는지 확인하세요</li>
+                    </ul>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="CPAgent.Template.testTemplate()" class="btn-primary">
+                <i class="fas fa-play mr-2"></i>미리보기 테스트
+            </button>
+            <button type="button" onclick="CPAgent.Template.saveTemplate()" class="btn-success">
+                <i class="fas fa-save mr-2"></i>템플릿 저장
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 로딩 모달 -->
+<div id="loadingModal" class="modal-overlay hidden">
+    <div class="bg-white rounded-lg p-8 text-center shadow-xl">
+        <div class="loader mx-auto mb-4"></div>
+        <p class="text-gray-700">AI가 문항을 생성하고 있습니다...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery & CodeMirror -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+
+<!-- CP Agent JavaScript 파일들 (순서 중요!) -->
+<script src="{% static 'js/cp_agent/core.js' %}"></script>
+<script src="{% static 'js/cp_agent/ui.js' %}"></script>
+<script src="{% static 'js/cp_agent/data.js' %}"></script>
+<script src="{% static 'js/cp_agent/content.js' %}"></script>
+<script src="{% static 'js/cp_agent/template.js' %}"></script>
+<script src="{% static 'js/cp_agent/editor.js' %}"></script>
+<script src="{% static 'js/cp_agent/text-editing.js' %}"></script>
+<script src="{% static 'js/cp_agent/image.js' %}"></script>
+<script src="{% static 'js/cp_agent/events.js' %}"></script>
+<script src="{% static 'js/cp_agent/init.js' %}"></script>
+
+<!-- 전역 함수들 (하위 호환성) -->
+<script>
+// 기존 함수들을 전역으로 노출 (하위 호환성)
+function togglePanel(panel) { CPAgent.UI.togglePanel(panel); }
+function switchTab(tab) { CPAgent.UI.switchTab(tab); }
+function switchPreviewTab(tab) { CPAgent.UI.switchPreviewTab(tab); }
+function toggleAccordion(header) { CPAgent.UI.toggleAccordion(header); }
+function loadContent(id) { CPAgent.Content.loadContent(id); }
+function selectTemplateFromList(id) { CPAgent.Template.selectTemplateFromList(id); }
+function searchContents() { CPAgent.Data.searchContents(); }
+function searchTemplates() { CPAgent.Data.searchTemplates(); }
+</script>
+{% endblock %}

@@ -1,0 +1,3425 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}AI 문항 생성기{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+<style>
+    .CodeMirror {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        height: auto;
+        background-color: #f9fafb;
+    }
+    
+    .CodeMirror-focused {
+        background-color: #ffffff;
+    }
+    
+    .panel {
+        transition: all 0.3s ease;
+    }
+    
+    .panel-collapsed {
+        width: 0 !important;
+        overflow: hidden;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0;
+    }
+    
+    .editable-word {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: inline;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin: 1px;
+        border: 1px solid transparent;
+    }
+    
+    .editable-word:hover {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+    }
+    
+    .editing-word {
+        background-color: #fef3c7;
+        border-color: #f59e0b;
+    }
+    
+    .edit-input {
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        background-color: #fffbeb;
+        border: none;
+        outline: none !important;
+        border-radius: 0.25rem;
+        padding: 2px 6px;
+        box-shadow: 0 0 0 1px #ef4444;
+    }
+    
+    .edit-input:focus {
+        background-color: #ffffff;
+        box-shadow: 0 0 0 1px #ef4444;
+    }
+    
+    .text-changed {
+        color: #ef4444 !important;
+        font-weight: 500;
+    }
+    
+    .editable-image {
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        border-radius: 4px;
+        position: relative;
+    }
+    
+    .editable-image:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+    
+    .editable-image[data-changed="true"] {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 2px #ef4444;
+    }
+    
+    .editable-image::after {
+        content: "📸 클릭하여 변경";
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+    }
+    
+    .editable-image:hover::after {
+        opacity: 1;
+    }
+    
+    .image-upload-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(59, 130, 246, 0.1);
+        border: 2px dashed #3b82f6;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        color: #3b82f6;
+        font-weight: 500;
+        border-radius: 4px;
+    }
+    
+    .editable-image:hover .image-upload-overlay {
+        display: flex;
+    }
+    
+    /* 탭 콘텐츠 스타일 */
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .preview-tab-content {
+        display: none;
+    }
+    
+    .preview-tab-content.active {
+        display: block !important;
+    }
+    
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #6b7280;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* 모던한 스크롤바 스타일 */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f3f4f6;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    /* 필터 섹션 스타일 */
+    .filter-section {
+        background-color: #f9fafb;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* 아코디언 스타일 */
+    .accordion-header {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    
+    .accordion-content.active {
+        max-height: 500px;
+        transition: max-height 0.3s ease-in;
+    }
+    
+    /* 편집 도움말 스타일 */
+    .edit-help {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+    
+    .edit-help i {
+        margin-right: 8px;
+    }
+    
+    /* 알림 토스트 스타일 */
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 1000;
+        transform: translateX(400px);
+        transition: transform 0.3s ease-in-out;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    
+    .toast-notification.show {
+        transform: translateX(0);
+    }
+    
+    .toast-notification.error {
+        background: #ef4444;
+    }
+    
+    .toast-notification.warning {
+        background: #f59e0b;
+    }
+    
+    /* 이미지 로딩 인디케이터 */
+    .image-loading {
+        position: relative;
+        opacity: 0.6;
+    }
+    
+    .image-loading::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 gap-6">
+    <!-- 좌측 패널 (1/3) -->
+    <div id="leftPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">🎇 문항 & 템플릿</h2>
+            <button onclick="togglePanel('left')" class="text-gray-600 hover:text-white hover:bg-orange-400 p-2 rounded transition">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto">
+            <!-- 탭 메뉴 -->
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button onclick="switchTab('contents')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-orange-400 bg-white" data-tab="contents">
+                    문항 리스트
+                </button>
+                <button onclick="switchTab('templates')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="templates">
+                    템플릿 리스트
+                </button>
+            </div>
+            
+            <!-- 문항 리스트 탭 -->
+            <div id="contentsTab" class="tab-content active p-4">
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="contentCategory" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="contentType" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">타입 선택</option>
+                        </select>
+                        
+                        <select id="contentCourse" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">코스 선택</option>
+                        </select>
+                        
+                        <select id="contentChapter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">대단원 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="contentSearch" placeholder="키워드 검색..." 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+                        <button onclick="searchContents()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="contentsCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 문항 리스트 -->
+                <div id="contentsList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+            
+            <!-- 템플릿 리스트 탭 -->
+            <div id="templatesTab" class="tab-content p-4">
+                <!-- 템플릿 만들기 버튼 -->
+                <button onclick="openTemplateModal()" class="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition mb-4">
+                    <i class="fas fa-plus mr-2"></i>템플릿 만들기
+                </button>
+                
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="templateCategory" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="templateType" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">타입 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="templateSearch" placeholder="키워드 검색..." 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+                        <button onclick="searchTemplates()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="templatesCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 템플릿 리스트 -->
+                <div id="templatesList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 좌측 패널 토글 버튼 (숨김 상태일 때) -->
+    <button id="leftToggleBtn" onclick="togglePanel('left')" class="bg-gray-600 hover:bg-orange-400 text-white p-2 rounded-r transition fixed left-0 top-1/2 transform -translate-y-1/2 z-10" style="display: none;">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- 중간 패널 (1/3) -->
+    <div id="middlePanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-medium text-gray-800">✨ 문항 제작</h2>
+                <button onclick="createNewContent()" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition">
+                    <i class="fas fa-plus mr-1"></i>새 문항
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <form id="contentForm">
+                <!-- 기본 정보 -->
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">제목 *</label>
+                        <input type="text" id="title" name="title" required
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">타입 *</label>
+                        <select id="content_type" name="content_type" required
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">템플릿</label>
+                        <select id="template_select" name="template_select"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">템플릿 없음</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">문항 생성 지시사항 (Markdown 지원)</label>
+                    <textarea id="prompt_content" name="prompt" rows="20" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm"
+                              placeholder="문항 생성을 위한 상세한 지시사항을 입력하세요..."></textarea>
+                </div>
+                
+                <!-- 답안 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">답안 (JSON)</label>
+                    <textarea id="answer_input" name="answer_input" class="hidden">{}</textarea>
+                    <div id="answerInputEditor"></div>
+                </div>
+                
+                <!-- 아코디언 섹션 -->
+                <div class="mb-6">
+                    <div class="accordion-header flex items-center justify-between p-3 bg-gray-100 rounded-lg cursor-pointer" onclick="toggleAccordion(this)">
+                        <span class="text-sm font-medium text-gray-700">고급 설정</span>
+                        <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="pt-4 space-y-4">
+                            <!-- 메타데이터 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                                <textarea id="meta_content" name="meta_data" class="hidden">{}</textarea>
+                                <div id="metaEditor"></div>
+                            </div>
+                            
+                            <!-- 태그 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">태그/평가기준 (JSON)</label>
+                                <textarea id="tags_content" name="tags" class="hidden">{}</textarea>
+                                <div id="tagsEditor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI 요청 버튼 -->
+                <button type="button" onclick="requestAI()" 
+                        class="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 px-4 rounded-lg hover:from-gray-700 hover:to-gray-800 transition duration-200 font-medium shadow-sm">
+                    <i class="fas fa-magic mr-2"></i>AI로 문항 생성하기
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 우측 패널 (1/3) -->
+    <div id="rightPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">🎊 미리보기 & 편집</h2>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="flex border-b border-gray-200 bg-gray-50">
+            <button onclick="switchPreviewTab('render')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-gray-600 bg-white" data-tab="render">
+                렌더링
+            </button>
+            <button onclick="switchPreviewTab('html')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="html">
+                HTML
+            </button>
+            <button onclick="switchPreviewTab('text')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="text">
+                텍스트 편집
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto bg-gray-50">
+            <!-- 렌더링 탭 -->
+            <div id="renderTab" class="preview-tab-content active p-6">
+                <div id="previewContent" class="prose max-w-none">
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-eye text-6xl mb-4"></i>
+                        <p>AI로 문항을 생성하면 여기에 표시됩니다</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HTML 탭 -->
+            <div id="htmlTab" class="preview-tab-content h-full flex flex-col">
+                <div class="flex-1" style="height: 80%;">
+                    <textarea id="htmlEditor" class="hidden"></textarea>
+                    <div id="htmlEditorContainer" class="h-full"></div>
+                </div>
+                <div style="height: 20%;" class="border-t border-gray-200">
+                    <div class="p-2 bg-gray-100">
+                        <label class="text-sm font-medium text-gray-700">정답 (JSON)</label>
+                    </div>
+                    <div id="answerEditorContainer" class="h-full"></div>
+                </div>
+            </div>
+            
+            <!-- 텍스트 편집 탭 -->
+            <div id="textTab" class="preview-tab-content p-6">
+                <div class="edit-help">
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>편집 가이드:</strong> 
+                    텍스트를 더블클릭하여 편집하고 엔터키로 저장하세요. 
+                    이미지를 클릭하면 새 이미지로 교체할 수 있습니다.
+                    <div class="mt-2 text-sm opacity-90">
+                        <i class="fas fa-keyboard mr-1"></i>
+                        엔터: 저장 | ESC: 취소 | 더블클릭: 편집 시작
+                    </div>
+                </div>
+                
+                <!-- 편집 상태 표시 -->
+                <div id="editStatus" class="mb-4 p-2 bg-gray-100 rounded text-sm text-gray-600 hidden">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    <span id="editStatusText">편집 가능한 요소: 0개</span>
+                </div>
+                
+                <!-- 변경 사항 컨트롤 버튼 -->
+                <div id="editControls" class="mb-4 hidden">
+                    <div class="flex space-x-2">
+                        <button onclick="resetAllChanges()" 
+                                class="flex-1 bg-gray-500 text-white py-2 px-3 rounded text-sm hover:bg-gray-600 transition">
+                            <i class="fas fa-undo mr-1"></i>모든 변경사항 취소
+                        </button>
+                        <button onclick="showChangedElements()" 
+                                class="flex-1 bg-blue-500 text-white py-2 px-3 rounded text-sm hover:bg-blue-600 transition">
+                            <i class="fas fa-search mr-1"></i>변경사항 보기
+                        </button>
+                    </div>
+                    <!-- 새로 추가되는 버튼 -->
+                    <div class="flex space-x-2">
+                        <button onclick="cleanupCorruptedImageSrcs()" 
+                                class="flex-1 bg-orange-500 text-white py-2 px-3 rounded text-sm hover:bg-orange-600 transition">
+                            <i class="fas fa-tools mr-1"></i>손상된 이미지 경로 정리
+                        </button>
+                        <button onclick="validateAllImages()" 
+                                class="flex-1 bg-purple-500 text-white py-2 px-3 rounded text-sm hover:bg-purple-600 transition">
+                            <i class="fas fa-check-circle mr-1"></i>이미지 유효성 검사
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="editableContent" class="space-y-4 min-h-[200px] border border-gray-200 rounded-lg p-4 bg-white">
+                    <p class="text-gray-400 text-center py-8">
+                        <i class="fas fa-edit text-4xl mb-2 block"></i>
+                        AI로 문항을 생성하면 편집 가능한 텍스트가 여기에 표시됩니다
+                    </p>
+                </div>
+                
+                <!-- 숨겨진 파일 입력 -->
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- 저장 버튼 -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <button onclick="saveContent()" 
+                    class="w-full bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition duration-200 font-medium shadow-sm">
+                <i class="fas fa-save mr-2"></i>저장하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 템플릿 만들기 모달 (개선된 버전) -->
+<div id="templateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-800">템플릿 만들기</h3>
+                <button onclick="closeTemplateModal()" class="text-gray-500 hover:text-gray-700 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-gray-50" style="max-height: calc(90vh - 120px);">
+                <form id="templateForm">
+                    <!-- 기본 정보 -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">카테고리 *</label>
+                            <select id="templateFormCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white">
+                                <option value="">카테고리 선택</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">타입 *</label>
+                            <select id="templateFormType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white" disabled>
+                                <option value="">타입 선택</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 템플릿 이름 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">템플릿 이름 *</label>
+                        <input type="text" id="templateName" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-white"
+                               placeholder="예: 객관식 5지 선다형 기본 템플릿">
+                    </div>
+                    
+                    <!-- HTML 템플릿 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            HTML 템플릿
+                            <span class="text-gray-500 text-xs ml-2">(문항의 HTML 구조)</span>
+                        </label>
+                        <textarea id="templateHtml" rows="8" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 font-mono text-sm"
+                                  placeholder="<div class='question'>
+    <h2>문제: {문제 내용}</h2>
+    <div class='choices'>
+        <label><input type='radio' name='answer' value='1'> 선택지 1</label>
+        <label><input type='radio' name='answer' value='2'> 선택지 2</label>
+    </div>
+</div>"></textarea>
+                    </div>
+                    
+                    <!-- 정답 템플릿 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            정답 템플릿 (JSON)
+                            <span class="text-gray-500 text-xs ml-2">(답안 형식 정의)</span>
+                        </label>
+                        <textarea id="templateAnswer" rows="4" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 font-mono text-sm"
+                                  placeholder='{
+  "correct": "1",
+  "explanation": "정답 해설",
+  "type": "multiple_choice"
+}'>{"correct": "", "explanation": "", "type": "multiple_choice"}</textarea>
+                    </div>
+                    
+                    <!-- 메타데이터 -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            메타데이터 (JSON)
+                            <span class="text-gray-500 text-xs ml-2">(난이도, 시간 등 부가 정보)</span>
+                        </label>
+                        <textarea id="templateMeta" rows="4" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 font-mono text-sm"
+                                  placeholder='{
+  "difficulty": "medium",
+  "estimated_time": 180,
+  "subject": "일반"
+}'>{"difficulty": "medium", "estimated_time": 180}</textarea>
+                    </div>
+                    
+                    <!-- JavaScript 코드 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            JavaScript 코드 (선택사항)
+                            <span class="text-gray-500 text-xs ml-2">(문항 동작을 위한 스크립트)</span>
+                        </label>
+                        <textarea id="templateJs" rows="6" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 font-mono text-sm"
+                                  placeholder="// 예시: 선택지 클릭 시 스타일 변경
+document.querySelectorAll('input[name=&quot;answer&quot;]').forEach(input => {
+    input.addEventListener('change', function() {
+        // 선택된 답안 스타일링
+        document.querySelectorAll('label').forEach(label => 
+            label.classList.remove('selected')
+        );
+        this.parentElement.classList.add('selected');
+    });
+});"></textarea>
+                    </div>
+                    
+                    <!-- 버튼들 -->
+                    <div class="flex space-x-4">
+                        <button type="button" onclick="testTemplate()" 
+                                class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-play mr-2"></i>미리보기 테스트
+                        </button>
+                        <button type="button" onclick="saveTemplate()" 
+                                class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition">
+                            <i class="fas fa-save mr-2"></i>템플릿 저장
+                        </button>
+                    </div>
+                    
+                    <!-- 도움말 -->
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <h4 class="text-sm font-medium text-blue-800 mb-2">📝 템플릿 작성 팁</h4>
+                        <ul class="text-xs text-blue-700 space-y-1">
+                            <li>• HTML에서 중괄호 {...}를 사용하여 동적 내용 위치를 표시하세요</li>
+                            <li>• 정답 템플릿은 채점에 사용되므로 정확한 JSON 형식으로 작성하세요</li>
+                            <li>• JavaScript는 문항의 상호작용 기능을 위해 사용됩니다 (선택사항)</li>
+                            <li>• 미리보기 테스트로 템플릿이 올바르게 작동하는지 확인하세요</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 로딩 모달 -->
+<div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-lg p-8 text-center shadow-xl">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-700">AI가 문항을 생성하고 있습니다...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+
+<script>
+// ========== 전역 변수 ==========
+let metaEditor, tagsEditor, htmlEditorInstance, answerEditor, answerInputEditor;
+let currentContent = null;
+let templates = [];
+let currentEditingImage = null;
+let temporaryUploads = []; // 임시 업로드된 파일들 추적
+let originalHtmlContent = '';
+let wordMappings = new Map();
+
+// ========== 유틸리티 함수들 ==========
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 알림 토스트 표시
+function showToast(message, type = 'success') {
+    // 기존 토스트 제거
+    $('.toast-notification').remove();
+    
+    const toastClass = type === 'error' ? 'error' : type === 'warning' ? 'warning' : '';
+    const icon = type === 'error' ? 'fas fa-times-circle' : 
+                 type === 'warning' ? 'fas fa-exclamation-triangle' : 
+                 'fas fa-check-circle';
+    
+    const $toast = $(`
+        <div class="toast-notification ${toastClass}">
+            <i class="${icon} mr-2"></i>${message}
+        </div>
+    `);
+    
+    $('body').append($toast);
+    
+    // 애니메이션으로 표시
+    setTimeout(() => $toast.addClass('show'), 100);
+    
+    // 3초 후 자동 제거
+    setTimeout(() => {
+        $toast.removeClass('show');
+        setTimeout(() => $toast.remove(), 300);
+    }, 3000);
+}
+
+// 임시 업로드 파일 정리
+function cleanupTemporaryUploads() {
+    if (temporaryUploads.length === 0) return;
+    
+    console.log('임시 업로드 파일 정리:', temporaryUploads);
+    
+    temporaryUploads.forEach(attachmentId => {
+        $.ajax({
+            url: `/cp/api/cleanup-temp-upload/${attachmentId}/`,
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            success: function() {
+                console.log(`임시 파일 ${attachmentId} 정리 완료`);
+            },
+            error: function(xhr) {
+                console.error(`임시 파일 ${attachmentId} 정리 실패:`, xhr);
+            }
+        });
+    });
+    
+    temporaryUploads = [];
+}
+
+// ========== UI 컨트롤 함수들 ==========
+
+// 패널 토글
+function togglePanel(panel) {
+    const $panel = $(`#${panel}Panel`);
+    const $toggleBtn = $(`#${panel}ToggleBtn`);
+    const $middlePanel = $('#middlePanel');
+    const $rightPanel = $('#rightPanel');
+    
+    if ($panel.hasClass('panel-collapsed')) {
+        // 패널 열기
+        $panel.removeClass('panel-collapsed');
+        $toggleBtn.hide();
+        $middlePanel.removeClass('w-1/2').addClass('w-1/3');
+        $rightPanel.removeClass('w-1/2').addClass('w-1/3');
+    } else {
+        // 패널 닫기
+        $panel.addClass('panel-collapsed');
+        $toggleBtn.show();
+        $middlePanel.removeClass('w-1/3').addClass('w-1/2');
+        $rightPanel.removeClass('w-1/3').addClass('w-1/2');
+    }
+}
+
+// 탭 전환
+function switchTab(tab) {
+    $('.tab-btn').removeClass('border-orange-400 bg-white text-gray-700').addClass('border-transparent text-gray-600');
+    $(`.tab-btn[data-tab="${tab}"]`).removeClass('border-transparent text-gray-600').addClass('border-orange-400 bg-white text-gray-700');
+    
+    $('.tab-content').removeClass('active');
+    $(`#${tab}Tab`).addClass('active');
+}
+
+function switchPreviewTab(tab) {
+    console.log('탭 전환:', tab);
+    
+    // 모든 탭 버튼 스타일 초기화
+    $('.preview-tab-btn').removeClass('border-gray-600 bg-white text-gray-700').addClass('border-transparent text-gray-600');
+    
+    // 선택된 탭 버튼 활성화
+    $(`.preview-tab-btn[data-tab="${tab}"]`).removeClass('border-transparent text-gray-600').addClass('border-gray-600 bg-white text-gray-700');
+    
+    // 모든 탭 콘텐츠 숨기기
+    $('.preview-tab-content').removeClass('active').hide();
+    
+    // 선택된 탭 콘텐츠 보이기
+    $(`#${tab}Tab`).addClass('active').show();
+    
+    // 특별한 경우 처리
+    if (tab === 'html' && htmlEditorInstance) {
+        // HTML 에디터 리프레시
+        setTimeout(() => {
+            htmlEditorInstance.refresh();
+        }, 100);
+    }
+}
+
+// 아코디언 토글
+function toggleAccordion(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('i');
+    
+    content.classList.toggle('active');
+    icon.classList.toggle('fa-chevron-down');
+    icon.classList.toggle('fa-chevron-up');
+}
+
+// ========== 데이터 로드 함수들 ==========
+
+// 초기 데이터 로드
+function loadInitialData() {
+    console.log('=== 초기 데이터 로드 시작 ===');
+    
+    // 카테고리 로드
+    $.get('/cp/api/categories/', function(data) {
+        console.log('카테고리 로드 완료:', data);
+        
+        const categorySelects = [
+            '#contentCategory', 
+            '#templateCategory', 
+            '#templateFormCategory'
+        ];
+        
+        categorySelects.forEach(selector => {
+            $(selector).empty().append('<option value="">카테고리 선택</option>');
+            data.forEach(category => {
+                $(selector).append(`<option value="${category.id}">${category.category_name}</option>`);
+            });
+        });
+        
+        console.log('카테고리 UI 업데이트 완료');
+    }).fail(function(xhr) {
+        console.error('카테고리 로드 실패:', xhr);
+        showToast('카테고리를 불러오는데 실패했습니다', 'error');
+    });
+    
+    // 초기에는 모든 ContentType 로드
+    loadAllContentTypes();
+    
+    // 코스 로드
+    $.get('/cp/api/courses/', function(data) {
+        console.log('코스 로드 완료:', data);
+        
+        $('#contentCourse').empty().append('<option value="">코스 선택</option>');
+        data.forEach(course => {
+            $('#contentCourse').append(`<option value="${course.id}">${course.subject_name}</option>`);
+        });
+        
+        console.log('코스 UI 업데이트 완료');
+    }).fail(function(xhr) {
+        console.error('코스 로드 실패:', xhr);
+        showToast('코스를 불러오는데 실패했습니다', 'error');
+    });
+    
+    // 초기 데이터 로드
+    searchContents();
+    searchTemplates();
+    
+    console.log('=== 초기 데이터 로드 완료 ===');
+}
+
+// 모든 컨텐츠 타입 로드 함수 (수정된 버전)
+function loadAllContentTypes() {
+    console.log('=== 모든 컨텐츠 타입 로드 ===');
+    
+    $.get('/cp/api/content-types/', function(data) {
+        console.log('컨텐츠 타입 로드 완료:', data);
+        
+        const typeSelects = [
+            '#content_type', 
+            '#contentType', 
+            '#templateType', 
+            '#templateFormType'
+        ];
+        
+        typeSelects.forEach(selector => {
+            const $select = $(selector);
+            const currentValue = $select.val(); // 현재 선택값 보존
+            
+            $select.empty();
+            
+            // 기본 옵션 추가
+            if (selector === '#content_type') {
+                $select.append('<option value="">선택하세요</option>');
+            } else {
+                $select.append('<option value="">타입 선택</option>');
+            }
+            
+            // 타입 옵션들 추가
+            data.forEach(type => {
+                $select.append(`<option value="${type.id}">${type.type_name}</option>`);
+            });
+            
+            // 이전 선택값 복원
+            if (currentValue) {
+                $select.val(currentValue);
+            }
+        });
+        
+        console.log('컨텐츠 타입 UI 업데이트 완료');
+    }).fail(function(xhr) {
+        console.error('컨텐츠 타입 로드 실패:', xhr);
+        showToast('컨텐츠 타입을 불러오는데 실패했습니다', 'error');
+    });
+}
+
+// 카테고리별 컨텐츠 타입 로드 함수 (수정된 버전)
+function loadContentTypesByCategory(categoryId, targetSelectors = null) {
+    console.log('=== 카테고리별 컨텐츠 타입 로드 ===', categoryId);
+    
+    if (!categoryId) {
+        loadAllContentTypes();
+        return;
+    }
+    
+    // 기본 대상 셀렉터들
+    const defaultSelectors = ['#contentType', '#content_type'];
+    const selectors = targetSelectors || defaultSelectors;
+    
+    $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+        console.log('카테고리별 컨텐츠 타입 로드 완료:', data);
+        
+        selectors.forEach(selector => {
+            const $select = $(selector);
+            const currentValue = $select.val();
+            
+            $select.empty();
+            
+            if (selector === '#content_type') {
+                $select.append('<option value="">선택하세요</option>');
+            } else {
+                $select.append('<option value="">타입 선택</option>');
+            }
+            
+            data.forEach(type => {
+                $select.append(`<option value="${type.id}">${type.type_name}</option>`);
+            });
+            
+            // 이전 선택값이 새 목록에 있으면 복원
+            if (currentValue && $select.find(`option[value="${currentValue}"]`).length > 0) {
+                $select.val(currentValue);
+            }
+        });
+        
+        console.log('카테고리별 컨텐츠 타입 UI 업데이트 완료');
+    }).fail(function(xhr) {
+        console.error('카테고리별 컨텐츠 타입 로드 실패:', xhr);
+        showToast('컨텐츠 타입을 불러오는데 실패했습니다', 'error');
+        loadAllContentTypes(); // 실패 시 전체 타입 로드
+    });
+}
+
+// ========== 검색 함수들 ==========
+
+function searchContents() {
+    console.log('=== 컨텐츠 검색 시작 ===');
+    
+    const params = {
+        category: $('#contentCategory').val(),
+        type: $('#contentType').val(),
+        course: $('#contentCourse').val(),
+        chapter: $('#contentChapter').val(),
+        search: $('#contentSearch').val()
+    };
+    
+    console.log('검색 파라미터:', params);
+    
+    // 검색 전 UI 상태
+    const $list = $('#contentsList');
+    $list.html('<div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> 검색 중...</div>');
+    
+    $.get('/cp/api/contents/search/', params, function(data) {
+        console.log('검색 결과:', data);
+        
+        $list.empty();
+        $('#contentsCount').text(data.length);
+        
+        if (data.length === 0) {
+            $list.append('<p class="text-gray-500 text-center py-4">검색 결과가 없습니다</p>');
+            return;
+        }
+        
+        data.forEach(content => {
+            $list.append(`
+                <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition" onclick="loadContent(${content.id})">
+                    <h4 class="font-medium text-gray-800">${content.title}</h4>
+                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded mr-2">
+                            ${content.content_type_name}
+                        </span>
+                        <span>${content.created_at}</span>
+                    </div>
+                    ${content.preview ? `<div class="text-xs text-gray-400 mt-1 truncate">${content.preview}</div>` : ''}
+                </div>
+            `);
+        });
+        
+        console.log('검색 UI 업데이트 완료');
+        
+    }).fail(function(xhr) {
+        console.error('문항 검색 실패:', xhr);
+        
+        let errorMsg = '검색 중 오류가 발생했습니다.';
+        try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.error) {
+                errorMsg = response.error;
+            }
+        } catch (e) {
+            console.error('에러 응답 파싱 실패:', e);
+        }
+        
+        $list.html(`<p class="text-red-500 text-center py-4">${errorMsg}</p>`);
+        showToast(errorMsg, 'error');
+    });
+}
+
+
+// ========== 이벤트 동작 테스트 함수 ==========
+
+function testEvents() {
+    console.log('=== 이벤트 동작 테스트 ===');
+    
+    // 각 요소의 이벤트 리스너 확인
+    const elements = [
+        '#contentCategory',
+        '#contentType', 
+        '#contentCourse',
+        '#contentChapter',
+        '#contentSearch'
+    ];
+    
+    elements.forEach(selector => {
+        const $el = $(selector);
+        const events = $._data($el[0], 'events');
+        console.log(`${selector} 이벤트:`, events);
+    });
+    
+    // 강제로 챕터 변경 이벤트 트리거
+    console.log('챕터 변경 이벤트 강제 트리거...');
+    $('#contentChapter').trigger('change');
+}
+
+// 템플릿 검색
+function searchTemplates() {
+    const params = {
+        category: $('#templateCategory').val(),
+        type: $('#templateType').val(),
+        search: $('#templateSearch').val()
+    };
+    
+    $.get('/cp/api/templates/search/', params, function(data) {
+        templates = data;
+        const $list = $('#templatesList');
+        const $select = $('#template_select');
+        
+        $list.empty();
+        $select.empty().append('<option value="">템플릿 없음</option>');
+        
+        $('#templatesCount').text(data.length);
+        
+        if (data.length === 0) {
+            $list.append('<p class="text-gray-500 text-center py-4">템플릿이 없습니다</p>');
+            return;
+        }
+        
+        data.forEach(template => {
+            // 리스트에 추가
+            $list.append(`
+                <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition" onclick="selectTemplate(${template.id})">
+                    <h4 class="font-medium text-gray-800">${template.title}</h4>
+                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded mr-2">
+                            ${template.content_type_name}
+                        </span>
+                        <span>${template.created_at}</span>
+                    </div>
+                </div>
+            `);
+            
+            // 선택 옵션에 추가
+            $select.append(`<option value="${template.id}">${template.title}</option>`);
+        });
+    }).fail(function() {
+        console.error('템플릿 검색 실패');
+    });
+}
+
+// ========== 컨텐츠 관리 함수들 ==========
+
+// 문항 로드
+function loadContent(contentId) {
+    $.get(`/cp/api/contents/${contentId}/`, function(data) {
+        $('#title').val(data.title);
+        $('#content_type').val(data.content_type);
+        
+        // 프롬프트와 HTML 구분하여 처리
+        if (data.prompt) {
+            $('#prompt_content').val(data.prompt);
+        }
+        
+        // HTML 콘텐츠가 있으면 미리보기에 표시
+        if (data.page) {
+            htmlEditorInstance.setValue(data.page);
+            updatePreview(); // 미리보기 업데이트
+        }
+        
+        // 답안 설정
+        answerInputEditor.setValue(data.answer || '{}');
+        answerEditor.setValue(data.answer || '{}');
+        
+        // 메타데이터와 태그 설정
+        metaEditor.setValue(JSON.stringify(data.meta_data || {}, null, 2));
+        tagsEditor.setValue(JSON.stringify(data.tags || {}, null, 2));
+        
+        currentContent = data;
+    }).fail(function() {
+        alert('문항을 불러오는 중 오류가 발생했습니다.');
+    });
+}
+
+// 템플릿 선택
+function selectTemplate(templateId) {
+    $('#template_select').val(templateId).change();
+}
+
+// AI 요청
+function requestAI() {
+    const formData = {
+        title: $('#title').val(),
+        content_type: $('#content_type').val(),
+        template_id: $('#template_select').val(),
+        prompt: $('#prompt_content').val(),
+        answer_input: answerInputEditor.getValue(),
+        meta_data: metaEditor.getValue(),
+        tags: tagsEditor.getValue()
+    };
+    
+    if (!formData.title || !formData.content_type) {
+        alert('제목과 컨텐츠 타입은 필수입니다.');
+        return;
+    }
+    
+    $('#loadingModal').removeClass('hidden');
+    
+    $.ajax({
+        url: '/cp/api/generate-content/',
+        method: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            htmlEditorInstance.setValue(data.page || '');
+            answerEditor.setValue(data.answer || '');
+            metaEditor.setValue(data.meta_data || '{}');
+            tagsEditor.setValue(data.tags || '{}');
+            
+            updatePreview();
+            $('#loadingModal').addClass('hidden');
+        },
+        error: function(xhr) {
+            alert('AI 요청 중 오류가 발생했습니다.');
+            $('#loadingModal').addClass('hidden');
+        }
+    });
+}
+
+// ========== 완전한 텍스트 편집 시스템 ==========
+
+/**
+ * 텍스트 편집 이벤트 바인딩
+ */
+function bindTextEditingEvents() {
+    console.log('텍스트 편집 이벤트 바인딩 시작');
+    
+    // 기존 이벤트 핸들러 모두 제거
+    $(document).off('dblclick', '.editable-word');
+    $(document).off('click', '.editable-image');
+    
+    // 새로운 텍스트 편집 이벤트
+    $(document).on('dblclick.newTextEdit', '.editable-word', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const $word = $(this);
+        const wordId = $word.data('word-id');
+        const originalText = $word.data('original');
+        const currentText = $word.text();
+        
+        console.log('텍스트 편집 시작:', { wordId, originalText, currentText });
+        
+        if (!wordId || wordId === 'undefined' || wordId === 'NaN') {
+            console.error('유효하지 않은 wordId:', wordId);
+            showToast('편집할 수 없는 텍스트입니다', 'error');
+            return;
+        }
+        
+        if ($word.hasClass('editing-word')) {
+            return;
+        }
+        
+        startTextEditing($word, wordId, originalText, currentText);
+    });
+    
+    // 이미지 편집 이벤트
+    $(document).on('click.imageEdit', '.editable-image', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('이미지 편집 클릭');
+        currentEditingImage = $(this);
+        $('#imageUpload').click();
+    });
+    
+    console.log('이벤트 핸들러 바인딩 완료');
+}
+
+/**
+ * 텍스트 편집 시작
+ */
+function startTextEditing($word, wordId, originalText, currentText) {
+    $word.addClass('editing-word');
+    
+    const $input = $('<input type="text" class="edit-input">');
+    $input.val(currentText);
+    $input.css({
+        'width': Math.max(100, currentText.length * 10 + 30) + 'px',
+        'font-family': $word.css('font-family'),
+        'font-size': $word.css('font-size'),
+        'font-weight': $word.css('font-weight')
+    });
+    
+    $word.replaceWith($input);
+    $input.focus().select();
+    
+    function finishEditing() {
+        const newText = $input.val(); // trim() 하지 않음
+        
+        if (newText !== currentText) {
+            const updateSuccess = updateTextInHtml(wordId, currentText, newText);
+            
+            if (updateSuccess) {
+                const $newWord = $(`<span class="editable-word text-changed" 
+                    data-word-id="${wordId}" 
+                    data-original="${originalText}"
+                    data-changed="true"
+                    title="더블클릭하여 편집"
+                    style="color: #ef4444 !important; font-weight: 500;">${newText}</span>`);
+                
+                $input.replaceWith($newWord);
+                showToast(`"${currentText}" → "${newText}" 변경되었습니다`, 'success');
+                
+                setTimeout(() => {
+                    updatePreview();
+                    updateEditControls();
+                }, 100);
+            } else {
+                restoreOriginalWord();
+                showToast('텍스트 업데이트에 실패했습니다', 'error');
+            }
+        } else {
+            restoreOriginalWord();
+        }
+    }
+    
+    function cancelEditing() {
+        restoreOriginalWord();
+        showToast('편집이 취소되었습니다', 'warning');
+    }
+    
+    function restoreOriginalWord() {
+        const $restoredWord = $(`<span class="editable-word" 
+            data-word-id="${wordId}" 
+            data-original="${originalText}"
+            title="더블클릭하여 편집">${currentText}</span>`);
+        $input.replaceWith($restoredWord);
+    }
+    
+    $input.on('keydown', function(e) {
+        e.stopPropagation();
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEditing();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelEditing();
+        }
+    });
+    
+    $input.on('blur', function() {
+        finishEditing();
+    });
+}
+
+/**
+ * HTML에서 텍스트 업데이트
+ */
+function updateTextInHtml(wordId, oldText, newText) {
+    console.log(`HTML 텍스트 업데이트: wordId=${wordId}, "${oldText}" → "${newText}"`);
+    
+    const mapping = wordMappings.get(wordId);
+    if (!mapping) {
+        console.error('매핑 정보를 찾을 수 없습니다:', wordId);
+        return false;
+    }
+    
+    let currentHtml = htmlEditorInstance.getValue();
+    
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    const escapedOldText = escapeRegExp(oldText);
+    
+    const strategies = [
+        {
+            name: 'word boundary',
+            regex: new RegExp(`\\b${escapedOldText}\\b`, 'g')
+        },
+        {
+            name: 'html text',
+            regex: new RegExp(`(>[^<]*?)${escapedOldText}([^<]*?<)`, 'g'),
+            replacement: `$1${newText}$2`
+        },
+        {
+            name: 'simple text',
+            regex: new RegExp(escapedOldText, 'g')
+        }
+    ];
+    
+    let updatedHtml = currentHtml;
+    let replacementMade = false;
+    
+    for (const strategy of strategies) {
+        if (strategy.regex.test(currentHtml)) {
+            if (strategy.replacement) {
+                updatedHtml = currentHtml.replace(strategy.regex, strategy.replacement);
+            } else {
+                updatedHtml = currentHtml.replace(strategy.regex, newText);
+            }
+            replacementMade = true;
+            break;
+        }
+    }
+    
+    if (replacementMade) {
+        htmlEditorInstance.setValue(updatedHtml);
+        mapping.originalText = newText;
+        wordMappings.set(wordId, mapping);
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * HTML 콘텐츠를 편집 가능한 형태로 변환
+ */
+function updateEditableContent(html) {
+    console.log('편집 가능한 콘텐츠 업데이트 시작');
+    
+    const $container = $('#editableContent');
+    $container.empty();
+    
+    if (!html || html.trim() === '') {
+        $container.html('<p class="text-gray-500 text-center py-4">편집할 콘텐츠가 없습니다</p>');
+        updateEditControls();
+        return;
+    }
+    
+    originalHtmlContent = html;
+    wordMappings.clear();
+    
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        let globalWordId = 0;
+        
+        function processNode(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const fullText = node.textContent;
+                
+                if (!fullText.trim()) {
+                    return $('<span>').text(fullText);
+                }
+                
+                const segments = fullText.split(/(\s+)/);
+                const $textContainer = $('<span class="text-container">');
+                
+                segments.forEach((segment, index) => {
+                    if (segment.trim()) {
+                        const wordId = `word_${globalWordId++}`;
+                        
+                        wordMappings.set(wordId, {
+                            originalText: segment,
+                            fullTextContent: fullText,
+                            segmentIndex: index,
+                            parentNode: node.parentNode ? node.parentNode.tagName : 'BODY'
+                        });
+                        
+                        const $word = $(`<span class="editable-word" 
+                            data-word-id="${wordId}" 
+                            data-original="${segment}"
+                            title="더블클릭하여 편집">${segment}</span>`);
+                        
+                        $textContainer.append($word);
+                    } else if (segment) {
+                        $textContainer.append(segment);
+                    }
+                });
+                
+                return $textContainer;
+                
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'IMG') {
+                    const imageId = `img_${globalWordId++}`;
+                    const $img = $(`<div class="relative inline-block">
+                        <img src="${node.src}" 
+                             class="editable-image max-w-full h-auto" 
+                             data-image-id="${imageId}"
+                             data-original-src="${node.src}"
+                             title="클릭하여 이미지 변경">
+                        <div class="image-upload-overlay">
+                            <span>📸 클릭하여 변경</span>
+                        </div>
+                    </div>`);
+                    
+                    // 이미지 속성 복사
+                    const $realImg = $img.find('img');
+                    Array.from(node.attributes).forEach(attr => {
+                        if (attr.name !== 'src' && attr.name !== 'class') {
+                            $realImg.attr(attr.name, attr.value);
+                        }
+                    });
+                    
+                    return $img;
+                } else {
+                    const $element = $(`<${node.tagName.toLowerCase()}></${node.tagName.toLowerCase()}>`);
+                    
+                    Array.from(node.attributes).forEach(attr => {
+                        $element.attr(attr.name, attr.value);
+                    });
+                    
+                    Array.from(node.childNodes).forEach(child => {
+                        const $processedChild = processNode(child);
+                        if ($processedChild) {
+                            $element.append($processedChild);
+                        }
+                    });
+                    
+                    return $element;
+                }
+            }
+            
+            return null;
+        }
+        
+        const $processedContent = $('<div>');
+        Array.from(doc.body.childNodes).forEach(child => {
+            const $processed = processNode(child);
+            if ($processed) {
+                $processedContent.append($processed);
+            }
+        });
+        
+        $container.html($processedContent.html());
+        
+        // 호버 효과 적용
+        $container.find('.editable-word').on('mouseenter', function() {
+            if (!$(this).hasClass('text-changed')) {
+                $(this).css({
+                    'background-color': '#dbeafe',
+                    'border-color': '#93c5fd'
+                });
+            }
+        }).on('mouseleave', function() {
+            if (!$(this).hasClass('text-changed')) {
+                $(this).css({
+                    'background-color': 'transparent',
+                    'border-color': 'transparent'
+                });
+            }
+        });
+        
+        const editableWordCount = $('.editable-word').length;
+        const editableImageCount = $('.editable-image').length;
+        
+        console.log(`편집 가능한 단어: ${editableWordCount}개, 이미지: ${editableImageCount}개`);
+        
+        if (editableWordCount > 0 || editableImageCount > 0) {
+            $('#editStatus').removeClass('hidden');
+            $('#editStatusText').text(`편집 가능한 텍스트: ${editableWordCount}개, 이미지: ${editableImageCount}개`);
+        } else {
+            $('#editStatus').addClass('hidden');
+        }
+        
+        updateEditControls();
+        
+    } catch (error) {
+        console.error('HTML 파싱 오류:', error);
+        $container.html('<p class="text-red-500 text-center py-4">콘텐츠 파싱 중 오류가 발생했습니다</p>');
+    }
+}
+
+// ========== 완전한 이미지 편집 시스템 ==========
+
+/**
+ * 이미지 업로드
+ */
+/**
+ * 디버깅용 이미지 업로드 함수
+ */
+ /**
+ * 수정된 이미지 업로드 함수 - URL 매칭 문제 해결
+ */
+ /**
+ * 최종 수정된 이미지 업로드 함수 - URL 누적 문제 해결
+ */
+function uploadImage(file, $img) {
+    console.log('=== 이미지 업로드 시작 ===');
+    console.log('파일:', file.name);
+    console.log('현재 이미지 src:', $img.attr('src'));
+    console.log('이미지 ID:', $img.attr('id'));
+    
+    // 파일 크기 검증 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('파일 크기는 10MB 이하여야 합니다', 'error');
+        return;
+    }
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 업로드 가능합니다', 'error');
+        return;
+    }
+    
+    // 로딩 상태 표시
+    $img.addClass('image-loading');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('original_name', file.name);
+    formData.append('file_type', file.type);
+    formData.append('file_size', file.size);
+    
+    // 현재 콘텐츠 ID가 있으면 전송
+    if (currentContent && currentContent.id) {
+        formData.append('content_id', currentContent.id);
+    }
+    
+    $.ajax({
+        url: '/cp/api/upload-image/',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('=== 업로드 성공 ===');
+            console.log('서버 응답:', data);
+            
+            // 현재 이미지 정보 수집
+            const imageId = $img.attr('id');
+            const newSrc = data.file_url;
+            
+            console.log('교체할 이미지 ID:', imageId);
+            console.log('새로운 src:', newSrc);
+            
+            // HTML 에디터의 현재 내용을 DOM으로 파싱
+            const currentHtml = htmlEditorInstance.getValue();
+            console.log('현재 HTML 길이:', currentHtml.length);
+            
+            // DOM 파서를 사용하여 정확한 속성 교체
+            let updatedHtml = updateImageSrcInHtml(currentHtml, imageId, newSrc);
+            
+            if (updatedHtml !== currentHtml) {
+                console.log('HTML 교체 성공!');
+                htmlEditorInstance.setValue(updatedHtml);
+            } else {
+                console.error('HTML 교체 실패!');
+                showToast('이미지 교체에 실패했습니다.', 'error');
+                return;
+            }
+            
+            // 원본 src 저장 (취소 시 복원용)
+            if (!$img.attr('data-original-src')) {
+                $img.attr('data-original-src', $img.attr('src'));
+            }
+            
+            // 캐시 버스터 추가
+            const cacheBustedUrl = newSrc + '?t=' + Date.now();
+            
+            // 이미지 요소 업데이트
+            $img.attr('src', cacheBustedUrl);
+            $img.attr('data-changed', 'true');
+            $img.attr('data-attachment-id', data.attachment_id || '');
+            $img.attr('data-new-src', newSrc);
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            console.log('=== 미리보기 업데이트 시작 ===');
+            
+            // 강제 미리보기 업데이트
+            setTimeout(() => {
+                updatePreview();
+                console.log('미리보기 업데이트 완료');
+                
+                // 모든 탭의 동일한 이미지들 업데이트
+                updateAllTabImages(imageId, cacheBustedUrl);
+                
+            }, 100);
+            
+            // 임시 업로드 목록에 추가
+            if (data.attachment_id) {
+                temporaryUploads.push(data.attachment_id);
+            }
+            
+            showToast('이미지가 업로드되었습니다!', 'success');
+            updateEditControls();
+        },
+        error: function(xhr) {
+            console.error('=== 업로드 실패 ===');
+            console.error('xhr:', xhr);
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            let errorMsg = '이미지 업로드 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            showToast(errorMsg, 'error');
+        }
+    });
+}
+
+
+/**
+ * DOM 파서를 사용하여 HTML에서 이미지 src 정확히 교체
+ */
+ function updateImageSrcInHtml(html, imageId, newSrc) {
+    console.log('=== DOM 파서를 통한 이미지 교체 ===');
+    console.log('대상 이미지 ID:', imageId);
+    console.log('새로운 src:', newSrc);
+    
+    try {
+        // DOM 파서 생성
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        let imageFound = false;
+        
+        // ID로 이미지 찾기
+        if (imageId) {
+            const targetImg = doc.getElementById(imageId);
+            if (targetImg) {
+                console.log('ID로 이미지 발견:', targetImg.src);
+                console.log('기존 src 속성:', targetImg.getAttribute('src'));
+                
+                // src 속성 완전 교체
+                targetImg.setAttribute('src', newSrc);
+                imageFound = true;
+                
+                console.log('새로운 src 속성:', targetImg.getAttribute('src'));
+            } else {
+                console.log('ID로 이미지를 찾을 수 없음:', imageId);
+            }
+        }
+        
+        // ID로 찾지 못한 경우 다른 방법 시도
+        if (!imageFound) {
+            const allImages = doc.querySelectorAll('img');
+            console.log('전체 이미지 수:', allImages.length);
+            
+            for (let i = 0; i < allImages.length; i++) {
+                const img = allImages[i];
+                const currentSrc = img.getAttribute('src');
+                console.log(`이미지 ${i}:`, {
+                    id: img.getAttribute('id'),
+                    src: currentSrc,
+                    alt: img.getAttribute('alt'),
+                    class: img.getAttribute('class')
+                });
+                
+                // src가 비정상적으로 누적된 것 확인
+                if (currentSrc && (currentSrc.includes('.gif') || currentSrc.includes('.jpg') || currentSrc.includes('.png'))) {
+                    // 마지막 이미지 파일 확장자 위치 찾기
+                    const extensions = ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'];
+                    let lastExtIndex = -1;
+                    let lastExt = '';
+                    
+                    for (const ext of extensions) {
+                        const index = currentSrc.lastIndexOf(ext);
+                        if (index > lastExtIndex) {
+                            lastExtIndex = index;
+                            lastExt = ext;
+                        }
+                    }
+                    
+                    if (lastExtIndex > -1) {
+                        // 누적된 URL 감지
+                        const beforeLastExt = currentSrc.substring(0, lastExtIndex + lastExt.length);
+                        const afterLastExt = currentSrc.substring(lastExtIndex + lastExt.length);
+                        
+                        if (afterLastExt.length > 0) {
+                            console.log('누적된 URL 감지:', currentSrc);
+                            console.log('정리된 부분:', beforeLastExt);
+                            console.log('누적된 부분:', afterLastExt);
+                            
+                            // 이 이미지가 교체 대상일 가능성이 높음
+                            img.setAttribute('src', newSrc);
+                            imageFound = true;
+                            console.log('누적 URL 이미지 교체 완료');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (imageFound) {
+            // 수정된 HTML 반환
+            const updatedHtml = doc.body.innerHTML;
+            console.log('DOM 파서 교체 성공');
+            return updatedHtml;
+        } else {
+            console.log('교체할 이미지를 찾지 못함');
+            return html; // 원본 반환
+        }
+        
+    } catch (error) {
+        console.error('DOM 파서 오류:', error);
+        return html; // 원본 반환
+    }
+}
+
+/**
+ * 모든 탭의 동일한 이미지들 업데이트 (개선된 버전)
+ */
+function updateAllTabImages(imageId, newSrc) {
+    console.log('=== 모든 탭 이미지 업데이트 ===');
+    console.log('대상 ID:', imageId);
+    console.log('새로운 src:', newSrc);
+    
+    // 각 탭별로 이미지 업데이트
+    $('.preview-tab-content').each(function() {
+        const tabId = $(this).attr('id');
+        console.log(`${tabId} 탭 업데이트 중...`);
+        
+        // ID로 찾기
+        if (imageId) {
+            const $targetImg = $(this).find(`#${imageId}`);
+            if ($targetImg.length > 0) {
+                console.log(`${tabId}에서 ID로 이미지 발견:`, $targetImg.attr('src'));
+                $targetImg.attr('src', newSrc);
+                console.log(`${tabId} 업데이트 완료:`, $targetImg.attr('src'));
+            }
+        }
+        
+        // 누적된 src를 가진 이미지들도 정리
+        $(this).find('img').each(function() {
+            const currentSrc = $(this).attr('src');
+            if (currentSrc && isCorruptedSrc(currentSrc)) {
+                console.log(`${tabId}에서 손상된 src 발견:`, currentSrc);
+                $(this).attr('src', newSrc);
+                console.log(`${tabId} 손상된 이미지 복구 완료`);
+            }
+        });
+    });
+}
+
+/**
+ * 손상된(누적된) src인지 확인
+ */
+function isCorruptedSrc(src) {
+    if (!src) return false;
+    
+    // .gif, .jpg, .png 등이 여러 번 나타나는지 확인
+    const extensions = ['.gif', '.jpg', '.jpeg', '.png', '.webp'];
+    let extCount = 0;
+    
+    for (const ext of extensions) {
+        const matches = src.match(new RegExp(ext, 'g'));
+        if (matches) {
+            extCount += matches.length;
+        }
+    }
+    
+    return extCount > 1; // 확장자가 2개 이상이면 누적된 것으로 판단
+}
+
+/**
+ * HTML 에디터에서 손상된 이미지 src 모두 정리
+ */
+function cleanupCorruptedImageSrcs() {
+    console.log('=== 손상된 이미지 src 정리 ===');
+    
+    const currentHtml = htmlEditorInstance.getValue();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(currentHtml, 'text/html');
+    
+    let hasChanges = false;
+    const allImages = doc.querySelectorAll('img');
+    
+    allImages.forEach((img, index) => {
+        const currentSrc = img.getAttribute('src');
+        if (currentSrc && isCorruptedSrc(currentSrc)) {
+            console.log(`손상된 이미지 ${index} 발견:`, currentSrc);
+            
+            // 첫 번째 유효한 URL만 추출
+            const extensions = ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'];
+            for (const ext of extensions) {
+                const firstExtIndex = currentSrc.indexOf(ext);
+                if (firstExtIndex > -1) {
+                    const cleanSrc = currentSrc.substring(0, firstExtIndex + ext.length);
+                    console.log(`정리된 src:`, cleanSrc);
+                    img.setAttribute('src', cleanSrc);
+                    hasChanges = true;
+                    break;
+                }
+            }
+        }
+    });
+    
+    if (hasChanges) {
+        const cleanedHtml = doc.body.innerHTML;
+        htmlEditorInstance.setValue(cleanedHtml);
+        updatePreview();
+        console.log('손상된 이미지 src 정리 완료');
+        showToast('손상된 이미지 경로를 정리했습니다.', 'success');
+    }
+}
+
+
+/**
+ * 모든 이미지의 유효성 검사
+ */
+ function validateAllImages() {
+    console.log('=== 이미지 유효성 검사 시작 ===');
+    
+    const currentHtml = htmlEditorInstance.getValue();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(currentHtml, 'text/html');
+    
+    const allImages = doc.querySelectorAll('img');
+    const report = {
+        total: allImages.length,
+        valid: 0,
+        corrupted: 0,
+        missing: 0,
+        details: []
+    };
+    
+    allImages.forEach((img, index) => {
+        const src = img.getAttribute('src');
+        const id = img.getAttribute('id') || `image-${index}`;
+        const alt = img.getAttribute('alt') || '(alt 없음)';
+        
+        const detail = {
+            index: index,
+            id: id,
+            alt: alt,
+            src: src,
+            status: 'unknown'
+        };
+        
+        if (!src) {
+            detail.status = 'missing';
+            detail.issue = 'src 속성이 없음';
+            report.missing++;
+        } else if (isCorruptedSrc(src)) {
+            detail.status = 'corrupted';
+            detail.issue = 'URL이 누적됨';
+            report.corrupted++;
+        } else {
+            detail.status = 'valid';
+            report.valid++;
+        }
+        
+        report.details.push(detail);
+        console.log(`이미지 ${index}:`, detail);
+    });
+    
+    console.log('=== 검사 결과 ===');
+    console.log('전체:', report.total);
+    console.log('정상:', report.valid);
+    console.log('손상:', report.corrupted);
+    console.log('누락:', report.missing);
+    
+    // 결과 표시
+    showImageValidationReport(report);
+    
+    return report;
+}
+
+/**
+ * 이미지 검사 결과 표시
+ */
+function showImageValidationReport(report) {
+    let message = `📊 이미지 검사 결과\n\n`;
+    message += `전체: ${report.total}개\n`;
+    message += `✅ 정상: ${report.valid}개\n`;
+    message += `❌ 손상: ${report.corrupted}개\n`;
+    message += `⚠️ 누락: ${report.missing}개\n\n`;
+    
+    if (report.corrupted > 0 || report.missing > 0) {
+        message += `🔧 문제가 있는 이미지:\n`;
+        report.details.forEach(detail => {
+            if (detail.status !== 'valid') {
+                message += `- ${detail.id}: ${detail.issue}\n`;
+            }
+        });
+        
+        if (report.corrupted > 0) {
+            message += `\n"손상된 이미지 경로 정리" 버튼을 클릭하여 자동 수정할 수 있습니다.`;
+        }
+    } else {
+        message += `🎉 모든 이미지가 정상입니다!`;
+    }
+    
+    alert(message);
+    
+    // 토스트로도 간단한 결과 표시
+    if (report.corrupted > 0 || report.missing > 0) {
+        showToast(`이미지 검사 완료: 문제 ${report.corrupted + report.missing}개 발견`, 'warning');
+    } else {
+        showToast('모든 이미지가 정상입니다!', 'success');
+    }
+}
+
+/**
+ * 개선된 손상된 src 감지 함수
+ */
+function isCorruptedSrc(src) {
+    if (!src) return false;
+    
+    // 1. 확장자가 여러 번 나타나는지 확인
+    const extensions = ['.gif', '.jpg', '.jpeg', '.png', '.webp', '.svg'];
+    let extCount = 0;
+    
+    for (const ext of extensions) {
+        const matches = src.match(new RegExp(ext, 'g'));
+        if (matches) {
+            extCount += matches.length;
+        }
+    }
+    
+    if (extCount > 1) {
+        return true; // 확장자가 2개 이상이면 누적된 것
+    }
+    
+    // 2. media 경로가 여러 번 나타나는지 확인
+    const mediaMatches = src.match(/\/media\//g);
+    if (mediaMatches && mediaMatches.length > 1) {
+        return true;
+    }
+    
+    // 3. static 경로가 여러 번 나타나는지 확인
+    const staticMatches = src.match(/\/static\//g);
+    if (staticMatches && staticMatches.length > 1) {
+        return true;
+    }
+    
+    // 4. 비정상적으로 긴 URL (500자 이상)
+    if (src.length > 500) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * 저장 전 이미지 자동 검증 및 정리
+ */
+function validateAndCleanupBeforeSave() {
+    console.log('=== 저장 전 이미지 자동 정리 ===');
+    
+    const report = validateAllImages();
+    
+    if (report.corrupted > 0) {
+        console.log('손상된 이미지 발견, 자동 정리 시작...');
+        cleanupCorruptedImageSrcs();
+        
+        // 정리 후 다시 검증
+        setTimeout(() => {
+            const newReport = validateAllImages();
+            if (newReport.corrupted === 0) {
+                console.log('이미지 정리 완료');
+                showToast('저장 전 이미지 경로 정리 완료', 'success');
+            }
+        }, 100);
+    }
+}
+
+
+function uploadImage_0629(file, $img) {
+    console.log('=== 이미지 업로드 시작 ===');
+    console.log('파일:', file.name);
+    console.log('현재 이미지 src:', $img.attr('src'));
+    console.log('이미지 ID:', $img.attr('id'));
+    console.log('이미지 클래스:', $img.attr('class'));
+    
+    // 파일 크기 검증 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('파일 크기는 10MB 이하여야 합니다', 'error');
+        return;
+    }
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 업로드 가능합니다', 'error');
+        return;
+    }
+    
+    // 로딩 상태 표시
+    $img.addClass('image-loading');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('original_name', file.name);
+    formData.append('file_type', file.type);
+    formData.append('file_size', file.size);
+    
+    // 현재 콘텐츠 ID가 있으면 전송
+    if (currentContent && currentContent.id) {
+        formData.append('content_id', currentContent.id);
+    }
+    
+    $.ajax({
+        url: '/cp/api/upload-image/',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('=== 업로드 성공 ===');
+            console.log('서버 응답:', data);
+            
+            // 현재 이미지 정보 수집
+            const currentSrc = $img.attr('src');
+            const imageId = $img.attr('id');
+            const imageClass = $img.attr('class');
+            const newSrc = data.file_url;
+            
+            console.log('교체 대상:', { currentSrc, imageId, imageClass, newSrc });
+            
+            // HTML 에디터의 현재 내용
+            let currentHtml = htmlEditorInstance.getValue();
+            console.log('현재 HTML 길이:', currentHtml.length);
+            
+            // URL 정규화 함수
+            function normalizeUrl(url) {
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    // 절대 URL에서 상대 경로 추출
+                    const urlObj = new URL(url);
+                    return urlObj.pathname;
+                }
+                return url; // 이미 상대 경로
+            }
+            
+            // 다양한 방법으로 이미지 교체 시도
+            let updatedHtml = currentHtml;
+            let replaceSuccess = false;
+            
+            // 방법 1: ID로 정확한 매칭
+            if (imageId) {
+                const idPattern = new RegExp(`(<img[^>]*id=["']${imageId}["'][^>]*src=["'])[^"']+?([^"']*["'][^>]*>)`, 'gi');
+                if (idPattern.test(currentHtml)) {
+                    updatedHtml = currentHtml.replace(idPattern, `$1${newSrc}$2`);
+                    replaceSuccess = true;
+                    console.log('방법 1 (ID 매칭) 성공');
+                } else {
+                    console.log('방법 1 (ID 매칭) 실패 - 패턴 매칭 안됨');
+                }
+            }
+            
+            // 방법 2: 정규화된 URL로 매칭
+            if (!replaceSuccess) {
+                const normalizedCurrentSrc = normalizeUrl(currentSrc);
+                console.log('정규화된 현재 src:', normalizedCurrentSrc);
+                
+                if (currentHtml.includes(normalizedCurrentSrc)) {
+                    // 정확한 src 속성만 교체
+                    const srcPattern = new RegExp(`(src=["'])${escapeRegExp(normalizedCurrentSrc)}(["'])`, 'g');
+                    updatedHtml = currentHtml.replace(srcPattern, `$1${newSrc}$2`);
+                    replaceSuccess = true;
+                    console.log('방법 2 (정규화 URL) 성공');
+                } else {
+                    console.log('방법 2 (정규화 URL) 실패 - HTML에서 찾을 수 없음');
+                }
+            }
+            
+            // 방법 3: 클래스와 alt 속성으로 매칭 (백업)
+            if (!replaceSuccess && imageClass && $img.attr('alt')) {
+                const altText = $img.attr('alt');
+                const classPattern = new RegExp(`(<img[^>]*class=["'][^"']*${escapeRegExp(imageClass)}[^"']*["'][^>]*alt=["']${escapeRegExp(altText)}["'][^>]*src=["'])[^"']+?([^"']*["'][^>]*>)`, 'gi');
+                if (classPattern.test(currentHtml)) {
+                    updatedHtml = currentHtml.replace(classPattern, `$1${newSrc}$2`);
+                    replaceSuccess = true;
+                    console.log('방법 3 (클래스+alt 매칭) 성공');
+                }
+            }
+            
+            // 방법 4: 강제 교체 (모든 img 태그 검사)
+            if (!replaceSuccess) {
+                console.log('방법 4: 강제 교체 시도');
+                const imgTags = currentHtml.match(/<img[^>]*>/gi) || [];
+                console.log('발견된 img 태그 수:', imgTags.length);
+                
+                for (let i = 0; i < imgTags.length; i++) {
+                    const imgTag = imgTags[i];
+                    console.log(`img 태그 ${i}:`, imgTag);
+                    
+                    // src 추출
+                    const srcMatch = imgTag.match(/src=["']([^"']+)["']/i);
+                    if (srcMatch) {
+                        const tagSrc = srcMatch[1];
+                        const normalizedTagSrc = normalizeUrl(tagSrc);
+                        const normalizedCurrentSrc = normalizeUrl(currentSrc);
+                        
+                        console.log(`비교: ${normalizedTagSrc} vs ${normalizedCurrentSrc}`);
+                        
+                        if (normalizedTagSrc === normalizedCurrentSrc) {
+                            const newImgTag = imgTag.replace(srcMatch[0], `src="${newSrc}"`);
+                            updatedHtml = updatedHtml.replace(imgTag, newImgTag);
+                            replaceSuccess = true;
+                            console.log('방법 4 성공 - 강제 교체 완료');
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (replaceSuccess) {
+                console.log('HTML 교체 성공!');
+                htmlEditorInstance.setValue(updatedHtml);
+            } else {
+                console.error('모든 교체 방법 실패!');
+                showToast('이미지 교체에 실패했습니다. 수동으로 HTML을 확인해주세요.', 'warning');
+            }
+            
+            // 원본 src 저장 (취소 시 복원용)
+            if (!$img.attr('data-original-src')) {
+                $img.attr('data-original-src', currentSrc);
+            }
+            
+            // 캐시 버스터 추가
+            const cacheBustedUrl = newSrc + '?t=' + Date.now();
+            
+            // 이미지 요소 업데이트
+            $img.attr('src', cacheBustedUrl);
+            $img.attr('data-changed', 'true');
+            $img.attr('data-attachment-id', data.attachment_id || '');
+            $img.attr('data-new-src', newSrc);
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            console.log('=== 미리보기 업데이트 시작 ===');
+            
+            // 강제 미리보기 업데이트
+            setTimeout(() => {
+                updatePreview();
+                console.log('미리보기 업데이트 완료');
+                
+                // 모든 탭의 동일한 이미지들 업데이트
+                updateAllTabImages(normalizeUrl(currentSrc), cacheBustedUrl, imageId);
+                
+            }, 100);
+            
+            // 임시 업로드 목록에 추가
+            if (data.attachment_id) {
+                temporaryUploads.push(data.attachment_id);
+            }
+            
+            showToast('이미지가 업로드되었습니다!', 'success');
+            updateEditControls();
+        },
+        error: function(xhr) {
+            console.error('=== 업로드 실패 ===');
+            console.error('xhr:', xhr);
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            let errorMsg = '이미지 업로드 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            showToast(errorMsg, 'error');
+        }
+    });
+}
+
+/**
+ * 모든 탭의 동일한 이미지들 업데이트
+ */
+function updateAllTabImages(oldSrcNormalized, newSrc, imageId) {
+    console.log('=== 모든 탭 이미지 업데이트 ===');
+    
+    // 각 탭별로 이미지 업데이트
+    $('.preview-tab-content').each(function() {
+        const tabId = $(this).attr('id');
+        console.log(`${tabId} 탭 업데이트 중...`);
+        
+        // ID로 찾기
+        if (imageId) {
+            const $targetImg = $(this).find(`#${imageId}`);
+            if ($targetImg.length > 0) {
+                console.log(`${tabId}에서 ID로 이미지 발견:`, $targetImg.attr('src'));
+                $targetImg.attr('src', newSrc);
+            }
+        }
+        
+        // src로 찾기 (정규화된 URL 사용)
+        $(this).find('img').each(function() {
+            const currentSrc = $(this).attr('src');
+            if (currentSrc && normalizeUrl(currentSrc) === oldSrcNormalized) {
+                console.log(`${tabId}에서 src로 이미지 발견:`, currentSrc);
+                $(this).attr('src', newSrc);
+            }
+        });
+    });
+}
+
+/**
+ * URL 정규화 함수
+ */
+function normalizeUrl(url) {
+    if (!url) return '';
+    
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.pathname;
+        } catch (e) {
+            console.error('URL 파싱 오류:', e);
+            return url;
+        }
+    }
+    return url;
+}
+
+// 정규식 이스케이프 함수 (기존과 동일)
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// 강제 미리보기 업데이트 함수
+function forceUpdatePreview() {
+    console.log('=== 강제 미리보기 업데이트 ===');
+    
+    const html = htmlEditorInstance.getValue();
+    console.log('HTML 에디터 내용:', html);
+    
+    // 모든 미리보기 영역 업데이트
+    $('#previewContent').html(html);
+    updateEditableContent(html);
+    
+    // 이벤트 다시 바인딩
+    setTimeout(() => {
+        bindTextEditingEvents();
+        console.log('이벤트 바인딩 완료');
+    }, 100);
+}
+
+
+function uploadImage_062818(file, $img) {
+    console.log('이미지 업로드 시작:', file.name);
+    
+    // 파일 크기 검증 (10MB 제한)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('파일 크기는 10MB 이하여야 합니다', 'error');
+        return;
+    }
+    
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+        showToast('이미지 파일만 업로드 가능합니다', 'error');
+        return;
+    }
+    
+    // 로딩 상태 표시
+    $img.addClass('image-loading');
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('original_name', file.name);
+    formData.append('file_type', file.type);
+    formData.append('file_size', file.size);
+    
+    // 현재 콘텐츠 ID가 있으면 전송
+    if (currentContent && currentContent.id) {
+        formData.append('content_id', currentContent.id);
+    }
+    
+    $.ajax({
+        url: '/cp/api/upload-image/',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('이미지 업로드 성공:', data);
+            
+            // 원본 src 저장 (취소 시 복원용)
+            if (!$img.attr('data-original-src')) {
+                $img.attr('data-original-src', $img.attr('src'));
+            }
+            
+            const oldSrc = $img.attr('src');
+            const newSrc = data.file_url;
+            
+            // 이미지 요소 업데이트
+            $img.attr('src', newSrc);
+            $img.attr('data-changed', 'true');
+            $img.attr('data-attachment-id', data.attachment_id || '');
+            $img.attr('data-new-src', newSrc);
+            
+            // HTML 에디터의 내용도 업데이트
+            let html = htmlEditorInstance.getValue();
+            html = html.replace(oldSrc, newSrc);
+            htmlEditorInstance.setValue(html);
+            
+            // 미리보기 업데이트
+            updatePreview();
+            
+            // 임시 업로드 목록에 추가
+            if (data.attachment_id) {
+                temporaryUploads.push(data.attachment_id);
+            }
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            showToast('이미지가 임시로 업로드되었습니다. 저장 버튼을 눌러 최종 저장하세요.', 'success');
+            
+            updateEditControls();
+        },
+        error: function(xhr) {
+            console.error('이미지 업로드 실패:', xhr);
+            
+            // 로딩 상태 제거
+            $img.removeClass('image-loading');
+            
+            let errorMsg = '이미지 업로드 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            showToast(errorMsg, 'error');
+        }
+    });
+}
+
+/**
+ * 이미지 변경사항 취소
+ */
+function cancelImageChanges() {
+    $('.editable-image[data-changed="true"]').each(function() {
+        const $img = $(this);
+        const originalSrc = $img.attr('data-original-src');
+        const attachmentId = $img.attr('data-attachment-id');
+        
+        if (originalSrc) {
+            // 원래 이미지로 복원
+            $img.attr('src', originalSrc);
+            
+            // HTML 에디터의 내용도 업데이트
+            const newSrc = $img.attr('data-new-src');
+            if (newSrc) {
+                let html = htmlEditorInstance.getValue();
+                html = html.replace(newSrc, originalSrc);
+                htmlEditorInstance.setValue(html);
+            }
+            
+            // 변경 표시 제거
+            $img.removeAttr('data-changed data-attachment-id data-new-src');
+        }
+        
+        // 임시 업로드 파일 삭제
+        if (attachmentId) {
+            $.ajax({
+                url: `/cp/api/cleanup-temp-upload/${attachmentId}/`,
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                success: function() {
+                    console.log(`임시 이미지 ${attachmentId} 삭제 완료`);
+                },
+                error: function(xhr) {
+                    console.error(`임시 이미지 ${attachmentId} 삭제 실패:`, xhr);
+                }
+            });
+        }
+    });
+    
+    // 임시 업로드 목록 초기화
+    temporaryUploads = [];
+    
+    // 미리보기 업데이트
+    updatePreview();
+}
+
+// ========== 편집 컨트롤 함수들 ==========
+
+/**
+ * 편집 컨트롤 UI 업데이트
+ */
+function updateEditControls() {
+    const changedTexts = $('.text-changed').length;
+    const changedImages = $('.editable-image[data-changed="true"]').length;
+    const totalChanges = changedTexts + changedImages;
+    
+    if (totalChanges > 0) {
+        $('#editControls').removeClass('hidden');
+    } else {
+        $('#editControls').addClass('hidden');
+    }
+}
+
+/**
+ * 모든 변경사항 초기화
+ */
+function resetAllChanges() {
+    if (confirm('모든 변경사항을 취소하시겠습니까?')) {
+        // 텍스트 변경사항 취소
+        $('.text-changed').each(function() {
+            const $changed = $(this);
+            const original = $changed.data('original');
+            const wordId = $changed.data('word-id');
+            
+            const $original = $(`<span class="editable-word" 
+                data-word-id="${wordId}" 
+                data-original="${original}"
+                title="더블클릭하여 편집">${original}</span>`);
+            $changed.replaceWith($original);
+        });
+        
+        // 이미지 변경사항 취소
+        cancelImageChanges();
+        
+        // HTML 에디터를 원본으로 복원
+        if (originalHtmlContent) {
+            htmlEditorInstance.setValue(originalHtmlContent);
+        }
+        
+        // 미리보기 업데이트
+        updatePreview();
+        
+        showToast('모든 변경사항이 취소되었습니다', 'success');
+    }
+}
+
+/**
+ * 변경된 요소들 강조 표시
+ */
+function showChangedElements() {
+    const $changedElements = $('.text-changed, .editable-image[data-changed="true"]');
+    
+    if ($changedElements.length === 0) {
+        showToast('변경된 요소가 없습니다', 'warning');
+        return;
+    }
+    
+    // 기존 강조 제거
+    $('.highlight-changed').removeClass('highlight-changed');
+    
+    // 변경된 요소들 강조
+    $changedElements.addClass('highlight-changed').css({
+        'animation': 'pulse 1s infinite',
+        'background-color': '#fef3c7'
+    });
+    
+    // 2초 후 강조 제거
+    setTimeout(() => {
+        $('.highlight-changed').removeClass('highlight-changed').css({
+            'animation': '',
+            'background-color': ''
+        });
+    }, 2000);
+    
+    showToast(`${$changedElements.length}개의 변경된 요소를 강조 표시했습니다`, 'success');
+}
+
+// ========== 기존 함수들 수정 ==========
+
+// 미리보기 업데이트
+function updatePreview() {
+    const html = htmlEditorInstance.getValue();
+    
+    // 렌더링 탭 업데이트
+    $('#previewContent').html(html);
+    
+    // 텍스트 편집 탭 업데이트
+    updateEditableContent(html);
+    
+    // 이벤트 바인딩
+    setTimeout(() => {
+        bindTextEditingEvents();
+    }, 50);
+}
+
+// HTML 편집기에서 미리보기 업데이트
+function updatePreviewFromHtml() {
+    const html = htmlEditorInstance.getValue();
+    $('#previewContent').html(html);
+    updateEditableContent(html);
+}
+
+// 변경된 텍스트 색상 초기화
+function resetTextColors() {
+    $('.text-changed').removeClass('text-changed').css('color', '');
+    $('.editable-word[data-changed="true"]').removeAttr('data-changed');
+    $('.editable-image[data-changed="true"]').removeAttr('data-changed');
+    console.log('텍스트 색상 초기화 완료');
+}
+
+// 콘텐츠 저장
+// 개선된 콘텐츠 저장 함수
+function saveContent() {
+    console.log('=== 콘텐츠 저장 시작 ===');
+    
+    // 1. 저장 전 이미지 자동 검증 및 정리
+    validateAndCleanupBeforeSave();
+    
+    // 2. 변경된 텍스트 색상 초기화
+    resetTextColors();
+    
+    // 3. HTML 에디터의 내용을 최신 상태로 업데이트
+    updatePreviewFromHtml();
+    
+    const formData = {
+        title: $('#title').val(),
+        content_type: $('#content_type').val(),
+        page: htmlEditorInstance.getValue(),
+        answer: answerEditor.getValue(),
+        meta_data: metaEditor.getValue(),
+        tags: tagsEditor.getValue(),
+        prompt: $('#prompt_content').val()
+    };
+    
+    console.log('저장할 데이터:', {
+        title: formData.title,
+        content_type: formData.content_type,
+        page_length: formData.page.length,
+        has_answer: !!formData.answer,
+        has_prompt: !!formData.prompt
+    });
+    
+    if (!formData.title || !formData.content_type || !formData.page) {
+        alert('제목, 컨텐츠 타입, 페이지 내용은 필수입니다.');
+        return;
+    }
+    
+    // 저장 전 최종 이미지 src 검증
+    const finalValidation = validateAllImages();
+    if (finalValidation.corrupted > 0) {
+        console.warn('여전히 손상된 이미지가 있습니다:', finalValidation.corrupted);
+        if (!confirm('일부 이미지 경로에 문제가 있을 수 있습니다. 계속 저장하시겠습니까?')) {
+            return;
+        }
+    }
+    
+    // 로딩 표시
+    const $saveBtn = $('button[onclick="saveContent()"]');
+    const originalText = $saveBtn.html();
+    $saveBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>저장 중...').prop('disabled', true);
+    
+    $.ajax({
+        url: currentContent ? `/cp/api/contents/${currentContent.id}/update/` : '/cp/api/contents/create/',
+        method: currentContent ? 'PUT' : 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('콘텐츠 저장 성공:', data);
+            
+            // 저장 완료 후 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            showToast('저장되었습니다!', 'success');
+            currentContent = data;
+            
+            // 임시 업로드 목록 초기화 (저장되었으므로)
+            temporaryUploads = [];
+            
+            // 변경된 모든 요소의 표시 제거
+            $('[data-changed="true"]').removeAttr('data-changed');
+            
+            // 편집 컨트롤 업데이트
+            updateEditControls();
+            
+            // 리스트 새로고침
+            searchContents();
+            
+            // 저장 후 다시 한 번 이미지 검증 (선택사항)
+            setTimeout(() => {
+                const postSaveValidation = validateAllImages();
+                if (postSaveValidation.corrupted === 0 && postSaveValidation.missing === 0) {
+                    console.log('저장 후 검증: 모든 이미지 정상');
+                } else {
+                    console.warn('저장 후 검증: 일부 이미지 문제 있음', postSaveValidation);
+                }
+            }, 1000);
+        },
+        error: function(xhr) {
+            console.error('콘텐츠 저장 실패:', xhr);
+            
+            // 에러 시 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            let errorMsg = '저장 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            showToast(errorMsg, 'error');
+            alert(errorMsg);
+        }
+    });
+}
+
+
+
+
+function saveContent_0629() {
+    // 저장 전에 변경된 텍스트 색상을 원래대로 복원
+    resetTextColors();
+    
+    // HTML 에디터의 내용을 최신 상태로 업데이트
+    updatePreviewFromHtml();
+    
+    const formData = {
+        title: $('#title').val(),
+        content_type: $('#content_type').val(),
+        page: htmlEditorInstance.getValue(),
+        answer: answerEditor.getValue(),
+        meta_data: metaEditor.getValue(),
+        tags: tagsEditor.getValue(),
+        prompt: $('#prompt_content').val()
+    };
+    
+    if (!formData.title || !formData.content_type || !formData.page) {
+        alert('제목, 컨텐츠 타입, 페이지 내용은 필수입니다.');
+        return;
+    }
+    
+    // 로딩 표시
+    const $saveBtn = $('button[onclick="saveContent()"]');
+    const originalText = $saveBtn.html();
+    $saveBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>저장 중...').prop('disabled', true);
+    
+    $.ajax({
+        url: currentContent ? `/cp/api/contents/${currentContent.id}/update/` : '/cp/api/contents/create/',
+        method: currentContent ? 'PUT' : 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('콘텐츠 저장 성공:', data);
+            
+            // 저장 완료 후 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            alert('저장되었습니다.');
+            currentContent = data;
+            
+            // 임시 업로드 목록 초기화 (저장되었으므로)
+            temporaryUploads = [];
+            
+            // 변경된 모든 요소의 표시 제거
+            $('[data-changed="true"]').removeAttr('data-changed');
+            
+            // 편집 컨트롤 업데이트
+            updateEditControls();
+            
+            // 리스트 새로고침
+            searchContents();
+        },
+        error: function(xhr) {
+            console.error('콘텐츠 저장 실패:', xhr);
+            
+            // 에러 시 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            let errorMsg = '저장 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            alert(errorMsg);
+        }
+    });
+}
+
+// ========== 템플릿 관리 함수들 ==========
+// ========== 수정된 템플릿 관리 함수들 ==========
+
+function openTemplateModal() {
+    $('#templateModal').removeClass('hidden');
+    
+    // 폼 초기화
+    $('#templateForm')[0].reset();
+    $('#templateFormCategory').val('');
+    $('#templateFormType').val('');
+    $('#templateName').val('');
+    $('#templateHtml').val('');
+    $('#templateAnswer').val('{}');
+    $('#templateMeta').val('{}');
+    $('#templateJs').val('');
+}
+
+function closeTemplateModal() {
+    $('#templateModal').addClass('hidden');
+}
+
+function testTemplate() {
+    const html = $('#templateHtml').val();
+    const js = $('#templateJs').val();
+    
+    $('#previewContent').html(html);
+    
+    if (js && js.trim()) {
+        try {
+            // JavaScript 코드 실행 (안전하지 않을 수 있으므로 주의)
+            eval(js);
+        } catch (e) {
+            console.error('JavaScript 실행 오류:', e);
+            showToast('JavaScript 코드에 오류가 있습니다: ' + e.message, 'error');
+        }
+    }
+    
+    switchPreviewTab('render');
+    showToast('템플릿 테스트가 완료되었습니다', 'success');
+}
+
+function saveTemplate() {
+    console.log('=== 템플릿 저장 시작 ===');
+    
+    // 폼 데이터 수집
+    const formData = {
+        title: $('#templateName').val().trim(),
+        content_category: $('#templateFormCategory').val(),
+        content_type: $('#templateFormType').val(),
+        page: $('#templateHtml').val(),
+        answer: $('#templateAnswer').val(),
+        meta_data: $('#templateMeta').val(),
+        tags: $('#templateJs').val(), // JavaScript 코드
+        is_public: true
+    };
+    
+    console.log('전송할 데이터:', formData);
+    
+    // 필수 필드 검증
+    if (!formData.title) {
+        showToast('템플릿 이름을 입력하세요', 'error');
+        $('#templateName').focus();
+        return;
+    }
+    
+    if (!formData.content_category) {
+        showToast('카테고리를 선택하세요', 'error');
+        $('#templateFormCategory').focus();
+        return;
+    }
+    
+    if (!formData.content_type) {
+        showToast('타입을 선택하세요', 'error');
+        $('#templateFormType').focus();
+        return;
+    }
+    
+    // JSON 필드 유효성 검사
+    try {
+        // answer 필드 검증
+        const answerText = formData.answer.trim();
+        if (answerText && answerText !== '{}') {
+            if (answerText.startsWith('{')) {
+                JSON.parse(answerText); // JSON 형식 검증
+            }
+        }
+        
+        // meta_data 필드 검증
+        const metaText = formData.meta_data.trim();
+        if (metaText && metaText !== '{}') {
+            JSON.parse(metaText); // JSON 형식 검증
+        }
+    } catch (e) {
+        showToast('JSON 형식이 올바르지 않습니다: ' + e.message, 'error');
+        return;
+    }
+    
+    // 저장 버튼 로딩 상태
+    const $saveBtn = $('button[onclick="saveTemplate()"]');
+    const originalText = $saveBtn.html();
+    $saveBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i>저장 중...').prop('disabled', true);
+    
+    $.ajax({
+        url: '/cp/api/templates/create/',
+        method: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            console.log('템플릿 저장 성공:', data);
+            
+            // 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            showToast('템플릿이 저장되었습니다!', 'success');
+            closeTemplateModal();
+            
+            // 템플릿 리스트 새로고침
+            searchTemplates();
+        },
+        error: function(xhr) {
+            console.error('템플릿 저장 실패:', xhr);
+            
+            // 버튼 복원
+            $saveBtn.html(originalText).prop('disabled', false);
+            
+            let errorMsg = '템플릿 저장 중 오류가 발생했습니다.';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg = response.error;
+                }
+            } catch (e) {
+                console.error('에러 응답 파싱 실패:', e);
+            }
+            
+            showToast(errorMsg, 'error');
+            alert(errorMsg);
+        }
+    });
+}
+
+// 템플릿 선택 시 적용 (수정된 버전)
+function selectTemplate(templateId) {
+    console.log('템플릿 선택:', templateId);
+    
+    // UI에서 템플릿 선택
+    $('#template_select').val(templateId).change();
+    
+    // 템플릿 데이터 찾기
+    const template = templates.find(t => t.id == templateId);
+    if (template) {
+        console.log('선택된 템플릿:', template);
+        
+        // 폼에 템플릿 데이터 적용
+        $('#prompt_content').val(template.page || '');
+        
+        // answer 처리
+        if (template.answer) {
+            answerInputEditor.setValue(template.answer);
+        } else {
+            answerInputEditor.setValue('{}');
+        }
+        
+        // meta_data 처리
+        if (template.meta_data) {
+            if (typeof template.meta_data === 'string') {
+                metaEditor.setValue(template.meta_data);
+            } else {
+                metaEditor.setValue(JSON.stringify(template.meta_data, null, 2));
+            }
+        } else {
+            metaEditor.setValue('{}');
+        }
+        
+        // tags 처리 (JavaScript 코드 포함 가능)
+        if (template.tags) {
+            if (typeof template.tags === 'object' && template.tags.javascript) {
+                // JavaScript 코드가 tags.javascript에 저장된 경우
+                tagsEditor.setValue(JSON.stringify(template.tags, null, 2));
+            } else if (typeof template.tags === 'string') {
+                tagsEditor.setValue(template.tags);
+            } else {
+                tagsEditor.setValue(JSON.stringify(template.tags, null, 2));
+            }
+        } else {
+            tagsEditor.setValue('{}');
+        }
+        
+        showToast(`템플릿 "${template.title}"이 적용되었습니다`, 'success');
+    } else {
+        console.error('템플릿을 찾을 수 없습니다:', templateId);
+        showToast('템플릿을 찾을 수 없습니다', 'error');
+    }
+}
+
+// 수정된 템플릿 검색 함수
+function searchTemplates() {
+    console.log('=== 템플릿 검색 시작 ===');
+    
+    const params = {
+        category: $('#templateCategory').val(),
+        type: $('#templateType').val(),
+        search: $('#templateSearch').val()
+    };
+    
+    console.log('검색 파라미터:', params);
+    
+    $.get('/cp/api/templates/search/', params, function(data) {
+        console.log('템플릿 검색 결과:', data);
+        
+        templates = data; // 전역 변수에 저장
+        const $list = $('#templatesList');
+        const $select = $('#template_select');
+        
+        $list.empty();
+        $select.empty().append('<option value="">템플릿 없음</option>');
+        
+        $('#templatesCount').text(data.length);
+        
+        if (data.length === 0) {
+            $list.append('<p class="text-gray-500 text-center py-4">검색 결과가 없습니다</p>');
+            return;
+        }
+        
+        data.forEach(template => {
+            // 리스트에 추가
+            const categoryName = template.category_name || '카테고리 없음';
+            const typeName = template.content_type_name || '타입 없음';
+            
+            $list.append(`
+                <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition" onclick="selectTemplate(${template.id})">
+                    <h4 class="font-medium text-gray-800">${template.title}</h4>
+                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                        <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded mr-2">
+                            ${categoryName}
+                        </span>
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded mr-2">
+                            ${typeName}
+                        </span>
+                        <span>${template.created_at}</span>
+                    </div>
+                </div>
+            `);
+            
+            // 선택 옵션에 추가
+            $select.append(`<option value="${template.id}">${template.title} (${categoryName}-${typeName})</option>`);
+        });
+        
+        console.log('템플릿 검색 UI 업데이트 완료');
+    }).fail(function(xhr) {
+        console.error('템플릿 검색 실패:', xhr);
+        
+        let errorMsg = '템플릿 검색 중 오류가 발생했습니다.';
+        try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.error) {
+                errorMsg = response.error;
+            }
+        } catch (e) {
+            console.error('에러 응답 파싱 실패:', e);
+        }
+        
+        showToast(errorMsg, 'error');
+        $('#templatesList').html(`<p class="text-red-500 text-center py-4">${errorMsg}</p>`);
+    });
+}
+
+// 템플릿 폼의 카테고리 변경 이벤트 (기존 이벤트 바인딩에 추가)
+function bindTemplateEvents() {
+    // 템플릿 폼 카테고리 변경 시
+    $('#templateFormCategory').off('change.template').on('change.template', function() {
+        const categoryId = $(this).val();
+        const $typeSelect = $('#templateFormType');
+        
+        if (categoryId) {
+            $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+                $typeSelect.empty().append('<option value="">타입 선택</option>');
+                data.forEach(type => {
+                    $typeSelect.append(`<option value="${type.id}">${type.type_name}</option>`);
+                });
+                $typeSelect.prop('disabled', false);
+            }).fail(function() {
+                console.error('카테고리별 타입 로드 실패');
+                $typeSelect.empty().append('<option value="">타입 로드 실패</option>');
+            });
+        } else {
+            $typeSelect.empty().append('<option value="">타입 선택</option>');
+            $typeSelect.prop('disabled', true);
+        }
+    });
+    
+    // 템플릿 검색 카테고리 변경 시
+    $('#templateCategory').off('change.templateSearch').on('change.templateSearch', function() {
+        const categoryId = $(this).val();
+        const $typeSelect = $('#templateType');
+        
+        if (categoryId) {
+            $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+                $typeSelect.empty().append('<option value="">타입 선택</option>');
+                data.forEach(type => {
+                    $typeSelect.append(`<option value="${type.id}">${type.type_name}</option>`);
+                });
+            });
+        } else {
+            loadAllContentTypes(); // 전체 타입 로드
+        }
+        
+        // 검색 실행
+        searchTemplates();
+    });
+    
+    $('#templateType').off('change.templateSearch').on('change.templateSearch', function() {
+        searchTemplates();
+    });
+    
+    // 템플릿 검색어 엔터키
+    $('#templateSearch').off('keypress.templateSearch').on('keypress.templateSearch', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            searchTemplates();
+        }
+    });
+}
+// ========== 에디터 초기화 함수들 ==========
+
+function initializeEditors() {
+    // 답안 입력 JSON 에디터
+    answerInputEditor = CodeMirror(document.getElementById('answerInputEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    answerInputEditor.setSize(null, 200);
+    answerInputEditor.on('change', function() {
+        $('#answer_input').val(answerInputEditor.getValue());
+    });
+    
+    // 메타데이터 JSON 에디터
+    metaEditor = CodeMirror(document.getElementById('metaEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    metaEditor.setSize(null, 150);
+    metaEditor.on('change', function() {
+        $('#meta_content').val(metaEditor.getValue());
+    });
+    
+    // 태그 JSON 에디터
+    tagsEditor = CodeMirror(document.getElementById('tagsEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    tagsEditor.setSize(null, 150);
+    tagsEditor.on('change', function() {
+        $('#tags_content').val(tagsEditor.getValue());
+    });
+    
+    // HTML 편집 에디터
+    htmlEditorInstance = CodeMirror(document.getElementById('htmlEditorContainer'), {
+        mode: 'xml',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    htmlEditorInstance.setSize(null, '100%');
+    htmlEditorInstance.on('change', function() {
+        updatePreviewFromHtml();
+    });
+    
+    // 정답 JSON 에디터
+    answerEditor = CodeMirror(document.getElementById('answerEditorContainer'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    answerEditor.setSize(null, '100%');
+}
+
+// ========== 이벤트 바인딩 함수들 ==========
+// ========== 수정된 이벤트 바인딩 함수 ==========
+
+function bindEvents() {
+    console.log('=== 이벤트 바인딩 시작 ===');
+    
+    // 기존 이벤트 모두 제거 (중복 방지)
+    $('#contentCategory').off('change');
+    $('#contentType').off('change');
+    $('#contentCourse').off('change');
+    $('#contentChapter').off('change');
+    $('#contentSearch').off('keypress');
+    
+    // contentCategory 선택 시 해당 카테고리의 타입만 표시
+    $('#contentCategory').on('change', function() {
+        const categoryId = $(this).val();
+        console.log('컨텐츠 카테고리 변경:', categoryId);
+        
+        if (categoryId) {
+            loadContentTypesByCategory(categoryId, ['#contentType', '#content_type']);
+        } else {
+            loadAllContentTypes();
+        }
+        
+        $('#contentType').val('');
+        searchContents();
+    });
+    
+    // contentType 변경 시 검색
+    $('#contentType').on('change', function() {
+        console.log('컨텐츠 타입 변경:', $(this).val());
+        searchContents();
+    });
+    
+    // 코스 선택 시 챕터 로드
+    $('#contentCourse').on('change', function() {
+        const courseId = $(this).val();
+        const $chapterSelect = $('#contentChapter');
+        
+        console.log('코스 변경:', courseId);
+        
+        if (courseId) {
+            // 로딩 표시
+            $chapterSelect.html('<option value="">로딩 중...</option>').prop('disabled', true);
+            
+            $.get(`/cp/api/courses/${courseId}/chapters/`, function(data) {
+                console.log('챕터 로드 완료:', data);
+                
+                $chapterSelect.empty().append('<option value="">대단원 선택</option>');
+                data.forEach(chapter => {
+                    $chapterSelect.append(`<option value="${chapter.id}">${chapter.chapter_title}</option>`);
+                });
+                $chapterSelect.prop('disabled', false);
+                
+                // 챕터 변경 이벤트도 다시 바인딩
+                bindChapterChangeEvent();
+                
+            }).fail(function(xhr) {
+                console.error('챕터 로드 실패:', xhr);
+                $chapterSelect.html('<option value="">챕터 로드 실패</option>');
+                showToast('챕터를 불러오는데 실패했습니다', 'error');
+            });
+        } else {
+            $chapterSelect.empty().append('<option value="">대단원 선택</option>');
+            $chapterSelect.prop('disabled', true);
+        }
+        
+        // 코스 변경 시에도 검색 실행
+        searchContents();
+    });
+    
+    // 챕터 변경 이벤트 바인딩 함수
+    function bindChapterChangeEvent() {
+        $('#contentChapter').off('change.chapter').on('change.chapter', function() {
+            console.log('챕터 변경:', $(this).val(), $(this).find('option:selected').text());
+            searchContents();
+        });
+    }
+    
+    // 초기 챕터 이벤트 바인딩
+    bindChapterChangeEvent();
+    
+    // 템플릿 선택 시 내용 적용
+    $('#template_select').off('change.templateSelect').on('change.templateSelect', function() {
+        const templateId = $(this).val();
+        console.log('템플릿 선택 변경:', templateId);
+        
+        if (templateId) {
+            selectTemplate(templateId);
+        }
+    });
+    
+    // 이미지 업로드 이벤트
+    $('#imageUpload').off('change.imageUpload').on('change.imageUpload', function(e) {
+        const file = e.target.files[0];
+        console.log('이미지 파일 선택:', file?.name);
+        
+        if (file && currentEditingImage) {
+            uploadImage(file, currentEditingImage);
+        }
+        // 파일 입력 초기화
+        $(this).val('');
+    });
+    
+    // 템플릿 관련 이벤트
+    bindTemplateEvents();
+    
+    // 검색어 입력 시 엔터키로 검색
+    $('#contentSearch').on('keypress.contentSearch', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            searchContents();
+        }
+    });
+    
+    // 초기 설정
+    $('#contentChapter').prop('disabled', true);
+    $('#templateFormType').prop('disabled', true);
+    
+    // 텍스트 편집 이벤트 바인딩
+    bindTextEditingEvents();
+    
+    console.log('=== 이벤트 바인딩 완료 ===');
+}
+// 새 콘텐츠 생성 시 초기화
+function createNewContent() {
+    // 임시 파일 정리
+    if (temporaryUploads.length > 0) {
+        cleanupTemporaryUploads();
+    }
+    
+    // 이미지 변경사항 취소
+    cancelImageChanges();
+    
+    // 폼 초기화
+    $('#title').val('');
+    $('#content_type').val('');
+    $('#template_select').val('');
+    $('#prompt_content').val('');
+    
+    // 에디터 초기화
+    answerInputEditor.setValue('{}');
+    answerEditor.setValue('{}');
+    metaEditor.setValue('{}');
+    tagsEditor.setValue('{}');
+    htmlEditorInstance.setValue('');
+    
+    // 미리보기 초기화
+    $('#previewContent').html(`
+        <div class="text-center text-gray-400 py-8">
+            <i class="fas fa-eye text-6xl mb-4"></i>
+            <p>AI로 문항을 생성하면 여기에 표시됩니다</p>
+        </div>
+    `);
+    
+    $('#editableContent').html(`
+        <p class="text-gray-400 text-center py-8">
+            <i class="fas fa-edit text-4xl mb-2 block"></i>
+            AI로 문항을 생성하면 편집 가능한 텍스트가 여기에 표시됩니다
+        </p>
+    `);
+    
+    // 현재 콘텐츠 초기화
+    currentContent = null;
+    
+    // 편집 컨트롤 업데이트
+    updateEditControls();
+    
+    showToast('새 콘텐츠 작성을 시작합니다.', 'success');
+}
+
+// ========== 초기화 함수 ==========
+
+$(document).ready(function() {
+    console.log('CP Agent 초기화 시작...');
+    
+    try {
+        // 탭 초기화
+        switchTab('contents');
+        switchPreviewTab('render');
+        console.log('탭 초기화 완료');
+        
+        // 에디터 초기화
+        initializeEditors();
+        console.log('에디터 초기화 완료');
+        
+        // 이벤트 바인딩
+        bindEvents();
+        console.log('이벤트 바인딩 완료');
+        
+        // 초기 데이터 로드
+        loadInitialData();
+        console.log('초기 데이터 로드 완료');
+        
+        // 페이지 이탈 시 임시 파일 정리
+        $(window).on('beforeunload', function() {
+            if (temporaryUploads.length > 0) {
+                cleanupTemporaryUploads();
+            }
+        });
+        
+        console.log('CP Agent 초기화 완료!');
+         // 디버깅을 위한 전역 함수 등록
+        window.testEvents = testEvents;
+        window.searchContents = searchContents;
+    
+    console.log('디버깅 함수 등록 완료. testEvents() 함수로 이벤트 상태 확인 가능');
+    } catch (error) {
+        console.error('CP Agent 초기화 중 오류 발생:', error);
+        showToast('페이지 초기화 중 오류가 발생했습니다.', 'error');
+    }
+});
+</script>
+{% endblock %}

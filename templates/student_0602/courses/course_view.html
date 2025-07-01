@@ -1,0 +1,82 @@
+<!-- student/templates/student/learning/course_view.html -->
+{% extends 'student/base.html' %}
+
+{% block title %}{{ course.subject_name }} 학습 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ course.subject_name }}</h2>
+            <p class="text-gray-600">{{ course.description }}</p>
+        </div>
+        <a href="{% url 'student:course_list' %}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+            <i class="fas fa-arrow-left mr-2"></i>코스 목록
+        </a>
+    </div>
+</div>
+
+<!-- 전체 진행률 -->
+<div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    {% with total_completed=chasis_with_progress|length total_chasis=chasis_with_progress|length %}
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">전체 진행 상황</h3>
+        <span class="text-sm text-gray-600">
+            {% widthratio total_completed total_chasis 100 %}% 완료
+        </span>
+    </div>
+    {% endwith %}
+</div>
+
+<!-- 차시별 진행 상황 -->
+<div class="space-y-4">
+    {% for chasi_data in chasis_with_progress %}
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">{{ chasi_data.chasi.chasi_title }}</h3>
+            <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
+                {{ chasi_data.progress_percent }}% 완료
+            </span>
+        </div>
+        
+        {% if chasi_data.chasi.description %}
+        <p class="text-gray-600 mb-4">{{ chasi_data.chasi.description }}</p>
+        {% endif %}
+        
+        <!-- 진행률 바 -->
+        <div class="mb-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="progress-bar h-2 rounded-full" style="width: {{ chasi_data.progress_percent }}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{{ chasi_data.completed_slides }}/{{ chasi_data.total_slides }} 슬라이드</span>
+            </div>
+        </div>
+        
+        <!-- 슬라이드 목록 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for slide in chasi_data.slides %}
+            <a href="{% url 'student:learning_slide' slide.id %}" 
+               class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200 block">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-800">슬라이드 {{ slide.slide_number }}</span>
+                    <i class="fas fa-check-circle text-green-500 text-sm"></i>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">{{ slide.content_type.type_name }}</p>
+            </a>
+            {% empty %}
+            <div class="col-span-full text-center text-gray-500 py-4">
+                <p class="text-sm">아직 슬라이드가 없습니다.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white rounded-xl shadow-md p-12 text-center text-gray-500">
+        <i class="fas fa-book-open text-4xl mb-4"></i>
+        <p class="text-lg mb-2">아직 차시가 구성되지 않았습니다.</p>
+        <p class="text-sm">교사가 학습 내용을 추가할 때까지 기다려주세요.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

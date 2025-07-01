@@ -1,0 +1,221 @@
+<!-- teacher/templates/teacher/students/edit.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ student.user.get_full_name }} 정보 수정 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="{% url 'teacher:student_detail' student.id %}" 
+               class="mr-4 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">학생 정보 수정</h1>
+                <p class="text-gray-600">{{ student.user.get_full_name }}의 정보를 수정합니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오류 메시지 표시 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- 기본 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-user mr-2"></i>기본 정보
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">성 *</label>
+                        <input type="text" name="last_name" id="last_name" required 
+                               value="{{ student.user.last_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="성을 입력하세요">
+                    </div>
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                        <input type="text" name="first_name" id="first_name" required 
+                               value="{{ student.user.first_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="이름을 입력하세요">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">생년월일</label>
+                        <input type="date" name="birth_date" id="birth_date" 
+                               value="{{ student.birth_date|date:'Y-m-d' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                        <input type="email" name="email" id="email" 
+                               value="{{ student.user.email }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="이메일 주소를 입력하세요">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 학급 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-users mr-2"></i>학급 정보
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="class_id" class="block text-sm font-medium text-gray-700 mb-2">학급 *</label>
+                        <select name="class_id" id="class_id" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" {% if class.id == student.school_class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="student_id_display" class="block text-sm font-medium text-gray-700 mb-2">학번</label>
+                        <input type="text" id="student_id_display" 
+                               value="{{ student.student_id }}" readonly
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500" 
+                               placeholder="학번 (변경 불가)">
+                        <p class="mt-1 text-xs text-gray-500">학번은 변경할 수 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 계정 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-id-card mr-2"></i>계정 정보
+                </h3>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">사용자명</label>
+                            <p class="text-gray-700 font-mono">{{ student.user.username }}</p>
+                            <p class="text-xs text-gray-500">사용자명은 변경할 수 없습니다.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">가입일</label>
+                            <p class="text-gray-700">{{ student.user.date_joined|date:"Y년 m월 d일" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-yellow-600 mt-1 mr-2"></i>
+                            <div>
+                                <h4 class="text-sm font-medium text-yellow-800">비밀번호 변경 안내</h4>
+                                <p class="text-xs text-yellow-700 mt-1">
+                                    비밀번호 변경은 별도의 "비밀번호 초기화" 기능을 사용하세요.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                    <i class="fas fa-save mr-2"></i>정보 저장
+                </button>
+                <a href="{% url 'teacher:student_detail' student.id %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-times mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 추가 액션 -->
+    <div class="mt-6 bg-white rounded-xl shadow-md p-6">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4">추가 관리 기능</h4>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="{% url 'teacher:student_reset_password' student.id %}" 
+               class="flex items-center p-4 border border-yellow-300 rounded-lg hover:bg-yellow-50 transition duration-200">
+                <i class="fas fa-key text-2xl text-yellow-600 mr-4"></i>
+                <div>
+                    <h5 class="font-medium text-gray-800">비밀번호 초기화</h5>
+                    <p class="text-sm text-gray-600">학생의 비밀번호를 새로 설정합니다.</p>
+                </div>
+            </a>
+            
+            <a href="{% url 'teacher:student_delete' student.id %}" 
+               class="flex items-center p-4 border border-red-300 rounded-lg hover:bg-red-50 transition duration-200">
+                <i class="fas fa-trash text-2xl text-red-600 mr-4"></i>
+                <div>
+                    <h5 class="font-medium text-gray-800">학생 삭제</h5>
+                    <p class="text-sm text-gray-600">학생 계정을 완전히 삭제합니다.</p>
+                </div>
+            </a>
+        </div>
+        
+        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-red-600 mt-1 mr-2"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-red-800">주의사항</h4>
+                    <ul class="text-xs text-red-700 mt-1 space-y-1">
+                        <li>• 학번과 사용자명은 변경할 수 없습니다.</li>
+                        <li>• 학급 변경시 기존 학습 기록은 유지됩니다.</li>
+                        <li>• 계정 삭제는 되돌릴 수 없으니 신중하게 결정하세요.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 첫 번째 필드에 포커스
+    document.getElementById('last_name').focus();
+    
+    // 폼 제출 전 확인
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const lastName = document.getElementById('last_name').value.trim();
+        const firstName = document.getElementById('first_name').value.trim();
+        
+        if (!lastName || !firstName) {
+            e.preventDefault();
+            alert('성과 이름은 필수 입력 항목입니다.');
+            return false;
+        }
+        
+        // 학급 변경 확인
+        const classSelect = document.getElementById('class_id');
+        const originalClass = {{ student.school_class.id }};
+        
+        if (parseInt(classSelect.value) !== originalClass) {
+            if (!confirm('학급을 변경하시겠습니까? 기존 학습 기록은 유지됩니다.')) {
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,596 @@
+{% extends 'base.html' %}
+
+{% block title %}로그인 - 학습 플랫폼{% endblock %}
+
+{% block content %}
+
+<!-- 디버깅 정보 (개발 환경에서만 표시) -->
+{% if debug %}
+<div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+    <h4 class="font-bold">디버깅 정보:</h4>
+    <p>CSRF Token: {{ csrf_token|slice:":10" }}...</p>
+    <p>Method: {{ debug_info.method }}</p>
+    <p>Token Length: {{ debug_info.csrf_token_length }}</p>
+    <p>Session Key: {{ debug_info.session_key|default:"No session" }}</p>
+</div>
+{% endif %}
+
+<style>
+    /* 기존 CSS 스타일들... */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(102, 126, 234, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        cursor: wait;
+        user-select: none;
+    }
+    
+    .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .loading-content {
+        text-align: center;
+        color: white;
+    }
+    
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .login-container {
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-input {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .form-input:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        border-color: #667eea;
+    }
+    
+    .login-card {
+        backdrop-filter: blur(15px);
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .floating-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(5deg); }
+    }
+    
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .tab-button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .tab-button.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .school-selector {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: all 0.4s ease;
+    }
+    
+    .school-selector.show {
+        max-height: 80px;
+        opacity: 1;
+        margin-bottom: 1rem;
+    }
+    
+    .login-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        animation: particles 20s infinite linear;
+    }
+    
+    @keyframes particles {
+        0% { transform: translateY(100vh) rotate(0deg); }
+        100% { transform: translateY(-100vh) rotate(360deg); }
+    }
+</style>
+
+<div class="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+    <!-- 애니메이션 파티클 -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
+    </div>
+
+    <!-- 배경 장식 요소 -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300 rounded-full opacity-20 blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 w-60 h-60 bg-indigo-300 rounded-full opacity-10 blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+    </div>
+
+    <div class="login-container relative z-10 max-w-md w-full">
+        <!-- 로고 및 타이틀 -->
+        <div class="text-center mb-8">
+            <div class="floating-icon inline-block mb-4">
+                <div class="w-20 h-20 bg-white rounded-2xl shadow-2xl flex items-center justify-center mx-auto relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-10"></div>
+                    <i class="fas fa-running text-3xl gradient-text relative z-10"></i>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2">
+                스마트 체육 학습 플랫폼
+            </h2>
+            <p class="text-purple-100 text-sm font-medium">
+                2025 Education Premium
+            </p>
+        </div>
+
+        <!-- 로그인 카드 -->
+        <div class="login-card rounded-2xl shadow-2xl p-8">
+            <!-- 탭 선택 -->
+            <div class="flex mb-6 bg-gray-100 rounded-xl p-1">
+                <button id="studentTab" class="tab-button flex-1 py-3 px-4 rounded-lg font-semibold text-sm text-white">
+                    <i class="fas fa-user-graduate mr-2"></i>학생
+                </button>
+                <button id="teacherTab" class="tab-button flex-1 py-3 px-4 rounded-lg font-semibold text-sm text-gray-600">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i>교사
+                </button>
+            </div>
+
+            <!-- 에러 메시지 -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-400 mr-3"></i>
+                        <p class="text-sm text-red-700 font-medium">{{ message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- 로그인 폼 -->
+            <form method="POST" autocomplete="off" class="space-y-4" id="loginForm">
+                {% csrf_token %}
+                
+                <!-- CSRF 토큰 디버깅 정보 -->
+                <input type="hidden" id="debugCsrfToken" value="{{ csrf_token }}">
+                
+                <!-- 학교 선택 (학생용) -->
+                <div id="schoolSelector" class="school-selector">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-school mr-2 text-purple-500"></i>학교 선택
+                    </label>
+                    <select id="school_code" 
+                            name="school_code" 
+                            class="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-gray-50">
+                        <option value="">학교를 선택해주세요</option>
+                        {% for school in schools %}
+                            <option value="{{ school.code }}">{{ school.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 아이디 입력 -->
+                <div class="relative">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-2 text-purple-500"></i><span id="usernameLabel">학번</span>
+                    </label>
+                    <input id="username" 
+                           name="username" 
+                           type="text" 
+                           required
+                           class="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                           placeholder="학번을 입력하세요"
+                           autocomplete="username">
+                </div>
+
+                <!-- 비밀번호 입력 -->
+                <div class="relative">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-2 text-purple-500"></i>비밀번호
+                    </label>
+                    <div class="relative">
+                        <input id="password" 
+                               name="password" 
+                               type="password" 
+                               required
+                               class="form-input block w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                               placeholder="비밀번호를 입력하세요"
+                               autocomplete="current-password">
+                        <button type="button" 
+                                onclick="togglePassword()"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center">
+                            <i id="toggleIcon" class="fas fa-eye text-gray-400 hover:text-gray-600 transition-colors"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 로그인 옵션 -->
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-2">
+                        <span class="text-gray-600 font-medium">로그인 상태 유지</span>
+                    </label>
+                    <a href="#" class="text-purple-600 hover:text-purple-700 font-semibold transition-colors">
+                        비밀번호 찾기
+                    </a>
+                </div>
+
+                <!-- 로그인 버튼 -->
+                <button type="submit" id="loginBtn"
+                        class="login-btn group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-4">
+                        <i id="loginIcon" class="fas fa-sign-in-alt text-purple-200 group-hover:text-purple-100"></i>
+                        <!-- 로딩 스피너 (숨김 상태) -->
+                        <div id="loadingSpinner" class="hidden">
+                            <svg class="animate-spin h-5 w-5 text-purple-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </span>
+                    <span id="loginText">로그인하기</span>
+                </button>
+            </form>
+
+            <!-- 회원가입 링크 -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    계정이 없으신가요?
+                    <a href="{% url 'accounts:teacher_register' %}" class="font-bold text-purple-600 hover:text-purple-700 transition-colors">
+                        교사 회원가입
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- 하단 링크 -->
+        <div class="mt-8 text-center">
+            <a href="/" class="text-purple-100 hover:text-white text-sm font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>홈으로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 로딩 오버레이 -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <h3 class="text-xl font-bold mb-2">로그인 중입니다...</h3>
+        <p class="text-purple-100">잠시만 기다려주세요</p>
+    </div>
+</div>
+
+<script>
+// CSRF 토큰 디버깅
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    const debugToken = document.getElementById('debugCsrfToken');
+    
+    console.log('CSRF Token Elements:');
+    console.log('Form CSRF token:', csrfToken ? csrfToken.value : 'NOT FOUND');
+    console.log('Debug CSRF token:', debugToken ? debugToken.value : 'NOT FOUND');
+    console.log('Cookie CSRF token:', getCookie('csrftoken'));
+    
+    // CSRF 토큰 상태 체크
+    if (!csrfToken || !csrfToken.value) {
+        console.error('⚠️ CSRF token is missing from form!');
+        // 사용자에게 알림
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'bg-red-100 border-l-4 border-red-500 p-4 mb-4';
+        alertDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                <p class="text-sm text-red-700 font-medium">보안 토큰이 누락되었습니다. 페이지를 새로고침해 주세요.</p>
+                <button onclick="location.reload()" class="ml-4 bg-red-500 text-white px-3 py-1 rounded text-xs">새로고침</button>
+            </div>
+        `;
+        const form = document.getElementById('loginForm');
+        form.parentNode.insertBefore(alertDiv, form);
+    } else {
+        console.log('✅ CSRF token is present');
+    }
+});
+
+// 쿠키에서 값 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 나머지 기존 JavaScript 코드들...
+// 탭 전환 및 학교 선택 표시/숨김
+document.getElementById('studentTab').addEventListener('click', function() {
+    this.classList.add('active', 'text-white');
+    this.classList.remove('text-gray-600');
+    document.getElementById('teacherTab').classList.remove('active', 'text-white');
+    document.getElementById('teacherTab').classList.add('text-gray-600');
+    
+    document.getElementById('schoolSelector').classList.add('show');
+    
+    document.getElementById('usernameLabel').textContent = '학번';
+    document.getElementById('username').placeholder = '학번을 입력하세요';
+    
+    document.getElementById('school_code').required = true;
+});
+
+document.getElementById('teacherTab').addEventListener('click', function() {
+    this.classList.add('active', 'text-white');
+    this.classList.remove('text-gray-600');
+    document.getElementById('studentTab').classList.remove('active', 'text-white');
+    document.getElementById('studentTab').classList.add('text-gray-600');
+    
+    document.getElementById('schoolSelector').classList.remove('show');
+    
+    document.getElementById('usernameLabel').textContent = '사번';
+    document.getElementById('username').placeholder = '사번을 입력하세요';
+    
+    document.getElementById('school_code').value = '';
+    document.getElementById('school_code').required = false;
+});
+
+// 초기 상태 설정 (학생 탭 활성화)
+document.getElementById('studentTab').click();
+
+// 비밀번호 표시/숨기기
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+// 수정된 폼 제출 처리 (input을 disabled로 만들지 않음)
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    console.log('Form submission started');
+    
+    const isStudentTab = document.getElementById('studentTab').classList.contains('active');
+    const schoolCode = document.getElementById('school_code').value;
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    
+    // 디버깅 정보 출력
+    console.log('Form data check:', {
+        username: username,
+        password: password.length > 0 ? '***' : 'EMPTY',
+        schoolCode: schoolCode,
+        isStudentTab: isStudentTab
+    });
+    
+    // 기본 검증
+    if (!username) {
+        e.preventDefault();
+        alert('학번(사번)을 입력해주세요.');
+        document.getElementById('username').focus();
+        return false;
+    }
+    
+    if (!password) {
+        e.preventDefault();
+        alert('비밀번호를 입력해주세요.');
+        document.getElementById('password').focus();
+        return false;
+    }
+    
+    // 학생 탭에서 학교 선택 검증
+    if (isStudentTab && !schoolCode) {
+        e.preventDefault();
+        alert('학생은 반드시 학교를 선택해야 합니다.');
+        document.getElementById('school_code').focus();
+        return false;
+    }
+    
+    // CSRF 토큰 존재 여부 재확인
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (!csrfToken || !csrfToken.value) {
+        e.preventDefault();
+        console.error('CSRF token missing at submission time');
+        alert('보안 토큰이 누락되었습니다. 페이지를 새로고침해 주세요.');
+        location.reload();
+        return false;
+    }
+    
+    console.log('Form validation passed, submitting...');
+    console.log('CSRF token at submission:', csrfToken.value.substring(0, 10) + '...');
+    
+    // 로딩 상태 활성화 (하지만 input은 disabled로 만들지 않음)
+    showLoadingSimple();
+    
+    // 폼이 정상적으로 제출되도록 true 반환
+    return true;
+});
+
+// 수정된 로딩 함수 (input을 disabled로 만들지 않음)
+function showLoadingSimple() {
+    try {
+        const loginBtn = document.getElementById('loginBtn');
+        const loginIcon = document.getElementById('loginIcon');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const loginText = document.getElementById('loginText');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.classList.add('opacity-75', 'cursor-not-allowed');
+        }
+        
+        if (loginIcon) loginIcon.classList.add('hidden');
+        if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+        if (loginText) loginText.textContent = '로그인 중...';
+        
+        setTimeout(() => {
+            if (loadingOverlay) loadingOverlay.classList.add('show');
+        }, 200);
+        
+        // ❌ 이 부분을 제거: input들을 disabled로 만들지 않음
+        // const inputs = document.querySelectorAll('input, select, button');
+        // inputs.forEach(input => {
+        //     if (input.id !== 'loginBtn' && input.name !== 'csrfmiddlewaretoken') {
+        //         input.disabled = true;
+        //     }
+        // });
+        
+    } catch (error) {
+        console.error('로딩 표시 중 오류:', error);
+    }
+}
+function hideLoading() {
+    try {
+        const loginBtn = document.getElementById('loginBtn');
+        const loginIcon = document.getElementById('loginIcon');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const loginText = document.getElementById('loginText');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        if (!loginBtn || !loginIcon || !loadingSpinner || !loginText || !loadingOverlay) {
+            console.warn('로딩 요소를 찾을 수 없습니다.');
+            return;
+        }
+        
+        loadingOverlay.classList.remove('show');
+        
+        loginBtn.disabled = false;
+        loginBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        
+        loginIcon.classList.remove('hidden');
+        loadingSpinner.classList.add('hidden');
+        
+        loginText.textContent = '로그인하기';
+        
+        const inputs = document.querySelectorAll('input, select, button');
+        inputs.forEach(input => {
+            if (input.name !== 'csrfmiddlewaretoken') {
+                input.disabled = false;
+            }
+        });
+    } catch (error) {
+        console.error('로딩 해제 중 오류:', error);
+    }
+}
+
+// 페이지가 다시 로드되면 로딩 상태 해제
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        hideLoading();
+    }
+});
+
+// 에러 발생 시 로딩 해제
+document.addEventListener('DOMContentLoaded', function() {
+    const errorMessages = document.querySelectorAll('.bg-red-50');
+    if (errorMessages.length > 0) {
+        hideLoading();
+    }
+});
+
+// ESC 키로 로딩 취소
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        hideLoading();
+    }
+});
+
+// 로딩 오버레이 클릭 방지
+document.getElementById('loadingOverlay').addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+});
+</script>
+{% endblock %}

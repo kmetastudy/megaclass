@@ -1,0 +1,1692 @@
+<!-- teacher/templates/teacher/courses/course_detail_onepage.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ course.subject_name }} - 통합 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* 전체 레이아웃 */
+    body {
+        background-color: #f0f2f5;
+    }
+
+    .main-container {
+        display: flex;
+        height: calc(100vh - 80px);
+        gap: 1rem;
+        padding: 1rem;
+        max-width: 100%;
+    }
+
+    /* 트리 패널 스타일 */
+    .tree-panel {
+        width: 320px;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+        transition: width 0.3s ease;
+        position: relative;
+        border: 1px solid #e9ecef;
+    }
+
+    .tree-panel.collapsed {
+        width: 60px;
+    }
+
+    /* Tree Header and Content Header unified height */
+    .tree-header,
+    .content-header {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        padding: 0 1rem;
+        border-bottom: 1px solid #e9ecef;
+        background: #f8f9fa;
+    }
+
+    .content-header {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .tree-header-title {
+        display: inline-block;
+        transition: opacity 0.3s ease;
+    }
+
+    .tree-panel.collapsed .tree-header-title {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .tree-header-icon {
+        display: none;
+        font-size: 1.25rem;
+    }
+
+    .tree-panel.collapsed .tree-header-icon {
+        display: inline-block;
+    }
+
+    .tree-content {
+        padding: 0.5rem;
+        height: calc(100% - 60px);
+        overflow: auto;
+        background: #ffffff;
+    }
+
+    /* 트리 스크롤바 스타일 */
+    .tree-content::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .tree-content::-webkit-scrollbar-track {
+        background: #f1f3f4;
+    }
+
+    .tree-content::-webkit-scrollbar-thumb {
+        background: #dadce0;
+        border-radius: 2px;
+    }
+
+    .tree-content::-webkit-scrollbar-thumb:hover {
+        background: #bdc1c6;
+    }
+
+    /* 메인 콘텐츠 패널 */
+    .content-panel {
+        flex: 1;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-body {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+    }
+
+    /* 아코디언 스타일 */
+    .accordion-form {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        border: 2px dashed #dee2e6;
+        transition: all 0.3s ease;
+    }
+
+    .accordion-form.active {
+        border-color: #1a73e8;
+        box-shadow: 0 4px 12px rgba(26,115,232,0.15);
+    }
+
+    /* 새 카드 스타일 */
+    .new-item-card {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .new-item-card:hover {
+        border-color: #1a73e8;
+        background: #f0f7ff;
+    }
+
+    /* 트리뷰 커스텀 스타일 */
+    #courseTree {
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    /* 루트 노드의 확장 아이콘 숨기기 */
+    .jstree-anchor[aria-level="1"] > .jstree-icon.jstree-ocl {
+        display: none;
+    }
+
+    /* jstree 아이콘 재정의 및 배치 개선 */
+    .jstree-default .jstree-icon.jstree-ocl {
+        background: none !important;
+        width: auto;
+        height: auto;
+        line-height: normal;
+        text-align: left;
+    }
+
+    /* Custom chevron icons for open/closed states */
+    .jstree-default .jstree-ocl:before {
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        font-size: 1rem;
+        color: #6B7280;
+        vertical-align: middle;
+        margin-right: 5px;
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+
+    .jstree-default .jstree-closed > .jstree-ocl:before {
+        content: "\f054";
+        transform: rotate(0deg);
+    }
+
+    .jstree-default .jstree-open > .jstree-ocl:before {
+        content: "\f078";
+        transform: rotate(0deg);
+    }
+
+    /* Ensure icons are aligned with text for all nodes */
+    .jstree-anchor {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        margin-bottom: 2px;
+        line-height: 1.4;
+    }
+
+    /* 트리 연결선 스타일 */
+    .jstree-default .jstree-node {
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-left: 18px;
+        position: relative;
+    }
+    
+    /* Vertical line */
+    .jstree-default .jstree-node:not(.jstree-last):after {
+        content: '';
+        position: absolute;
+        left: -12px;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        border-left: 1px solid #BDBDBD;
+    }
+
+    /* Horizontal line */
+    .jstree-default .jstree-node:before {
+        content: '';
+        position: absolute;
+        left: -22px; 
+        top: 50%;
+        width: 10px;
+        height: 1px;
+        border-top: 1px solid #BDBDBD;
+    }
+
+    /* Hide lines for the root node */
+    .jstree-default > ul > .jstree-node:before,
+    .jstree-default > ul > .jstree-node:after {
+        display: none;
+    }
+
+    .jstree-default .jstree-anchor:hover {
+        background: #e8f0fe;
+    }
+
+    /* Active(clicked) 상태 스타일 */
+    .jstree-default .jstree-clicked {
+        background: #D3E3FD;
+        color: #1967D2;
+        box-shadow: 0 2px 8px rgba(26,115,232,0.2);
+    }
+
+    .node-chapter .jstree-anchor {
+        font-weight: 600;
+        color: #1a73e8;
+    }
+
+    .node-subchapter .jstree-anchor {
+        color: #188038;
+    }
+
+    .node-chasi .jstree-anchor {
+        color: #7c3aed;
+    }
+
+    /* 하위 항목 개수 배지 */
+    .tree-count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #1565c0;
+        background: #e3f2fd;
+        height: 1.25rem;
+        min-width: 1.25rem;
+        border-radius: 50%;
+        padding: 0 0.25rem;
+        margin-left: 0.5rem;
+        line-height: 1;
+    }
+
+    /* Active 상태의 배지 스타일 */
+    .jstree-clicked .tree-count-badge {
+        background: #FFFFFF;
+        color: #1967D2;
+    }
+
+    /* 카드 스타일 */
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+        border: 1px solid #e1e4e8;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #e1e4e8;
+        transition: all 0.2s;
+    }
+
+    .content-card:hover {
+        border-color: #1a73e8;
+        box-shadow: 0 4px 12px rgba(26,115,232,0.15);
+    }
+
+    /* 버튼 스타일 */
+    .btn-modern {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #1a73e8;
+        color: white;
+        box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+    }
+
+    .btn-primary:hover {
+        background: #1557b0;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(26,115,232,0.4);
+    }
+
+    .btn-secondary {
+        background: #f8f9fa;
+        color: #5f6368;
+        border: 1px solid #dadce0;
+    }
+
+    .btn-secondary:hover {
+        background: #f1f3f4;
+        border-color: #1a73e8;
+        color: #1a73e8;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    /* 폼 스타일 */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #1a73e8;
+        box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+    }
+
+    /* 로딩 애니메이션 */
+    .loading-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 300px;
+    }
+
+    .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #f3f4f6;
+        border-top-color: #1a73e8;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* 스크롤바 스타일 */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f3f4;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #dadce0;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #bdc1c6;
+    }
+
+    /* 반응형 */
+    @media (max-width: 1024px) {
+        .tree-panel {
+            width: 280px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:course_detail' course.id %}" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">{{ course.target }} | 통합 관리 시스템</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <a href="{% url 'teacher:contents_create' %}" target="_blank" class="btn-modern btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                콘텐츠 제작
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-container">
+    <div class="tree-panel" id="treePanel">
+        <div class="tree-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-sitemap tree-header-icon"></i>
+                    <span class="tree-header-title font-semibold text-gray-700">코스 구조</span>
+                </div>
+                <button onclick="toggleTreePanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-left" id="treePanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tree-content">
+            <div id="courseTree"></div>
+        </div>
+    </div>
+
+    <div class="content-panel">
+        <div class="content-header">
+            <h2 class="text-xl font-semibold text-gray-800" id="contentTitle">
+                <i class="fas fa-home mr-2"></i>코스 개요
+            </h2>
+        </div>
+        <div class="content-body" id="contentArea">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script>
+let currentNode = null;
+let currentActiveNodeId = null;
+const courseId = {{ course.id }};
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// 페이지 로드 시 초기화
+$(document).ready(function() {
+    initializeTree();
+    loadCourseOverview();
+});
+
+// 트리 초기화
+function initializeTree() {
+    $('#courseTree').jstree({
+        'core': {
+            'data': function(node, cb) {
+                if(node.id === "#") {
+                    $.ajax({
+                        url: "{% url 'teacher:api_course_structure' course.id %}",
+                        success: function(data) {
+                            cb(formatTreeData(data));
+                        },
+                        error: function() {
+                            showError('코스 구조를 불러올 수 없습니다.');
+                        }
+                    });
+                }
+            },
+            'check_callback': true,
+            'themes': {
+                'responsive': true,
+                'variant': 'large',
+                'stripes': false,
+                'dots': false
+            }
+        },
+        'types': {
+            'course': {
+                'icon': 'fas fa-book text-blue-600'
+            },
+            'chapter': {
+                'icon': 'fas fa-bookmark text-green-600'
+            },
+            'subchapter': {
+                'icon': 'fas fa-file-alt text-yellow-600'
+            },
+            'chasi': {
+                'icon': 'fas fa-clock text-purple-600'
+            }
+        },
+        'plugins': ['types', 'contextmenu', 'state'],
+        'contextmenu': {
+            'items': customContextMenu
+        }
+    });
+
+    // 노드 선택 이벤트
+    $('#courseTree').on('select_node.jstree', function(e, data) {
+        currentNode = data.node;
+        currentActiveNodeId = data.node.id;
+        loadNodeContent(data.node);
+    });
+}
+
+// 트리 데이터 포맷
+function formatTreeData(data) {
+    if (!data.structure) {
+        console.error('Invalid data structure:', data);
+        return [];
+    }
+
+    const structure = data.structure;
+    let treeData = [{
+        'id': 'course_' + structure.course.id,
+        'text': structure.course.subject_name + (structure.chapters ? ` <span class="tree-count-badge">${structure.chapters.length}</span>` : ''),
+        'type': 'course',
+        'state': {'opened': true},
+        'data': {'type': 'course', 'id': structure.course.id},
+        'children': []
+    }];
+
+    if (structure.chapters) {
+        structure.chapters.forEach(function(chapter) {
+            const chapterChildCount = chapter.subchapters ? chapter.subchapters.length : 0;
+            let chapterNode = {
+                'id': 'chapter_' + chapter.id,
+                'text': chapter.order + '. ' + chapter.title + (chapterChildCount > 0 ? ` <span class="tree-count-badge">${chapterChildCount}</span>` : ''),
+                'type': 'chapter',
+                'data': {'type': 'chapter', 'id': chapter.id},
+                'li_attr': {'class': 'node-chapter'},
+                'children': []
+            };
+
+            if (chapter.subchapters) {
+                chapter.subchapters.forEach(function(subchapter) {
+                    const subchapterChildCount = subchapter.chasis ? subchapter.chasis.length : 0;
+                    let subchapterNode = {
+                        'id': 'subchapter_' + subchapter.id,
+                        'text': subchapter.order + '. ' + subchapter.title + (subchapterChildCount > 0 ? ` <span class="tree-count-badge">${subchapterChildCount}</span>` : ''),
+                        'type': 'subchapter',
+                        'data': {'type': 'subchapter', 'id': subchapter.id},
+                        'li_attr': {'class': 'node-subchapter'},
+                        'children': []
+                    };
+
+                    if (subchapter.chasis) {
+                        subchapter.chasis.forEach(function(chasi) {
+                            let chasiNode = {
+                                'id': 'chasi_' + chasi.id,
+                                'text': chasi.order + '. ' + chasi.title + ` <span class="tree-count-badge">${chasi.slide_count}</span>`,
+                                'type': 'chasi',
+                                'data': {'type': 'chasi', 'id': chasi.id},
+                                'li_attr': {'class': 'node-chasi'}
+                            };
+                            subchapterNode.children.push(chasiNode);
+                        });
+                    }
+
+                    chapterNode.children.push(subchapterNode);
+                });
+            }
+
+            treeData[0].children.push(chapterNode);
+        });
+    }
+
+    return treeData;
+}
+
+// 코스 개요 로드
+function loadCourseOverview() {
+    const html = `
+        <div class="mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-book text-blue-600 text-xl"></i>
+                        </div>
+                        <span class="text-xs text-gray-500">총계</span>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-800">{{ stats.total_chapters }}</p>
+                    <p class="text-sm text-gray-600">대단원</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-file-alt text-green-600 text-xl"></i>
+                        </div>
+                        <span class="text-xs text-gray-500">총계</span>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-800">{{ stats.total_subchapters }}</p>
+                    <p class="text-sm text-gray-600">소단원</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-purple-600 text-xl"></i>
+                        </div>
+                        <span class="text-xs text-gray-500">총계</span>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-800">{{ stats.total_chasis }}</p>
+                    <p class="text-sm text-gray-600">차시</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-images text-orange-600 text-xl"></i>
+                        </div>
+                        <span class="text-xs text-gray-500">총계</span>
+                    </div>
+                    <p class="text-2xl font-bold text-gray-800">{{ stats.total_slides }}</p>
+                    <p class="text-sm text-gray-600">슬라이드</p>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>코스 정보
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-600">과목명</p>
+                        <p class="font-medium text-gray-800">{{ course.subject_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">대상</p>
+                        <p class="font-medium text-gray-800">{{ course.target }}</p>
+                    </div>
+                    {% if course.description %}
+                    <div>
+                        <p class="text-sm text-gray-600">설명</p>
+                        <p class="text-gray-700">{{ course.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex justify-end mb-6">
+                <button onclick="showAddChapterForm()" class="btn-modern btn-primary">
+                    <i class="fas fa-plus"></i>
+                    대단원 추가
+                </button>
+            </div>
+
+            <div id="chapters-container">
+                <!-- 대단원 목록이 여기에 동적으로 로드됩니다 -->
+            </div>
+        </div>
+    `;
+
+    $('#contentTitle').html('<i class="fas fa-home mr-2"></i>코스 개요');
+    $('#contentArea').html(html);
+    
+    // 대단원 목록 로드
+    loadChapters();
+}
+
+// 대단원 목록 로드
+function loadChapters() {
+    $.ajax({
+        url: `/teacher/api/course/${courseId}/detail/`,
+        method: 'GET',
+        success: function(response) {
+            // 여기서는 간단히 메시지만 표시
+            if (!response.chapters || response.chapters.length === 0) {
+                $('#chapters-container').html(`
+                    <div class="text-center py-12 bg-gray-50 rounded-lg">
+                        <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+                        <p class="text-gray-500">대단원이 없습니다.</p>
+                    </div>
+                `);
+            }
+        }
+    });
+}
+
+// 노드 콘텐츠 로드
+function loadNodeContent(node) {
+    const type = node.data.type;
+    const id = node.data.id;
+
+    $('#contentArea').html('<div class="loading-container"><div class="loading-spinner"></div></div>');
+
+    if (type === 'course') {
+        loadCourseOverview();
+        return;
+    }
+
+    // API 호출
+    $.ajax({
+        url: `/teacher/api/${type}/${id}/detail/`,
+        method: 'GET',
+        success: function(response) {
+            displayContent(type, response);
+        },
+        error: function(xhr) {
+            $('#contentArea').html(`
+                <div class="text-center py-12">
+                    <i class="fas fa-exclamation-circle text-red-500 text-5xl mb-4"></i>
+                    <p class="text-gray-700">콘텐츠를 불러올 수 없습니다.</p>
+                </div>
+            `);
+        }
+    });
+}
+
+// 콘텐츠 표시
+function displayContent(type, data) {
+    let html = '';
+    let title = '';
+
+    switch(type) {
+        case 'chapter':
+            title = `<i class="fas fa-bookmark mr-2"></i>대단원 상세`;
+            html = renderChapterDetail(data);
+            break;
+        case 'subchapter':
+            title = `<i class="fas fa-file-alt mr-2"></i>소단원 상세`;
+            html = renderSubchapterDetail(data);
+            break;
+        case 'chasi':
+            title = `<i class="fas fa-clock mr-2"></i>차시 상세`;
+            html = renderChasiDetail(data);
+            break;
+    }
+
+    $('#contentTitle').html(title);
+    $('#contentArea').html(html);
+}
+
+// 대단원 상세 렌더링
+function renderChapterDetail(data) {
+    return `
+        <div>
+            <div class="content-card mb-6">
+                <h3 class="font-semibold text-gray-800 mb-4">대단원 정보</h3>
+                <form id="chapterEditForm" data-id="${data.id}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                        <input type="text" name="chapter_title" value="${data.chapter_title}" 
+                               class="form-input" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                        <input type="number" name="chapter_order" value="${data.chapter_order}" 
+                               class="form-input" required min="1">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" rows="3" class="form-input">${data.description || ''}</textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-modern btn-primary">
+                            <i class="fas fa-save"></i> 저장
+                        </button>
+                        <button type="button" onclick="deleteChapter(${data.id})" class="btn-modern btn-danger">
+                            <i class="fas fa-trash"></i> 삭제
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">소단원 목록</h3>
+                <button onclick="showAddSubchapterForm(${data.id})" class="btn-modern btn-primary">
+                    <i class="fas fa-plus"></i> 소단원 추가
+                </button>
+            </div>
+            
+            <div id="subchapters-container">
+                ${renderSubchaptersList(data.subchapters)}
+            </div>
+        </div>
+    `;
+}
+
+// 소단원 목록 렌더링
+function renderSubchaptersList(subchapters) {
+    if (!subchapters || subchapters.length === 0) {
+        return `
+            <div class="text-center py-12 bg-gray-50 rounded-lg">
+                <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+                <p class="text-gray-500">소단원이 없습니다.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="space-y-3">
+            ${subchapters.map(sc => `
+                <div class="content-card" id="subchapter-${sc.id}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${sc.order}. ${sc.title}</h4>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <i class="fas fa-clock mr-1"></i>${sc.chasi_count}개 차시
+                            </p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="toggleSubchapterEdit(${sc.id})" class="text-gray-600 hover:text-blue-600 transition">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteSubchapter(${sc.id})" class="text-gray-600 hover:text-red-600 transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="subchapter-edit-${sc.id}" class="hidden accordion-form mt-4">
+                        <!-- 수정 폼이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// 소단원 상세 렌더링
+function renderSubchapterDetail(data) {
+    return `
+        <div>
+            <div class="content-card mb-6">
+                <h3 class="font-semibold text-gray-800 mb-4">소단원 정보</h3>
+                <form id="subchapterEditForm" data-id="${data.id}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                        <input type="text" name="sub_chapter_title" value="${data.sub_chapter_title}" 
+                               class="form-input" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                        <input type="number" name="sub_chapter_order" value="${data.sub_chapter_order}" 
+                               class="form-input" required min="1">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" rows="3" class="form-input">${data.description || ''}</textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-modern btn-primary">
+                            <i class="fas fa-save"></i> 저장
+                        </button>
+                        <button type="button" onclick="deleteSubchapter(${data.id})" class="btn-modern btn-danger">
+                            <i class="fas fa-trash"></i> 삭제
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">차시 목록</h3>
+                <button onclick="showAddChasiForm(${data.id})" class="btn-modern btn-primary">
+                    <i class="fas fa-plus"></i> 차시 추가
+                </button>
+            </div>
+            
+            <div id="chasis-container">
+                ${renderChasisList(data.chasis)}
+            </div>
+        </div>
+    `;
+}
+
+// 차시 목록 렌더링
+function renderChasisList(chasis) {
+    if (!chasis || chasis.length === 0) {
+        return `
+            <div class="text-center py-12 bg-gray-50 rounded-lg">
+                <i class="fas fa-clock text-gray-300 text-5xl mb-4"></i>
+                <p class="text-gray-500">차시가 없습니다.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="space-y-3">
+            ${chasis.map(ch => `
+                <div class="content-card" id="chasi-${ch.id}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${ch.order}. ${ch.title}</h4>
+                            <div class="flex items-center space-x-4 mt-1 text-sm text-gray-600">
+                                <span><i class="fas fa-images mr-1"></i>${ch.slide_count}개 슬라이드</span>
+                                <span><i class="fas fa-clock mr-1"></i>${ch.duration}분</span>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{% url 'teacher:chasi_slide_manage' 0 %}".replace('0', ${ch.id}) 
+                               class="text-green-600 hover:text-green-700 transition">
+                                <i class="fas fa-images"></i>
+                            </a>
+                            <button onclick="toggleChasiEdit(${ch.id})" class="text-gray-600 hover:text-blue-600 transition">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteChasi(${ch.id})" class="text-gray-600 hover:text-red-600 transition">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="chasi-edit-${ch.id}" class="hidden accordion-form mt-4">
+                        <!-- 수정 폼이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// 차시 상세 렌더링
+function renderChasiDetail(data) {
+    return `
+        <div>
+            <div class="content-card mb-6">
+                <h3 class="font-semibold text-gray-800 mb-4">차시 정보</h3>
+                <form id="chasiEditForm" data-id="${data.id}">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                        <input type="text" name="chasi_title" value="${data.chasi_title}" 
+                               class="form-input" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                            <input type="number" name="chasi_order" value="${data.chasi_order}" 
+                                   class="form-input" required min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">수업시간(분) *</label>
+                            <input type="number" name="duration_minutes" value="${data.duration_minutes}" 
+                                   class="form-input" required min="5">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학습목표</label>
+                        <textarea name="learning_objectives" rows="3" class="form-input">${data.learning_objectives || ''}</textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" rows="3" class="form-input">${data.description || ''}</textarea>
+                    </div>
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-modern btn-primary">
+                            <i class="fas fa-save"></i> 저장
+                        </button>
+                        <a href="{% url 'teacher:chasi_slide_manage' 0 %}".replace('0', ${data.id}) 
+                           class="btn-modern btn-secondary">
+                            <i class="fas fa-images"></i> 슬라이드 관리
+                        </a>
+                        <button type="button" onclick="deleteChasi(${data.id})" class="btn-modern btn-danger">
+                            <i class="fas fa-trash"></i> 삭제
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">슬라이드 목록</h3>
+            ${data.slides && data.slides.length > 0 ? `
+                <div class="space-y-3">
+                    ${data.slides.map(slide => `
+                        <div class="content-card">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-semibold text-gray-800">슬라이드 ${slide.slide_number}</h4>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        <span class="inline-block bg-gray-100 px-2 py-1 rounded text-xs">
+                                            ${slide.content_type}
+                                        </span>
+                                        <span class="ml-2">${slide.content_title}</span>
+                                    </p>
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    ${slide.estimated_time}분
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="text-center py-12 bg-gray-50 rounded-lg">
+                    <i class="fas fa-images text-gray-300 text-5xl mb-4"></i>
+                    <p class="text-gray-500">슬라이드가 없습니다.</p>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+// === 폼 표시 함수들 ===
+
+// 대단원 추가 폼 표시
+function showAddChapterForm() {
+    const formHtml = `
+        <div class="new-item-card" id="new-chapter-card">
+            <h4 class="font-semibold text-gray-800 mb-4">
+                <i class="fas fa-plus-circle mr-2"></i>새 대단원 추가
+            </h4>
+            <form id="chapterCreateForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">대단원명 *</label>
+                    <input type="text" name="chapter_title" class="form-input" 
+                           placeholder="예: 문학의 갈래와 성격" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                    <input type="number" name="chapter_order" class="form-input" 
+                           value="${getNextOrder('chapter')}" required min="1">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                    <textarea name="description" rows="3" class="form-input" 
+                              placeholder="대단원에 대한 설명을 입력하세요 (선택사항)"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="btn-modern btn-primary">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                    <button type="button" onclick="cancelForm('new-chapter-card')" class="btn-modern btn-secondary">
+                        <i class="fas fa-times"></i> 취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    $('#chapters-container').prepend(formHtml);
+    $('#new-chapter-card input[name="chapter_title"]').focus();
+}
+
+// 소단원 추가 폼 표시
+function showAddSubchapterForm(chapterId) {
+    const formHtml = `
+        <div class="new-item-card" id="new-subchapter-card">
+            <h4 class="font-semibold text-gray-800 mb-4">
+                <i class="fas fa-plus-circle mr-2"></i>새 소단원 추가
+            </h4>
+            <form id="subchapterCreateForm" data-chapter-id="${chapterId}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">소단원명 *</label>
+                    <input type="text" name="sub_chapter_title" class="form-input" 
+                           placeholder="예: 갈래에 따른 문학의 성격" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                    <input type="number" name="sub_chapter_order" class="form-input" 
+                           value="1" required min="1">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                    <textarea name="description" rows="3" class="form-input" 
+                              placeholder="소단원에 대한 설명을 입력하세요..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="btn-modern btn-primary">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                    <button type="button" onclick="cancelForm('new-subchapter-card')" class="btn-modern btn-secondary">
+                        <i class="fas fa-times"></i> 취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    $('#subchapters-container').prepend(formHtml);
+    $('#new-subchapter-card input[name="sub_chapter_title"]').focus();
+}
+
+// 차시 추가 폼 표시
+function showAddChasiForm(subchapterId) {
+    const formHtml = `
+        <div class="new-item-card" id="new-chasi-card">
+            <h4 class="font-semibold text-gray-800 mb-4">
+                <i class="fas fa-plus-circle mr-2"></i>새 차시 추가
+            </h4>
+            <form id="chasiCreateForm" data-subchapter-id="${subchapterId}">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">차시명 *</label>
+                    <input type="text" name="chasi_title" class="form-input" 
+                           placeholder="예: 서정 문학의 이해" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                        <input type="number" name="chasi_order" class="form-input" 
+                               value="1" required min="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">수업시간(분) *</label>
+                        <input type="number" name="duration_minutes" class="form-input" 
+                               value="45" required min="5">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">학습목표</label>
+                    <textarea name="learning_objectives" rows="3" class="form-input" 
+                              placeholder="학습목표를 입력하세요..."></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                    <textarea name="description" rows="3" class="form-input" 
+                              placeholder="차시에 대한 설명을 입력하세요..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="btn-modern btn-primary">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                    <button type="button" onclick="cancelForm('new-chasi-card')" class="btn-modern btn-secondary">
+                        <i class="fas fa-times"></i> 취소
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    $('#chasis-container').prepend(formHtml);
+    $('#new-chasi-card input[name="chasi_title"]').focus();
+}
+
+// === 토글 함수들 ===
+
+// 소단원 수정 토글
+function toggleSubchapterEdit(subchapterId) {
+    const editDiv = $(`#subchapter-edit-${subchapterId}`);
+    
+    if (editDiv.hasClass('hidden')) {
+        // 수정 폼 로드
+        $.ajax({
+            url: `/teacher/api/subchapter/${subchapterId}/detail/`,
+            method: 'GET',
+            success: function(data) {
+                const formHtml = `
+                    <form class="subchapterEditInlineForm" data-id="${subchapterId}">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                            <input type="text" name="sub_chapter_title" value="${data.sub_chapter_title}" 
+                                   class="form-input" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                            <input type="number" name="sub_chapter_order" value="${data.sub_chapter_order}" 
+                                   class="form-input" required min="1">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                            <textarea name="description" rows="3" class="form-input">${data.description || ''}</textarea>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save"></i> 저장
+                            </button>
+                            <button type="button" onclick="toggleSubchapterEdit(${subchapterId})" class="btn-modern btn-secondary">
+                                <i class="fas fa-times"></i> 취소
+                            </button>
+                        </div>
+                    </form>
+                `;
+                editDiv.html(formHtml).removeClass('hidden').addClass('active');
+            }
+        });
+    } else {
+        editDiv.addClass('hidden').removeClass('active');
+    }
+}
+
+// 차시 수정 토글
+function toggleChasiEdit(chasiId) {
+    const editDiv = $(`#chasi-edit-${chasiId}`);
+    
+    if (editDiv.hasClass('hidden')) {
+        // 수정 폼 로드
+        $.ajax({
+            url: `/teacher/api/chasi/${chasiId}/detail/`,
+            method: 'GET',
+            success: function(data) {
+                const formHtml = `
+                    <form class="chasiEditInlineForm" data-id="${chasiId}">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">제목 *</label>
+                            <input type="text" name="chasi_title" value="${data.chasi_title}" 
+                                   class="form-input" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">순서 *</label>
+                                <input type="number" name="chasi_order" value="${data.chasi_order}" 
+                                       class="form-input" required min="1">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">수업시간(분) *</label>
+                                <input type="number" name="duration_minutes" value="${data.duration_minutes}" 
+                                       class="form-input" required min="5">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학습목표</label>
+                            <textarea name="learning_objectives" rows="3" class="form-input">${data.learning_objectives || ''}</textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                            <textarea name="description" rows="3" class="form-input">${data.description || ''}</textarea>
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save"></i> 저장
+                            </button>
+                            <button type="button" onclick="toggleChasiEdit(${chasiId})" class="btn-modern btn-secondary">
+                                <i class="fas fa-times"></i> 취소
+                            </button>
+                        </div>
+                    </form>
+                `;
+                editDiv.html(formHtml).removeClass('hidden').addClass('active');
+            }
+        });
+    } else {
+        editDiv.addClass('hidden').removeClass('active');
+    }
+}
+
+// === CRUD 작업 함수들 ===
+
+// 대단원 생성
+$(document).on('submit', '#chapterCreateForm', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        chapter_title: $(this).find('[name="chapter_title"]').val(),
+        chapter_order: $(this).find('[name="chapter_order"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: "{% url 'teacher:chapter_create' course.id %}",
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('대단원이 생성되었습니다.');
+            refreshTree();
+            loadCourseOverview();
+        },
+        error: function(xhr) {
+            showError('대단원 생성에 실패했습니다.');
+        }
+    });
+});
+
+// 대단원 수정
+$(document).on('submit', '#chapterEditForm', function(e) {
+    e.preventDefault();
+    
+    const chapterId = $(this).data('id');
+    const formData = {
+        chapter_title: $(this).find('[name="chapter_title"]').val(),
+        chapter_order: $(this).find('[name="chapter_order"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/chapters/${chapterId}/edit/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('대단원이 수정되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('대단원 수정에 실패했습니다.');
+        }
+    });
+});
+
+// 소단원 생성
+$(document).on('submit', '#subchapterCreateForm', function(e) {
+    e.preventDefault();
+    
+    const chapterId = $(this).data('chapter-id');
+    const formData = {
+        sub_chapter_title: $(this).find('[name="sub_chapter_title"]').val(),
+        sub_chapter_order: $(this).find('[name="sub_chapter_order"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/chapters/${chapterId}/subchapters/create/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('소단원이 생성되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('소단원 생성에 실패했습니다.');
+        }
+    });
+});
+
+// 소단원 수정 (인라인 폼)
+$(document).on('submit', '.subchapterEditInlineForm', function(e) {
+    e.preventDefault();
+    
+    const subchapterId = $(this).data('id');
+    const formData = {
+        sub_chapter_title: $(this).find('[name="sub_chapter_title"]').val(),
+        sub_chapter_order: $(this).find('[name="sub_chapter_order"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/subchapters/${subchapterId}/edit/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('소단원이 수정되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('소단원 수정에 실패했습니다.');
+        }
+    });
+});
+
+// 소단원 수정 (상세 페이지)
+$(document).on('submit', '#subchapterEditForm', function(e) {
+    e.preventDefault();
+    
+    const subchapterId = $(this).data('id');
+    const formData = {
+        sub_chapter_title: $(this).find('[name="sub_chapter_title"]').val(),
+        sub_chapter_order: $(this).find('[name="sub_chapter_order"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/subchapters/${subchapterId}/edit/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('소단원이 수정되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('소단원 수정에 실패했습니다.');
+        }
+    });
+});
+
+// 차시 생성
+$(document).on('submit', '#chasiCreateForm', function(e) {
+    e.preventDefault();
+    
+    const subchapterId = $(this).data('subchapter-id');
+    const formData = {
+        chasi_title: $(this).find('[name="chasi_title"]').val(),
+        chasi_order: $(this).find('[name="chasi_order"]').val(),
+        duration_minutes: $(this).find('[name="duration_minutes"]').val(),
+        learning_objectives: $(this).find('[name="learning_objectives"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/subchapters/${subchapterId}/chasis/create/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('차시가 생성되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('차시 생성에 실패했습니다.');
+        }
+    });
+});
+
+// 차시 수정 (인라인 폼)
+$(document).on('submit', '.chasiEditInlineForm', function(e) {
+    e.preventDefault();
+    
+    const chasiId = $(this).data('id');
+    const formData = {
+        chasi_title: $(this).find('[name="chasi_title"]').val(),
+        chasi_order: $(this).find('[name="chasi_order"]').val(),
+        duration_minutes: $(this).find('[name="duration_minutes"]').val(),
+        learning_objectives: $(this).find('[name="learning_objectives"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/chasis/${chasiId}/edit/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('차시가 수정되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('차시 수정에 실패했습니다.');
+        }
+    });
+});
+
+// 차시 수정 (상세 페이지)
+$(document).on('submit', '#chasiEditForm', function(e) {
+    e.preventDefault();
+    
+    const chasiId = $(this).data('id');
+    const formData = {
+        chasi_title: $(this).find('[name="chasi_title"]').val(),
+        chasi_order: $(this).find('[name="chasi_order"]').val(),
+        duration_minutes: $(this).find('[name="duration_minutes"]').val(),
+        learning_objectives: $(this).find('[name="learning_objectives"]').val(),
+        description: $(this).find('[name="description"]').val()
+    };
+
+    $.ajax({
+        url: `/teacher/chasis/${chasiId}/edit/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        data: formData,
+        success: function(response) {
+            showSuccess('차시가 수정되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('차시 수정에 실패했습니다.');
+        }
+    });
+});
+
+// === 삭제 함수들 ===
+
+// 대단원 삭제
+function deleteChapter(chapterId) {
+    if (!confirm('정말 이 대단원을 삭제하시겠습니까?\n하위의 모든 소단원과 차시도 함께 삭제됩니다.')) {
+        return;
+    }
+
+    $.ajax({
+        url: `/teacher/chapters/${chapterId}/delete/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        success: function(response) {
+            showSuccess('대단원이 삭제되었습니다.');
+            refreshTree();
+            loadCourseOverview();
+        },
+        error: function(xhr) {
+            showError('대단원 삭제에 실패했습니다.');
+        }
+    });
+}
+
+// 소단원 삭제
+function deleteSubchapter(subchapterId) {
+    if (!confirm('정말 이 소단원을 삭제하시겠습니까?\n하위의 모든 차시도 함께 삭제됩니다.')) {
+        return;
+    }
+
+    $.ajax({
+        url: `/teacher/subchapters/${subchapterId}/delete/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        success: function(response) {
+            showSuccess('소단원이 삭제되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('소단원 삭제에 실패했습니다.');
+        }
+    });
+}
+
+// 차시 삭제
+function deleteChasi(chasiId) {
+    if (!confirm('정말 이 차시를 삭제하시겠습니까?\n모든 슬라이드도 함께 삭제됩니다.')) {
+        return;
+    }
+
+    $.ajax({
+        url: `/teacher/chasis/${chasiId}/delete/`,
+        method: 'POST',
+        headers: {'X-CSRFToken': csrftoken},
+        success: function(response) {
+            showSuccess('차시가 삭제되었습니다.');
+            refreshTree();
+            loadNodeContent(currentNode);
+        },
+        error: function(xhr) {
+            showError('차시 삭제에 실패했습니다.');
+        }
+    });
+}
+
+// === 유틸리티 함수들 ===
+
+// 폼 취소
+function cancelForm(cardId) {
+    $('#' + cardId).fadeOut(300, function() {
+        $(this).remove();
+    });
+}
+
+// 다음 순서 번호 가져오기
+function getNextOrder(type) {
+    // 실제로는 서버에서 가져와야 함
+    return 1;
+}
+
+// 트리 새로고침
+function refreshTree() {
+    $('#courseTree').jstree('refresh');
+}
+
+// 트리 패널 토글
+function toggleTreePanel() {
+    const panel = $('#treePanel');
+    const icon = $('#treePanelToggle');
+
+    panel.toggleClass('collapsed');
+    if (panel.hasClass('collapsed')) {
+        icon.removeClass('fa-chevron-left').addClass('fa-chevron-right');
+    } else {
+        icon.removeClass('fa-chevron-right').addClass('fa-chevron-left');
+    }
+}
+
+// 컨텍스트 메뉴
+function customContextMenu(node) {
+    const type = node.data.type;
+    const items = {};
+
+    if (type === 'course') {
+        items.addChapter = {
+            label: '대단원 추가',
+            action: function() { showAddChapterForm(); }
+        };
+    } else if (type === 'chapter') {
+        items.addSubchapter = {
+            label: '소단원 추가',
+            action: function() { showAddSubchapterForm(node.data.id); }
+        };
+        items.edit = {
+            label: '수정',
+            action: function() { 
+                loadNodeContent(node);
+            }
+        };
+        items.delete = {
+            label: '삭제',
+            action: function() { deleteChapter(node.data.id); }
+        };
+    } else if (type === 'subchapter') {
+        items.addChasi = {
+            label: '차시 추가',
+            action: function() { showAddChasiForm(node.data.id); }
+        };
+        items.edit = {
+            label: '수정',
+            action: function() { 
+                loadNodeContent(node);
+            }
+        };
+        items.delete = {
+            label: '삭제',
+            action: function() { deleteSubchapter(node.data.id); }
+        };
+    } else if (type === 'chasi') {
+        items.manageSlides = {
+            label: '슬라이드 관리',
+            action: function() {
+                window.location.href = "{% url 'teacher:chasi_slide_manage' 0 %}".replace('0', node.data.id);
+            }
+        };
+        items.edit = {
+            label: '수정',
+            action: function() { 
+                loadNodeContent(node);
+            }
+        };
+        items.delete = {
+            label: '삭제',
+            action: function() { deleteChasi(node.data.id); }
+        };
+    }
+
+    return items;
+}
+
+// 성공/에러 메시지
+function showSuccess(message) {
+    const alertHtml = `
+        <div class="fixed top-20 right-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg shadow-lg z-50" id="successAlert">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-3"></i>
+                <p>${message}</p>
+            </div>
+        </div>
+    `;
+    $('body').append(alertHtml);
+    setTimeout(() => $('#successAlert').fadeOut(() => $('#successAlert').remove()), 3000);
+}
+
+function showError(message) {
+    const alertHtml = `
+        <div class="fixed top-20 right-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg shadow-lg z-50" id="errorAlert">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-circle mr-3"></i>
+                <p>${message}</p>
+            </div>
+        </div>
+    `;
+    $('body').append(alertHtml);
+    setTimeout(() => $('#errorAlert').fadeOut(() => $('#errorAlert').remove()), 5000);
+}
+</script>
+{% endblock %}

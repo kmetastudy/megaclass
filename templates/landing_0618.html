@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 체육 학습 플랫폼 2025 - 체육 교육의 디지털 혁신</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 커스텀 애니메이션 */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .floating { animation: float 4s ease-in-out infinite; }
+        .slide-in-left { animation: slideInLeft 1s ease-out; }
+        .slide-in-right { animation: slideInRight 1s ease-out; }
+        .fade-in-up { animation: fadeInUp 1s ease-out; }
+        
+        /* 그라디언트 배경 */
+        .hero-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        }
+        
+        .feature-gradient {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        }
+        
+        /* 글래스모피즘 효과 */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 스크롤 애니메이션 */
+        .scroll-animate {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease-out;
+        }
+        
+        .scroll-animate.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <!-- 네비게이션 -->
+    <nav class="fixed w-full z-50 transition-all duration-300" id="navbar">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-running text-blue-600"></i>
+                    </div>
+                    <span class="text-white font-bold text-xl">스마트 체육 2025</span>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-white hover:text-blue-200 transition">주요 기능</a>
+                    <a href="#benefits" class="text-white hover:text-blue-200 transition">사용자별 혜택</a>
+                    <a href="#apps" class="text-white hover:text-blue-200 transition">앱 소개</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                        <span class="text-white">{{ user.get_full_name|default:user.username }}님</span>
+                        <a href="/accounts/logout/" class="text-white hover:text-blue-200 transition">로그아웃</a>
+                      
+                    {% else %}
+                        <a href="/accounts/login/" class="text-white hover:text-blue-200 transition">로그인</a>
+                       
+                    {% endif %}
+                </div>
+                
+                <!-- 모바일 메뉴 버튼 -->
+                <button class="md:hidden text-white" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 히어로 섹션 -->
+    <section class="hero-gradient min-h-screen flex items-center relative overflow-hidden">
+        <!-- 배경 장식 -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-300 rounded-full opacity-20 blur-3xl"></div>
+            <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300 rounded-full opacity-20 blur-3xl"></div>
+        </div>
+        
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="max-w-4xl mx-auto text-center text-white">
+                <h1 class="text-5xl lg:text-6xl font-bold mb-6 slide-in-left">
+                    체육 교육의<br>
+                    <span class="text-blue-200">디지털 혁신 2025</span>
+                </h1>
+                <p class="text-xl mb-8 text-blue-100 max-w-2xl mx-auto">
+                    교사와 학생을 위한 스마트한 체육 학습 관리 플랫폼.<br>
+                    실시간 건강 습관 추적과 체계적인 수업 관리로 더 나은 체육 교육을 실현하세요.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    {% if user.is_authenticated %}
+                       
+                    {% else %}
+                        <!-- <a href="/accounts/teacher/register/" class="bg-white text-blue-600 px-8 py-4 rounded-full font-bold hover:bg-blue-50 transition transform hover:scale-105 text-center">
+                            교사로 시작하기 <i class="fas fa-arrow-right ml-2"></i>
+                        </a> -->
+                        <a href="/accounts/login/" class="glass text-white px-8 py-4 rounded-full font-bold hover:bg-white/20 transition text-center">
+                            로그인 <i class="fas fa-sign-in-alt ml-2"></i>
+                        </a>
+                    {% endif %}
+                </div>
+                
+                <!-- 통계 -->
+                <div class="grid grid-cols-3 gap-8 mt-16 max-w-2xl mx-auto">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-3xl font-bold">50+</h3>
+                        <p class="text-blue-200">활성 학교</p>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-3xl font-bold">1,000+</h3>
+                        <p class="text-blue-200">사용자</p>
+                    </div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-3xl font-bold">2025</h3>
+                        <p class="text-blue-200">최신 버전</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 스크롤 인디케이터 -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white">
+            <div class="animate-bounce">
+                <i class="fas fa-chevron-down text-2xl"></i>
+            </div>
+        </div>
+    </section>
+
+    <!-- 주요 기능 섹션 -->
+    <section id="features" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 scroll-animate">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                    실제 구현된 핵심 기능
+                </h2>
+                <p class="text-xl text-gray-600">
+                    교사와 학생 모두를 위한 검증된 학습 관리 시스템
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 기능 카드 1 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate">
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-users text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">학급 관리 시스템</h3>
+                    <p class="text-gray-600 mb-4">
+                        교사별 다중 학급 관리 및 학생 정보 체계적 관리
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>학급별 학생 관리</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>담임/부담임 교사 지정</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>학생별 프로필 관리</li>
+                    </ul>
+                </div>
+                
+                <!-- 기능 카드 2 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate" style="animation-delay: 0.2s;">
+                    <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-heartbeat text-3xl text-green-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">건강 실천기록장</h3>
+                    <p class="text-gray-600 mb-4">
+                        2주간 학생들의 건강 습관을 체계적으로 기록하고 분석
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>6가지 건강 약속 추적</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>일일 실천 기록</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>개인별 통계 분석</li>
+                    </ul>
+                </div>
+                
+                <!-- 기능 카드 3 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate" style="animation-delay: 0.4s;">
+                    <div class="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-sync-alt text-3xl text-indigo-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">앞구르기 뒷구르기</h3>
+                    <p class="text-gray-600 mb-4">
+                        체조 동작 평가를 디지털로 관리하는 실기 평가 시스템
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>5회 반복 평가</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>성공/실패 기록</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>실패 원인 분석</li>
+                    </ul>
+                </div>
+                
+                <!-- 기능 카드 4 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate">
+                    <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-envelope-open-text text-3xl text-orange-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">롤링페이퍼</h3>
+                    <p class="text-gray-600 mb-4">
+                        학급 친구들과 따뜻한 메시지를 주고받는 디지털 롤링페이퍼
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>익명 메시지 작성</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>학급별 롤링페이퍼</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>교사 승인 시스템</li>
+                    </ul>
+                </div>
+                
+                <!-- 기능 카드 5 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate" style="animation-delay: 0.2s;">
+                    <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-mobile-alt text-3xl text-red-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">모바일 최적화</h3>
+                    <p class="text-gray-600 mb-4">
+                        언제 어디서나 접속 가능한 반응형 디자인
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>모든 기기 지원</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>터치 최적화 UI</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>빠른 로딩 속도</li>
+                    </ul>
+                </div>
+                
+                <!-- 기능 카드 6 -->
+                <div class="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all duration-300 scroll-animate" style="animation-delay: 0.4s;">
+                    <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-line text-3xl text-blue-600"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">실시간 통계</h3>
+                    <p class="text-gray-600 mb-4">
+                        학급과 개인의 건강 습관 데이터를 시각화
+                    </p>
+                    <ul class="space-y-2 text-gray-600">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>학급별 통계</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>개인 성장 그래프</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>PDF 리포트 생성</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 사용자별 혜택 섹션 -->
+    <section id="benefits" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 scroll-animate">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                    모두를 위한 맞춤형 솔루션
+                </h2>
+                <p class="text-xl text-gray-600">
+                    교사와 학생 모두가 만족하는 플랫폼
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-4xl mx-auto">
+                <!-- 교사용 -->
+                <div class="text-center scroll-animate">
+                    <div class="w-32 h-32 mx-auto mb-6 relative">
+                        <div class="absolute inset-0 bg-blue-200 rounded-full opacity-20 animate-pulse"></div>
+                        <div class="relative w-full h-full bg-blue-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-chalkboard-teacher text-5xl text-blue-600"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">교사를 위한</h3>
+                    <ul class="space-y-3 text-gray-600 text-left max-w-sm mx-auto">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-blue-500 mr-3 mt-1"></i>
+                            <span>수업 준비 시간 단축</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-blue-500 mr-3 mt-1"></i>
+                            <span>학급별 건강 습관 한눈에 파악</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-blue-500 mr-3 mt-1"></i>
+                            <span>실기 평가 디지털 관리</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-blue-500 mr-3 mt-1"></i>
+                            <span>학생별 맞춤 피드백 제공</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- 학생용 -->
+                <div class="text-center scroll-animate" style="animation-delay: 0.2s;">
+                    <div class="w-32 h-32 mx-auto mb-6 relative">
+                        <div class="absolute inset-0 bg-green-200 rounded-full opacity-20 animate-pulse"></div>
+                        <div class="relative w-full h-full bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user-graduate text-5xl text-green-600"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">학생을 위한</h3>
+                    <ul class="space-y-3 text-gray-600 text-left max-w-sm mx-auto">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                            <span>재미있는 건강 습관 기록</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                            <span>자신의 성장 과정 확인</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                            <span>친구들과 함께하는 롤링페이퍼</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                            <span>실기 평가 결과 즉시 확인</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 앱 쇼케이스 섹션 -->
+    <section id="apps" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16 scroll-animate">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">
+                    체육 교육을 위한 특별한 앱
+                </h2>
+                <p class="text-xl text-gray-600">
+                    실제 체육 수업에 최적화된 전문 도구들
+                </p>
+            </div>
+            
+            <div class="space-y-20 max-w-5xl mx-auto">
+                <!-- 앱 1: 건강 실천기록장 -->
+                <div class="bg-white rounded-3xl shadow-xl p-8 scroll-animate">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-green-100 rounded-2xl p-3 mr-4">
+                            <i class="fas fa-heartbeat text-3xl text-green-600"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800">건강 실천기록장</h3>
+                    </div>
+                    <p class="text-lg text-gray-600 mb-6">
+                        학생들의 건강한 생활 습관을 2주간 체계적으로 기록하고 관리하는 스마트 도구입니다.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-green-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">6가지 건강 약속</h4>
+                            <p class="text-sm text-gray-600">바른 자세, 운동, 식습관 등 일일 체크</p>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">맞춤 피드백</h4>
+                            <p class="text-sm text-gray-600">개인별 건강 습관 분석 및 조언</p>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">성과 시각화</h4>
+                            <p class="text-sm text-gray-600">2주간의 변화를 그래프로 확인</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 앱 2: 앞구르기 뒷구르기 -->
+                <div class="bg-white rounded-3xl shadow-xl p-8 scroll-animate">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-indigo-100 rounded-2xl p-3 mr-4">
+                            <i class="fas fa-sync-alt text-3xl text-indigo-600"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800">앞구르기 뒷구르기 평가</h3>
+                    </div>
+                    <p class="text-lg text-gray-600 mb-6">
+                        학생들의 기본 체조 동작을 체계적으로 평가하고 개선점을 찾아주는 실기 평가 시스템입니다.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-indigo-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">5회 반복 평가</h4>
+                            <p class="text-sm text-gray-600">회차별 성공률 자동 계산</p>
+                        </div>
+                        <div class="bg-indigo-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">실패 원인 분석</h4>
+                            <p class="text-sm text-gray-600">구체적인 개선 포인트 제시</p>
+                        </div>
+                        <div class="bg-indigo-50 rounded-xl p-4">
+                            <h4 class="font-bold text-gray-800 mb-2">진도 추적</h4>
+                            <p class="text-sm text-gray-600">학생별 실력 향상도 관리</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA 섹션 -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 text-center text-white scroll-animate">
+                <h2 class="text-4xl font-bold mb-4">
+                    2025년, 체육 교육의 새로운 시작
+                </h2>
+                <p class="text-xl mb-8 text-blue-100">
+                    지금 바로 스마트 체육 학습 플랫폼을 경험해보세요
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    {% if user.is_authenticated %}
+                       
+                    {% else %}
+                        <!-- <a href="" class="bg-white text-blue-600 px-8 py-4 rounded-full font-bold hover:bg-blue-50 transition transform hover:scale-105">
+                            무료로 시작하기 <i class="fas fa-arrow-right ml-2"></i>
+                        </a> -->
+                        <a href="/accounts/login/" class="bg-transparent border-2 border-white text-white px-8 py-4 rounded-full font-bold hover:bg-white/10 transition">
+                            로그인하기 <i class="fas fa-sign-in-alt ml-2"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- 로고 및 소개 -->
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                            <i class="fas fa-running text-blue-600"></i>
+                        </div>
+                        <span class="font-bold text-xl">스마트 체육 2025</span>
+                    </div>
+                    <p class="text-gray-400">
+                        체육 교육의 디지털 혁신을 이끄는 스마트 학습 플랫폼
+                    </p>
+                </div>
+                
+                <!-- 주요 기능 -->
+                <div>
+                    <h4 class="font-bold mb-4">주요 기능</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">학급 관리</a></li>
+                        <li><a href="#" class="hover:text-white transition">건강 실천기록</a></li>
+                        <li><a href="#" class="hover:text-white transition">실기 평가</a></li>
+                        <li><a href="#" class="hover:text-white transition">롤링페이퍼</a></li>
+                    </ul>
+                </div>
+                
+                <!-- 바로가기 -->
+                <div>
+                    <h4 class="font-bold mb-4">바로가기</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="/accounts/login/" class="hover:text-white transition">로그인</a></li>
+                        <li><a href="/accounts/teacher/register/" class="hover:text-white transition">회원가입</a></li>
+                        <li><a href="#" class="hover:text-white transition">사용 가이드</a></li>
+                        <li><a href="#" class="hover:text-white transition">공지사항</a></li>
+                    </ul>
+                </div>
+                
+                <!-- 문의 -->
+                <div>
+                    <h4 class="font-bold mb-4">문의</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><i class="fas fa-envelope mr-2"></i>kmetastudy@google.com</li>
+                        <li><i class="fas fa-phone mr-2"></i>02-2226-4279</li>
+                        <li><i class="fas fa-clock mr-2"></i>평일 09:00-18:00</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2025 스마트 체육 학습 플랫폼. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 모바일 메뉴 -->
+    <div id="mobileMenu" class="fixed inset-0 bg-blue-600 z-50 transform translate-x-full transition-transform duration-300">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-8">
+                <span class="text-white font-bold text-xl">메뉴</span>
+                <button onclick="toggleMobileMenu()" class="text-white">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <nav class="space-y-4">
+                <a href="#features" class="block text-white text-lg py-2" onclick="toggleMobileMenu()">주요 기능</a>
+                <a href="#benefits" class="block text-white text-lg py-2" onclick="toggleMobileMenu()">사용자별 혜택</a>
+                <a href="#apps" class="block text-white text-lg py-2" onclick="toggleMobileMenu()">앱 소개</a>
+                <hr class="border-blue-500">
+                {% if user.is_authenticated %}
+                   
+                    <a href="{% url 'accounts:logout' %}" class="block text-white text-lg py-2">로그아웃</a>
+                {% else %}
+                    <a href="/accounts/login/" class="block text-white text-lg py-2">로그인</a>
+                    <a href="/accounts/teacher/register/" class="block bg-white text-blue-600 text-center py-3 rounded-full font-bold">
+                        무료 시작하기
+                    </a>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        // 네비게이션 스크롤 효과
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-white', 'shadow-lg');
+                navbar.classList.remove('bg-transparent');
+                navbar.querySelectorAll('a').forEach(link => {
+                    if (!link.classList.contains('bg-white')) {
+                        link.classList.add('text-gray-800');
+                        link.classList.remove('text-white');
+                    }
+                });
+                navbar.querySelector('.font-bold').classList.add('text-gray-800');
+                navbar.querySelector('.font-bold').classList.remove('text-white');
+            } else {
+                navbar.classList.remove('bg-white', 'shadow-lg');
+                navbar.querySelectorAll('a').forEach(link => {
+                    if (!link.classList.contains('bg-white')) {
+                        link.classList.remove('text-gray-800');
+                        link.classList.add('text-white');
+                    }
+                });
+                navbar.querySelector('.font-bold').classList.remove('text-gray-800');
+                navbar.querySelector('.font-bold').classList.add('text-white');
+            }
+        });
+
+        // 스크롤 애니메이션
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.scroll-animate').forEach(el => {
+            observer.observe(el);
+        });
+
+        // 모바일 메뉴 토글
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('translate-x-full');
+        }
+
+        // 부드러운 스크롤
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

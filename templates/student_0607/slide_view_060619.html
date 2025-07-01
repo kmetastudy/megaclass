@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ slide.content.title }} - 학습 관리 시스템</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/student/student.css">
+  
+</head>
+<body class="bg-slate-50">
+    <!-- 모바일 오버레이 -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileSidebar()"></div>
+    
+    <!-- 미니 사이드바 -->
+    {% include 'student/pages/nav.html' %}
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content min-h-screen">
+        <!-- 상단 헤더 -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+            <div class="px-4 sm:px-6 lg:px-8">
+                <!-- 모바일 헤더 -->
+                <div class="md:hidden py-3 flex items-center justify-between">
+                    <button onclick="showMobileSidebar()" class="p-2 text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-lg font-semibold text-gray-900 truncate flex-1 mx-3">
+                        {{ slide.chasi.chasi_title }}
+                    </h1>
+                    <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+                       class="p-2 text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-times text-xl"></i>
+                    </a>
+                </div>
+                
+                <!-- 데스크톱 헤더 -->
+                <div class="hidden md:block py-2">
+                    <div class="flex items-center justify-between">
+                        <nav class="flex items-center text-base">
+                            <a href="{% url 'student:course_list' %}" class="text-gray-600 hover:text-gray-900 font-medium transition flex items-center gap-2">
+                                <i class="fas fa-book text-gray-400"></i>
+                                <span class="hidden lg:inline">{{ slide.chasi.sub_chapter.chapter.subject.subject_name }}</span>
+                                <span class="lg:hidden">과목</span>
+                            </a>
+                            <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                            <span class="text-gray-600 hidden lg:inline">{{ slide.chasi.sub_chapter.chapter.chapter_title }}</span>
+                            <span class="text-gray-600 lg:hidden">{{ slide.chasi.sub_chapter.chapter.chapter_order }}단원</span>
+                            <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                            <span class="text-gray-600 hidden lg:inline">{{ slide.chasi.sub_chapter.sub_chapter_title }}</span>
+                            <span class="text-gray-600 lg:hidden">{{ slide.chasi.sub_chapter.sub_chapter_order }}절</span>
+                            <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                            <span class="text-gray-900 font-medium">{{ slide.chasi.chasi_title }}</span>
+                        </nav>
+                        
+                        <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+                           class="p-2 text-gray-400 hover:text-gray-600 transition rounded-lg hover:bg-gray-100"
+                           title="코스로 돌아가기">
+                            <i class="fas fa-times text-lg"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 콘텐츠 영역 -->
+        <main class="max-w-4xl mx-auto px-6 py-2">
+        <div class="content-card bg-white rounded-2xl shadow-lg overflow-hidden mb-8 max-w-4xl flex flex-col justify-start items-center">
+        <!-- 콘텐츠 본문 부분 (기존 코드에서 수정) -->
+          <!-- 슬라이드 헤더 -->
+          <div class="px-8 py-2 bg-gradient-to-r from-slate-1000 to-blue-50 border-b border-gray2100 w-full">
+            <div class="flex items-center justify-between">
+              
+                    <h1 class="text-2xl font-bold text-gray-900 ml-4">🚀 {{ slide.content.title }}</h1>
+                    <div class="flex items-center gap-4">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-{{ slide.content_type.color|default:'blue' }}-100 text-{{ slide.content_type.color|default:'blue' }}-800 border border-{{ slide.content_type.color|default:'blue' }}-200">
+                            <i class="fas fa-{{ slide.content_type.icon|default:'file' }} mr-1.5"></i>
+                            {{ slide.content_type.type_name }}
+                        </span>
+                        <span class="text-sm text-gray-600">
+                            <i class="far fa-clock mr-1.5"></i>{{ slide.estimated_time|default:"15" }}분
+                        </span>
+                        <span class="text-sm text-gray-600">
+                            <i class="fas fa-eye mr-1.5"></i>{{ progress.view_count|default:0 }}회
+                        </span>
+                    </div>
+               
+            </div>
+        </div>
+        <div class="px-4 sm:px-6 lg:px-8 py-2 sm:py-2 relative">
+            <div class="prose prose-sm sm:prose-base lg:prose-lg max-w-none mx-auto">
+                {{ slide.content.page|safe }}
+            </div>
+            
+            {% if existing_answer %}
+            <!-- 결과 GIF 표시 영역 -->
+            <div class="text-center mt-6 absolute top-10 left-10">
+                {% if is_already_correct %}
+                <img id="right-gif" src="/static/img/jungoh/images/right.gif" alt="정답" class="result-gif mx-auto mb-4">
+                {% else %}
+                <img id="wrong-gif" src="/static/img/jungoh/images/wrong.gif" alt="오답" class="result-gif mx-auto mb-4">
+                {% endif %}
+            </div>
+
+            {% endif %}
+            
+            <!-- 제출 버튼 영역 -->
+            {% if slide.content_type.type_name in 'multiple-choice,short-answer' %}
+            <div id="submission-area" class="mt-8 text-center border-t border-gray-200 pt-6">
+                <!-- 제출 버튼 (초기 제출) -->
+                {% if not is_already_correct %}
+                <button id="submit-btn" 
+                        class="submit-button bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base mr-3"
+                        data-qid="{{ slide.content.id }}" 
+                        data-type="{{ slide.content_type.type_name }}"
+                        style="display: {% if existing_answer %}none{% else %}inline-block{% endif %};">
+                    <i class="fas fa-paper-plane mr-2"></i>답안 제출
+                </button>
+                
+                <!-- 재제출 버튼 -->
+                <button id="resubmit-btn" 
+                        class="resubmit-button bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base"
+                        data-qid="{{ slide.content.id }}" 
+                        data-type="{{ slide.content_type.type_name }}"
+                        style="display: {% if existing_answer %}inline-block{% else %}none{% endif %};">
+                    <i class="fas fa-redo mr-2"></i>다시 제출
+                </button>
+                {% endif %}
+                
+                <div id="submission-status-wrapper"> 
+                <!-- 제출 상태 표시 -->
+                {% if existing_answer %}
+                <div class="mt-4 text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    이전 제출: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+                    {% if existing_answer.is_correct %}
+                        <span class="text-green-600 font-medium ml-2">
+                            <i class="fas fa-check-circle"></i> 정답
+                        </span>
+                    {% elif existing_answer.is_correct == False %}
+                        <span class="text-red-600 font-medium ml-2">
+                            <i class="fas fa-times-circle"></i> 오답
+                        </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+      </div>
+      </main>
+    </div>
+
+    <!-- 하단 고정 인디케이터 -->
+    <div class="bottom-indicator">
+        <div class="px-4 sm:px-6 py-1 flex items-center justify-between">
+            <!-- 이전 버튼 -->
+            <div class="flex-shrink-0">
+                {% if prev_slide %}
+                <a href="{% url 'student:slide_view' prev_slide.id %}" 
+                   class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm text-sm sm:text-base">
+                    <i class="fas fa-chevron-left text-xs sm:text-sm"></i>
+                    <span class="hidden sm:inline">이전</span>
+                </a>
+                {% else %}
+                <div class="w-16 sm:w-20"></div>
+                {% endif %}
+            </div>
+            
+            <!-- 진도 표시 -->
+            <div class="flex-1 mx-3 sm:mx-6 overflow-hidden">
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide justify-center">
+                        {% for s in slide.chasi.teacher_slides.all %}
+                        <div class="progress-dot {% if s.id == slide.id %}current{% elif progress_data and s.id in progress_data and progress_data.s.id.is_completed %}completed{% endif %}"
+                             onclick="{% if s.id != slide.id %}location.href='{% url 'student:slide_view' s.id %}'{% endif %}"
+                             title="슬라이드 {{ s.slide_number }}"></div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap ml-2">
+                        <span class="text-gray-900">{{ slide.slide_number }}</span>/{{ slide.chasi.teacher_slides.count }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 다음/완료 버튼 -->
+            <div class="flex-shrink-0">
+                {% if next_slide %}
+                <a href="{% url 'student:slide_view' next_slide.id %}" 
+                   class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm text-sm sm:text-base">
+                    <span class="hidden sm:inline">다음</span>
+                    <i class="fas fa-chevron-right text-xs sm:text-sm"></i>
+                </a>
+                {% else %}
+                <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+                   class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm text-sm sm:text-base">
+                    <span class="hidden sm:inline">완료</span>
+                    <i class="fas fa-check text-xs sm:text-sm"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 메시지 영역 -->
+        {% if messages %}
+        <div class="px-4 sm:px-6 pb-2">
+            {% for message in messages %}
+            <div class="text-xs sm:text-sm px-3 py-1.5 rounded-lg mb-1 {% if message.level_tag == 'success' %}bg-green-100 text-green-700{% elif message.level_tag == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 노트 팝업 -->
+    <div id="notePopup" class="fixed right-4 sm:right-6 bottom-24 sm:bottom-28 w-[calc(100vw-2rem)] sm:w-96 max-w-md bg-white rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 hidden z-40">
+        <div class="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 rounded-t-xl sm:rounded-t-2xl">
+            <h3 class="font-semibold text-gray-900 text-sm sm:text-base">
+                <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>학습 노트
+            </h3>
+            <button onclick="toggleNote()" class="text-gray-400 hover:text-gray-600 transition">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-4 sm:p-5">
+            <textarea id="noteContent" 
+                      class="w-full h-48 sm:h-64 p-3 sm:p-4 border border-gray-200 rounded-lg sm:rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs sm:text-sm"
+                      placeholder="학습하면서 중요한 내용이나 궁금한 점을 메모하세요...">{{ note.content|default:'' }}</textarea>
+            <div class="mt-3 flex justify-end">
+                <button onclick="saveNote()" 
+                        class="px-4 sm:px-5 py-2 bg-blue-600 text-white font-medium rounded-lg sm:rounded-xl hover:bg-blue-700 transition shadow-sm text-sm">
+                    <i class="fas fa-save mr-2"></i>저장
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 플로팅 액션 버튼 (모바일) -->
+    <div class="fixed right-4 bottom-20 flex flex-col gap-2 sm:hidden z-20">
+        <button onclick="toggleNote()" 
+                class="w-12 h-12 bg-white border border-gray-300 text-gray-600 rounded-full shadow-lg hover:shadow-xl transition flex items-center justify-center">
+            <i class="fas fa-sticky-note"></i>
+        </button>
+    </div>
+
+    <!-- 토스트 컨테이너 -->
+    <div id="toastContainer"></div>
+
+    <script>
+
+
+        // 미니 사이드바 토글 (데스크톱)
+        function toggleMiniSidebar() {
+            const sidebar = document.getElementById('miniSidebar');
+            const isDesktop = window.innerWidth >= 768;
+            
+            if (isDesktop) {
+                sidebar.classList.toggle('expanded');
+            } else {
+                closeMobileSidebar();
+            }
+        }
+
+        // 모바일 사이드바 표시
+        function showMobileSidebar() {
+            const sidebar = document.getElementById('miniSidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.add('show-mobile');
+            overlay.classList.add('show');
+        }
+
+        // 모바일 사이드바 닫기
+        function closeMobileSidebar() {
+            const sidebar = document.getElementById('miniSidebar');
+            const overlay = document.getElementById('mobileOverlay');
+            sidebar.classList.remove('show-mobile');
+            overlay.classList.remove('show');
+        }
+
+        // 답안 제출
+        function submitAnswer() {
+            const contentArea = document.querySelector('.prose');
+            const answerInputs = contentArea.querySelectorAll('input[name="student_answer"], textarea[name="student_answer"], select[name="student_answer"]');
+            
+            let answer = '';
+            
+            answerInputs.forEach(input => {
+                if (input.type === 'radio' || input.type === 'checkbox') {
+                    if (input.checked) {
+                        answer = input.value;
+                    }
+                } else if (input.value) {
+                    answer = input.value;
+                }
+            });
+            
+            if (!answer.trim()) {
+                showToast('답안을 입력해주세요.', 'error');
+                return false;
+            }
+            
+            document.getElementById('hiddenAnswer').value = answer;
+            return true;
+        }
+
+        // 노트 토글
+        function toggleNote() {
+            const notePopup = document.getElementById('notePopup');
+            notePopup.classList.toggle('hidden');
+        }
+
+        // 노트 저장
+        function saveNote() {
+            const content = document.getElementById('noteContent').value;
+            
+            fetch('{% url "student:save_note_ajax" slide.id %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'note_content=' + encodeURIComponent(content)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('노트가 저장되었습니다.', 'success');
+                } else {
+                    showToast('저장에 실패했습니다.', 'error');
+                }
+            })
+            .catch(() => {
+                showToast('저장 중 오류가 발생했습니다.', 'error');
+            });
+        }
+
+        // 토스트 메시지
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const bgColor = {
+                'success': 'bg-green-600',
+                'error': 'bg-red-600',
+                'info': 'bg-blue-600'
+            }[type] || 'bg-gray-600';
+            
+            toast.className = `toast ${bgColor} text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl shadow-lg mb-3 flex items-center gap-2 sm:gap-3 text-sm`;
+            toast.style.animation = 'slideIn 0.3s ease-out';
+            
+            const icon = {
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'info': 'fas fa-info-circle'
+            }[type] || 'fas fa-info-circle';
+            
+            toast.innerHTML = `<i class="${icon}"></i><span>${message}</span>`;
+            
+            const container = document.getElementById('toastContainer');
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            // ESC: 사이드바/노트 닫기
+            if (e.key === 'Escape') {
+                const notePopup = document.getElementById('notePopup');
+                const sidebar = document.getElementById('miniSidebar');
+                
+                if (!notePopup.classList.contains('hidden')) {
+                    notePopup.classList.add('hidden');
+                } else if (sidebar.classList.contains('expanded') || sidebar.classList.contains('show-mobile')) {
+                    closeMobileSidebar();
+                    sidebar.classList.remove('expanded');
+                }
+            }
+            
+            // 좌우 화살표: 이전/다음 슬라이드 (입력 필드가 아닐 때만)
+            if (!e.target.matches('input, textarea')) {
+                if (e.key === 'ArrowLeft' && {% if prev_slide %}true{% else %}false{% endif %}) {
+                    location.href = '{% if prev_slide %}{% url "student:slide_view" prev_slide.id %}{% endif %}';
+                } else if (e.key === 'ArrowRight' && {% if next_slide %}true{% else %}false{% endif %}) {
+                    location.href = '{% if next_slide %}{% url "student:slide_view" next_slide.id %}{% endif %}';
+                }
+            }
+        });
+
+        // 반응형 처리
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const sidebar = document.getElementById('miniSidebar');
+                const isDesktop = window.innerWidth >= 768;
+                
+                if (!isDesktop && sidebar.classList.contains('expanded')) {
+                    sidebar.classList.remove('expanded');
+                }
+            }, 250);
+        });
+
+        // 페이지 로드 시 스크롤바 숨기기 스타일 추가
+        const style = document.createElement('style');
+        style.textContent = '.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }';
+        document.head.appendChild(style);
+        
+        $(document).ready(function() {
+    // 기존 문제 선택 로직
+                $('.answer').click(function(){
+                    var clicked = $(this).attr('data-clicked');
+                    $('.answer').removeClass('ring-2 ring-red-500 ring-blue-500');
+                    console.log("clicked:", clicked);
+                    
+                    // 모든 gif 숨기기
+                    $('#right-gif').addClass('hidden');
+                    $('#wrong-gif').addClass('hidden');
+                
+                    $(this).addClass('ring-2');
+                    
+                    if (clicked == '1'){
+                        $(this).addClass('ring-blue-500');
+                    } else {
+                        $(this).addClass('ring-red-500');
+                    }
+                });
+
+        // 제출 버튼 클릭 이벤트
+        $('.submit-button, .resubmit-button').click(function(){
+            var qid = $(this).attr('data-qid');
+            var qtype = $(this).attr('data-type');
+            var isResubmit = $(this).hasClass('resubmit-button');
+            
+            // 선택된 답안 수집
+            var selectedAnswer = getSelectedAnswer();
+            
+            if (!selectedAnswer) {
+                showToast('답안을 선택해주세요.', 'error');
+                return;
+            }
+            
+            // 제출 버튼 비활성화
+            $(this).prop('disabled', true).text('제출 중...');
+            
+            // 서버에 답안 제출
+            submitAnswerToServer(qid, selectedAnswer, isResubmit, $(this));
+        });
+    
+        // 선택된 답안 가져오기 함수
+        function getSelectedAnswer() {
+            var answer = null;
+            
+            // 객관식/선택형의 경우
+            $('.answer.ring-2').each(function(){
+                answer = $(this).attr('data-clicked');
+            });
+            
+            // 단답형의 경우 (input 필드)
+            if (!answer) {
+                var textInput = $('input[name="student_answer"], textarea[name="student_answer"]');
+                if (textInput.length > 0 && textInput.val().trim()) {
+                    answer = textInput.val().trim();
+                }
+            }
+            
+            return answer;
+        }
+    
+        // 서버에 답안 제출 함수 (★★★★★ 전체 교체 ★★★★★)
+            function submitAnswerToServer(qid, answer, isResubmit, buttonElement) {
+                // is_resubmit 값은 이제 서버의 update_or_create 로직으로 인해
+                // 사실상 필요 없지만, 기존 구조 유지를 위해 그대로 둡니다.
+                $.ajax({
+                    url: '{% url "student:check_answer" %}',
+                    type: 'POST',
+                    data: {
+                        'content_id': qid,
+                        'student_answer': answer,
+                        'slide_id': {{ slide.id }},
+                        // 'is_resubmit' 파라미터는 더 이상 check_answer 뷰에서 사용되지 않습니다.
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        console.log('서버 응답:', response);
+
+                        if (response.status !== 'success') {
+                            showToast(response.message || '알 수 없는 오류가 발생했습니다.', 'error');
+                            return;
+                        }
+
+                        // 1. GIF 표시 업데이트
+                        if (response.is_correct) {
+                            $('#right-gif').removeClass('hidden');
+                            $('#wrong-gif').addClass('hidden');
+                            showToast('정답입니다! 잘했어요!', 'success');
+                        } else {
+                            $('#wrong-gif').removeClass('hidden');
+                            $('#right-gif').addClass('hidden');
+                            showToast('틀렸습니다. 다시 시도해 보세요.', 'error');
+                        }
+
+                        // 2. 버튼 상태 업데이트
+                        if (response.is_correct) {
+                            // 정답이면 모든 제출 버튼 숨김
+                            $('#submit-btn').hide();
+                            $('#resubmit-btn').hide();
+                        } else {
+                            // 오답이면 '다시 제출' 버튼을 보여주고 활성화
+                            $('#submit-btn').hide();
+                            $('#resubmit-btn').show().prop('disabled', false).html('<i class="fas fa-redo mr-2"></i>다시 제출');
+                        }
+
+                        // 3. 제출 상태 텍스트 업데이트
+                        updateSubmissionStatus(response);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('제출 오류:', error);
+                        showToast('제출 중 오류가 발생했습니다.', 'error');
+                        // 에러 발생 시 버튼 원상 복구
+                        buttonElement.prop('disabled', false);
+                        if (buttonElement.hasClass('submit-button')) {
+                            buttonElement.html('<i class="fas fa-paper-plane mr-2"></i>답안 제출');
+                        } else {
+                            buttonElement.html('<i class="fas fa-redo mr-2"></i>다시 제출');
+                        }
+                    }
+                    // 'complete' 콜백은 success/error에서 개별 처리하므로 제거해도 무방합니다.
+                });
+            }
+
+            // 제출 상태 업데이트 함수 (★★★★★ 전체 교체 ★★★★★)
+            function updateSubmissionStatus(response) {
+                const wrapper = $('#submission-status-wrapper');
+                wrapper.empty(); // 이전 상태 메시지 모두 제거
+
+                const statusIcon = response.is_correct
+                    ? '<span class="text-green-600 font-medium ml-2"><i class="fas fa-check-circle"></i> 정답</span>'
+                    : '<span class="text-red-600 font-medium ml-2"><i class="fas fa-times-circle"></i> 오답</span>';
+
+                const statusHtml = `
+                    <div class="mt-4 text-sm text-gray-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        마지막 제출: ${response.submitted_at}
+                        ${statusIcon}
+                    </div>
+                `;
+
+                wrapper.html(statusHtml);
+            }
+    });
+
+// 기존 다른 함수들은 그대로 유지...
+</script>
+</body>
+</html>

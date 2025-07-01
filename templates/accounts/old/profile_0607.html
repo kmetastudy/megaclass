@@ -1,0 +1,145 @@
+<!-- templates/accounts/profile.html -->
+{% extends 'base.html' %}
+
+{% block title %}프로필 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">내 프로필</h2>
+        <p class="text-gray-600">계정 정보를 확인하고 관리할 수 있습니다.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 프로필 카드 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-xl shadow-md p-6 text-center">
+                <div class="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                    {{ user.first_name|first|default:user.username|first }}
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">{{ user.get_full_name|default:user.username }}</h3>
+                <div class="mb-4">
+                    {% if user_type == 'teacher' %}
+                    <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">교사</span>
+                    {% elif user_type == 'student' %}
+                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">학생</span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600 text-sm">{{ user.email|default:"이메일 없음" }}</p>
+            </div>
+        </div>
+
+        <!-- 상세 정보 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">계정 정보</h4>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">사용자명</label>
+                            <p class="text-gray-800">{{ user.username }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">이메일</label>
+                            <p class="text-gray-800">{{ user.email|default:"설정되지 않음" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">성</label>
+                            <p class="text-gray-800">{{ user.last_name|default:"설정되지 않음" }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">이름</label>
+                            <p class="text-gray-800">{{ user.first_name|default:"설정되지 않음" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 mb-1">가입일</label>
+                        <p class="text-gray-800">{{ user.date_joined|date:"Y년 m월 d일" }}</p>
+                    </div>
+                </div>
+
+                <!-- 사용자 타입별 추가 정보 -->
+                {% if user_type == 'teacher' %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">교사 정보</h4>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 mb-1">소속 학교</label>
+                                <p class="text-gray-800">{{ profile.school.name }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 mb-1">사번</label>
+                                <p class="text-gray-800">{{ profile.employee_id }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">연락처</label>
+                            <p class="text-gray-800">{{ profile.phone|default:"설정되지 않음" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% elif user_type == 'student' %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">학생 정보</h4>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 mb-1">학급</label>
+                                <p class="text-gray-800">{{ profile.school_class.name }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-500 mb-1">학번</label>
+                                <p class="text-gray-800">{{ profile.student_id }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 mb-1">생년월일</label>
+                            <p class="text-gray-800">{{ profile.birth_date|date:"Y년 m월 d일" }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 빠른 액션 -->
+    <div class="mt-6">
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h4 class="text-lg font-semibold text-gray-800 mb-4">빠른 액션</h4>
+            <div class="flex flex-wrap gap-4">
+                {% if user_type == 'teacher' %}
+                <a href="{% url 'teacher:dashboard' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i>교사 대시보드
+                </a>
+                <a href="{% url 'teacher:class_list' %}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="fas fa-users mr-2"></i>학급 관리
+                </a>
+                <a href="{% url 'cp:dashboard' %}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-edit mr-2"></i>컨텐츠 제작
+                </a>
+                {% elif user_type == 'student' %}
+                <a href="{% url 'student:dashboard' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-home mr-2"></i>학생 대시보드
+                </a>
+                <a href="{% url 'student:course_list' %}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="fas fa-book-open mr-2"></i>내 코스
+                </a>
+                <a href="{% url 'student:progress' %}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-chart-line mr-2"></i>학습 진도
+                </a>
+                {% endif %}
+                <a href="{% url 'accounts:logout' %}" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200">
+                    <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

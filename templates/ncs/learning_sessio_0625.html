@@ -1,0 +1,687 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}NCS 학습{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-container {
+        min-height: 500px;
+        display: none;
+    }
+    .question-container.active {
+        display: block !important;
+    }
+    
+    /* content.page 내의 선택지 스타일 */
+    .choice.answer {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .choice.answer:hover:not(.cursor-not-allowed) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .choice.answer.ring-2 {
+        outline: 2px solid;
+        outline-offset: 2px;
+    }
+    
+    .choice.answer.ring-blue-500 {
+        outline-color: #3b82f6;
+        background-color: #dbeafe;
+    }
+    
+    .choice.answer.ring-red-500 {
+        outline-color: #ef4444;
+        background-color: #fee2e2;
+    }
+    
+    .choice.answer.border-green-500 {
+        border-color: #10b981 !important;
+        background-color: #d1fae5 !important;
+    }
+    
+    .choice.answer.border-red-500 {
+        border-color: #ef4444 !important;
+        background-color: #fee2e2 !important;
+    }
+    
+    .choice.answer.cursor-not-allowed {
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    
+    /* 결과 GIF 스타일 */
+    .result-gif {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+    }
+    
+    /* O/X 마크 SVG 스타일 */
+    .result-mark {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 120px;
+        height: 120px;
+        opacity: 0;
+        animation: fadeInScale 0.5s forwards;
+    }
+    
+    @keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+    
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+
+    /* 이미 답변한 문제 표시 */
+.question-container.answered {
+    opacity: 0.95;
+}
+
+.question-container.answered .question-content {
+    position: relative;
+}
+
+.question-container.answered .question-content::after {
+    content: '답변 완료';
+    position: absolute;
+    top: -10px;
+    right: 0;
+    background-color: #10b981;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- 헤더 -->
+    <div class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">
+                        NCS 직무기초능력 학습
+                    </h1>
+                    <p class="text-sm text-gray-600">
+                        {{ session.get_session_type_display }}
+                    </p>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-600">진행률</p>
+                        <p class="text-lg font-bold text-gray-900">
+                            <span id="completed-count">{{ session.completed_questions }}</span>/{{ session.total_questions }}
+                        </p>
+                    </div>
+                    <button onclick="if(confirm('학습을 종료하시겠습니까?')) window.location.href='{% url 'ncs:student_dashboard' %}'"
+                            class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <i class="fas fa-times mr-1"></i>종료
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 진행률 바 -->
+            <div class="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div id="progress-bar" class="progress-bar bg-blue-600 h-2 rounded-full" 
+                     style="width: {{ progress_percent }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        {% for question in questions %}
+        <div class="question-container {% if forloop.first %}active{% endif %}" 
+             id="question-{{ question.id }}"
+             data-question-id="{{ question.id }}"
+             data-order="{{ question.order }}">
+            
+            <div class="bg-white rounded-lg shadow-lg p-8 relative">
+                <!-- 역량 정보 -->
+                <div class="mb-6 pb-4 border-b">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                        <i class="fas fa-tag mr-1"></i>
+                        {{ question.competency.competency_name }}
+                    </span>
+                </div>
+
+                <!-- 문제 내용 (content.page에 문제와 선택지가 모두 포함되어 있음) -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">
+                        문제 {{ question.order }}
+                    </h2>
+                    <div class="prose max-w-none question-content" id="content-{{ question.id }}">
+                        {{ question.content.page|safe }}
+                    </div>
+                </div>
+
+
+
+                <!-- 버튼 -->
+                <div class="flex justify-between items-center">
+                    <button class="px-4 py-2 text-gray-600 hover:text-gray-800 transition {% if forloop.first %}invisible{% endif %}"
+                            onclick="previousQuestion({{ question.order }})"
+                            {% if forloop.first %}disabled{% endif %}>
+                        <i class="fas fa-chevron-left mr-1"></i>이전
+                    </button>
+                    
+                    <button id="submit-btn-{{ question.id }}"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            onclick="submitAnswer({{ question.id }})"
+                            disabled>
+                        답안 제출
+                    </button>
+                    
+                    <button id="next-btn-{{ question.id }}"
+                            class="px-4 py-2 text-gray-600 hover:text-gray-800 transition hidden"
+                            onclick="nextQuestion({{ question.order }})">
+                        다음<i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 완료 화면 -->
+        <div id="completion-screen" class="hidden">
+            <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">학습 완료!</h2>
+                <p class="text-gray-600 mb-6">모든 문제를 완료했습니다.</p>
+                <a href="{% url 'ncs:session_result' session.id %}" 
+                   class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    결과 확인하기
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    let selectedAnswers = {};
+    let startTime = Date.now();
+    let questionStartTime = {};
+    let completedQuestions = {{ session.completed_questions }};
+    const totalQuestions = {{ session.total_questions }};
+    // 이미 답변한 문제들의 정보
+    const answeredQuestions = {{ answered_questions|safe }};
+    
+    // 페이지 로드 시 첫 문제 시작 시간 기록
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== NCS Learning Session Started ===');
+        console.log('Total questions:', totalQuestions);
+        console.log('Session ID:', {{ session.id }});
+        console.log('Already answered questions:', answeredQuestions);
+        
+        // 모든 문제 컨테이너 확인
+        const allQuestions = document.querySelectorAll('.question-container');
+        console.log('Found question containers:', allQuestions.length);
+        
+        // 첫 번째 문제만 active 클래스 추가 (나머지는 제거)
+        allQuestions.forEach((container, index) => {
+            if (index === 0) {
+                container.classList.add('active');
+                console.log(`Question ${index + 1} set as active`);
+            } else {
+                container.classList.remove('active');
+            }
+        });
+        
+        const firstQuestion = document.querySelector('.question-container.active');
+        if (firstQuestion) {
+            const questionId = firstQuestion.getAttribute('data-question-id');
+            questionStartTime[questionId] = Date.now();
+            console.log('First question ID:', questionId);
+        }
+        
+        // 각 문제의 선택지에 이벤트 바인딩
+        bindAnswerEvents();
+        
+        // 이미 답변한 문제들의 상태 표시
+        showAnsweredQuestions();
+    });
+    
+    // 이미 답변한 문제들의 상태를 표시하는 함수
+    function showAnsweredQuestions() {
+        console.log('=== Showing answered questions ===');
+        
+        for (const [questionId, answerData] of Object.entries(answeredQuestions)) {
+            console.log(`Processing answered question ${questionId}:`, answerData);
+            
+            const questionContainer = document.getElementById(`question-${questionId}`);
+            if (!questionContainer) {
+                console.error(`Question container not found for ID: ${questionId}`);
+                continue;
+            }
+            
+            // 정답 데이터 파싱
+            let correctAnswer = answerData.correct_answer;
+            if (typeof correctAnswer === 'string' && correctAnswer.includes('{')) {
+                try {
+                    const parsed = JSON.parse(correctAnswer);
+                    correctAnswer = parsed.answer || correctAnswer;
+                } catch (e) {
+                    console.log('Failed to parse correct answer, using original');
+                }
+            }
+            
+            // 학생이 선택한 답안 표시
+            selectedAnswers[questionId] = answerData.student_answer;
+            
+            // 결과 표시
+            showResult(questionId, answerData.is_correct, correctAnswer, true);
+            
+            // 제출 버튼 숨기고 다음 버튼 표시
+            const submitBtn = document.getElementById(`submit-btn-${questionId}`);
+            const nextBtn = document.getElementById(`next-btn-${questionId}`);
+            
+            if (submitBtn) {
+                submitBtn.style.display = 'none';
+            }
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+            }
+        }
+    }
+    
+    // 답안 선택 이벤트 바인딩 함수
+    function bindAnswerEvents() {
+        console.log('=== Binding answer events ===');
+        
+        // content.page 내의 선택지에 클릭 이벤트 추가
+        const choices = document.querySelectorAll('.choice.answer');
+        console.log('Found answer choices:', choices.length);
+        
+        choices.forEach((element, index) => {
+            console.log(`Choice ${index + 1}: data-clicked="${element.getAttribute('data-clicked')}"`);
+            
+            element.addEventListener('click', function(e) {
+                // 가장 가까운 question-container 찾기
+                const questionContainer = this.closest('.question-container');
+                if (!questionContainer) {
+                    console.error('Question container not found!');
+                    return;
+                }
+                
+                const questionId = questionContainer.getAttribute('data-question-id');
+                const value = this.getAttribute('data-clicked');
+                
+                console.log(`Choice clicked - Question ID: ${questionId}, Value: ${value}`);
+                
+                // 이미 답변한 문제는 선택 불가
+                if (answeredQuestions[questionId]) {
+                    console.log('Question already answered');
+                    return;
+                }
+                
+                // 이미 제출된 문제는 선택 불가
+                if (questionContainer.querySelector('.result-mark')) {
+                    console.log('Question already submitted');
+                    return;
+                }
+                
+                selectAnswer(questionId, value, this);
+            });
+        });
+    }
+    
+    // 답안 선택 함수 (누락되었던 함수)
+    function selectAnswer(questionId, value, clickedElement) {
+        console.log(`=== Select Answer - Question: ${questionId}, Value: ${value} ===`);
+        
+        // 같은 문제의 모든 선택지에서 선택 상태 제거
+        const questionContainer = document.getElementById(`question-${questionId}`);
+        questionContainer.querySelectorAll('.choice.answer').forEach(el => {
+            el.classList.remove('ring-2', 'ring-blue-500', 'ring-red-500', 'selected');
+        });
+        
+        // 클릭한 선택지에 선택 상태 추가
+        clickedElement.classList.add('ring-2', 'ring-blue-500', 'selected');
+        
+        // 답안 저장
+        selectedAnswers[questionId] = value;
+        console.log('Selected answers:', selectedAnswers);
+        
+        // 제출 버튼 활성화
+        const submitBtn = document.getElementById(`submit-btn-${questionId}`);
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            console.log('Submit button enabled');
+        } else {
+            console.error('Submit button not found!');
+        }
+    }
+    
+    // 답안 제출 함수
+ // 답안 제출 함수
+function submitAnswer(questionId) {
+    console.log(`=== Submit Answer - Question ID: ${questionId} ===`);
+    
+    const answer = selectedAnswers[questionId];
+    console.log('Submitting answer:', answer);
+    
+    if (!answer) {
+        alert('답안을 선택해주세요.');
+        return;
+    }
+    
+    // 시간 계산
+    const timeSpent = Math.floor((Date.now() - (questionStartTime[questionId] || Date.now())) / 1000);
+    console.log('Time spent:', timeSpent, 'seconds');
+    
+    // 버튼 비활성화
+    const submitBtn = document.getElementById(`submit-btn-${questionId}`);
+    submitBtn.disabled = true;
+    submitBtn.textContent = '채점 중...';
+    
+    // 제출 URL 생성 - 올바른 방법
+    const sessionId = {{ session.id }};
+    const submitUrl = `/ncs/session/${sessionId}/question/${questionId}/submit/`;
+    console.log('Submit URL:', submitUrl);
+    
+    // AJAX 제출
+    fetch(submitUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `answer=${answer}&time_spent=${timeSpent}`
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('=== Server Response ===');
+        console.log('Full response:', data);
+        
+        if (data.success) {
+            console.log('Is correct:', data.is_correct);
+            console.log('Correct answer:', data.correct_answer);
+            console.log('Session completed:', data.session_completed);
+            
+            // 정답 데이터 파싱 (JSON 형식일 수 있음)
+            let correctAnswer = data.correct_answer;
+            if (typeof correctAnswer === 'string' && correctAnswer.includes('{')) {
+                try {
+                    const parsed = JSON.parse(correctAnswer);
+                    correctAnswer = parsed.answer || correctAnswer;
+                    console.log('Parsed correct answer:', correctAnswer);
+                } catch (e) {
+                    console.log('Failed to parse correct answer, using original');
+                }
+            }
+            
+            showResult(questionId, data.is_correct, correctAnswer);
+            
+            // 진행률 업데이트
+            completedQuestions++;
+            updateProgress();
+            
+            // 다음 버튼 표시
+            document.getElementById(`next-btn-${questionId}`).classList.remove('hidden');
+            submitBtn.style.display = 'none';
+            
+            // 세션 완료 시
+            if (data.session_completed) {
+                console.log('Session completed! Score:', data.score);
+                setTimeout(() => {
+                    showCompletionScreen(data.score);
+                }, 1500);
+            }
+        } else {
+            console.error('Submit failed:', data.message);
+            alert(data.message || '오류가 발생했습니다.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '답안 제출';
+        }
+    })
+    .catch(error => {
+        console.error('Submit error:', error);
+        alert('제출 중 오류가 발생했습니다.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '답안 제출';
+    });
+}
+    // ... 나머지 코드는 동일
+
+    function submitAnswer_0625(questionId) {
+        console.log(`=== Submit Answer - Question ID: ${questionId} ===`);
+        
+        const answer = selectedAnswers[questionId];
+        console.log('Submitting answer:', answer);
+        
+        if (!answer) {
+            alert('답안을 선택해주세요.');
+            return;
+        }
+        
+        // 시간 계산
+        const timeSpent = Math.floor((Date.now() - (questionStartTime[questionId] || Date.now())) / 1000);
+        console.log('Time spent:', timeSpent, 'seconds');
+        
+        // 버튼 비활성화
+        const submitBtn = document.getElementById(`submit-btn-${questionId}`);
+        submitBtn.disabled = true;
+        submitBtn.textContent = '채점 중...';
+        
+        // 제출 URL 생성
+        const submitUrl = "{% url 'ncs:submit_answer' session.id 0 %}".replace('0', questionId);
+        console.log('Submit URL:', submitUrl);
+        
+        // AJAX 제출
+        fetch(submitUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `answer=${answer}&time_spent=${timeSpent}`
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('=== Server Response ===');
+            console.log('Full response:', data);
+            
+            if (data.success) {
+                console.log('Is correct:', data.is_correct);
+                console.log('Correct answer:', data.correct_answer);
+                console.log('Session completed:', data.session_completed);
+                
+                // 정답 데이터 파싱 (JSON 형식일 수 있음)
+                let correctAnswer = data.correct_answer;
+                if (typeof correctAnswer === 'string' && correctAnswer.includes('{')) {
+                    try {
+                        const parsed = JSON.parse(correctAnswer);
+                        correctAnswer = parsed.answer || correctAnswer;
+                        console.log('Parsed correct answer:', correctAnswer);
+                    } catch (e) {
+                        console.log('Failed to parse correct answer, using original');
+                    }
+                }
+                
+                showResult(questionId, data.is_correct, correctAnswer);
+                
+                // 진행률 업데이트
+                completedQuestions++;
+                updateProgress();
+                
+                // 다음 버튼 표시
+                document.getElementById(`next-btn-${questionId}`).classList.remove('hidden');
+                submitBtn.style.display = 'none';
+                
+                // 세션 완료 시
+                if (data.session_completed) {
+                    console.log('Session completed! Score:', data.score);
+                    setTimeout(() => {
+                        showCompletionScreen(data.score);
+                    }, 1500);
+                }
+            } else {
+                console.error('Submit failed:', data.message);
+                alert(data.message || '오류가 발생했습니다.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '답안 제출';
+            }
+        })
+        .catch(error => {
+            console.error('Submit error:', error);
+            alert('제출 중 오류가 발생했습니다.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '답안 제출';
+        });
+    }
+    
+    // 결과 표시 함수
+    function showResult(questionId, isCorrect, correctAnswer, isInitialLoad = false) {
+        console.log(`=== Show Result - Question: ${questionId}, Correct: ${isCorrect}, Answer: ${correctAnswer}, Initial: ${isInitialLoad} ===`);
+        
+        const questionContainer = document.getElementById(`question-${questionId}`);
+        
+        // content.page 내의 정답/오답 이미지 표시
+        const rightGif = questionContainer.querySelector('#right-gif');
+        const wrongGif = questionContainer.querySelector('#wrong-gif');
+        
+        console.log('Right GIF found:', !!rightGif);
+        console.log('Wrong GIF found:', !!wrongGif);
+        
+        if (rightGif && wrongGif) {
+            if (isCorrect) {
+                rightGif.classList.remove('hidden');
+                wrongGif.classList.add('hidden');
+                console.log('Showing right GIF');
+            } else {
+                wrongGif.classList.remove('hidden');
+                rightGif.classList.add('hidden');
+                console.log('Showing wrong GIF');
+            }
+        } else {
+            console.warn('GIF elements not found in content.page');
+        }
+        
+        // 선택지 스타일 업데이트
+        questionContainer.querySelectorAll('.choice.answer').forEach(el => {
+            // 클릭 비활성화
+            el.style.pointerEvents = 'none';
+            el.classList.add('cursor-not-allowed', 'opacity-70');
+            
+            const value = el.getAttribute('data-clicked');
+            console.log(`Choice value: ${value}, Correct answer: ${correctAnswer}, Selected: ${selectedAnswers[questionId]}`);
+            
+            // 정답 표시
+            if (value === correctAnswer || value === String(correctAnswer)) {
+                el.classList.add('border-green-500', 'bg-green-50');
+                el.classList.remove('border-gray-200');
+                console.log(`Marked as correct answer: ${value}`);
+            } 
+            // 오답 표시 (학생이 선택한 오답)
+            else if ((value === selectedAnswers[questionId] || value === String(selectedAnswers[questionId])) && !isCorrect) {
+                el.classList.add('border-red-500', 'bg-red-50');
+                el.classList.remove('border-gray-200');
+                console.log(`Marked as wrong answer: ${value}`);
+            }
+            
+            // 초기 로드 시 학생이 선택한 답안에 선택 표시 추가
+            if (isInitialLoad && (value === selectedAnswers[questionId] || value === String(selectedAnswers[questionId]))) {
+                el.classList.add('ring-2', isCorrect ? 'ring-green-500' : 'ring-red-500');
+            }
+        });
+    }
+    
+    // 다음 문제로 이동
+    function nextQuestion(currentOrder) {
+        console.log(`=== Next Question - Current order: ${currentOrder} ===`);
+        
+        const nextOrder = currentOrder + 1;
+        const currentQuestion = document.querySelector('.question-container.active');
+        const nextQuestion = document.querySelector(`[data-order="${nextOrder}"]`);
+        
+        console.log('Current question:', currentQuestion);
+        console.log('Next question:', nextQuestion);
+        
+        if (nextQuestion) {
+            currentQuestion.classList.remove('active');
+            nextQuestion.classList.add('active');
+            
+            // 다음 문제 시작 시간 기록
+            const nextQuestionId = nextQuestion.getAttribute('data-question-id');
+            
+            // 이미 답변한 문제가 아닌 경우에만 시간 기록
+            if (!answeredQuestions[nextQuestionId]) {
+                questionStartTime[nextQuestionId] = Date.now();
+            }
+            
+            console.log(`Moving to question ${nextOrder}, ID: ${nextQuestionId}`);
+            
+            // 스크롤 최상단으로
+            window.scrollTo(0, 0);
+        } else {
+            console.log('No next question found');
+        }
+    }
+    
+    // 이전 문제로 이동
+    function previousQuestion(currentOrder) {
+        console.log(`=== Previous Question - Current order: ${currentOrder} ===`);
+        
+        const prevOrder = currentOrder - 1;
+        const currentQuestion = document.querySelector('.question-container.active');
+        const prevQuestion = document.querySelector(`[data-order="${prevOrder}"]`);
+        
+        if (prevQuestion) {
+            currentQuestion.classList.remove('active');
+            prevQuestion.classList.add('active');
+            window.scrollTo(0, 0);
+            console.log(`Moving to question ${prevOrder}`);
+        } else {
+            console.log('No previous question found');
+        }
+    }
+    
+    // 진행률 업데이트
+    function updateProgress() {
+        const percent = (completedQuestions / totalQuestions) * 100;
+        console.log(`Progress update: ${completedQuestions}/${totalQuestions} (${percent}%)`);
+        
+        document.getElementById('progress-bar').style.width = percent + '%';
+        document.getElementById('completed-count').textContent = completedQuestions;
+    }
+    
+    // 완료 화면 표시
+    function showCompletionScreen(score) {
+        console.log('=== Showing completion screen ===');
+        console.log('Final score:', score);
+        
+        document.querySelector('.question-container.active').classList.add('hidden');
+        document.getElementById('completion-screen').classList.remove('hidden');
+    }
+    </script>
+
+
+
+
+    {% endblock %}

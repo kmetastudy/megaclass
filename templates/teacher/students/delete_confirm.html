@@ -1,0 +1,270 @@
+<!-- teacher/templates/teacher/students/delete_confirm.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ student.user.get_full_name }} 삭제 확인 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="{% url 'teacher:student_detail' student.id %}" 
+               class="mr-4 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">학생 삭제 확인</h1>
+                <p class="text-gray-600">학생 계정을 영구적으로 삭제합니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오류 메시지 표시 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 학생 정보 카드 -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div class="flex items-center mb-4">
+            <div class="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mr-4">
+                {{ student.user.first_name|first|default:student.user.username|first }}
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-800">{{ student.user.get_full_name }}</h3>
+                <p class="text-gray-600">{{ student.school_class.name }} • 학번: {{ student.student_id }}</p>
+                <p class="text-sm text-gray-500 font-mono">사용자명: {{ student.user.username }}</p>
+            </div>
+        </div>
+        
+        <!-- 학생 세부 정보 -->
+        <div class="border-t border-gray-200 pt-4">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-500">가입일:</span>
+                    <span class="text-gray-800">{{ student.user.date_joined|date:"Y.m.d" }}</span>
+                </div>
+                <div>
+                    <span class="text-gray-500">최근 로그인:</span>
+                    <span class="text-gray-800">
+                        {% if student.user.last_login %}
+                            {{ student.user.last_login|date:"Y.m.d H:i" }}
+                        {% else %}
+                            로그인 기록 없음
+                        {% endif %}
+                    </span>
+                </div>
+                {% if student.birth_date %}
+                <div>
+                    <span class="text-gray-500">생년월일:</span>
+                    <span class="text-gray-800">{{ student.birth_date|date:"Y.m.d" }}</span>
+                </div>
+                {% endif %}
+                {% if student.user.email %}
+                <div>
+                    <span class="text-gray-500">이메일:</span>
+                    <span class="text-gray-800">{{ student.user.email }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 경고 메시지 -->
+    <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mt-1 mr-4"></i>
+            <div>
+                <h3 class="text-lg font-semibold text-red-800 mb-3">
+                    <i class="fas fa-warning mr-2"></i>중요한 경고
+                </h3>
+                <div class="space-y-3">
+                    <div class="bg-red-100 p-3 rounded-lg">
+                        <h4 class="font-medium text-red-800 mb-2">다음 데이터가 영구적으로 삭제됩니다:</h4>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            <li>• 학생 계정 및 로그인 정보</li>
+                            <li>• 개인 프로필 정보</li>
+                            <li>• 학습 진도 및 기록</li>
+                            <li>• 제출한 과제 및 평가 결과</li>
+                            <li>• 학습 활동 통계</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-yellow-100 p-3 rounded-lg">
+                        <h4 class="font-medium text-yellow-800 mb-2">삭제 전 확인사항:</h4>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            <li>• 중요한 학습 데이터가 백업되었는지 확인</li>
+                            <li>• 진행중인 과제나 시험이 있는지 확인</li>
+                            <li>• 다른 교사나 관리자와 협의했는지 확인</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="text-center p-3 bg-gray-100 rounded-lg">
+                        <p class="text-sm font-medium text-gray-800">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            이 작업은 되돌릴 수 없습니다!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 대안 제안 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+        <h3 class="text-lg font-semibold text-blue-800 mb-3">
+            <i class="fas fa-lightbulb mr-2"></i>대안 고려사항
+        </h3>
+        <div class="space-y-3">
+            <div class="flex items-start">
+                <i class="fas fa-user-slash text-blue-600 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="font-medium text-blue-800">계정 비활성화</h4>
+                    <p class="text-sm text-blue-700">삭제 대신 계정을 비활성화하여 로그인을 차단하고 데이터는 보존</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <i class="fas fa-exchange-alt text-blue-600 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="font-medium text-blue-800">학급 이동</h4>
+                    <p class="text-sm text-blue-700">다른 학급으로 이동시켜 해당 교사가 관리하도록 변경</p>
+                </div>
+            </div>
+            <div class="flex items-start">
+                <i class="fas fa-archive text-blue-600 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="font-medium text-blue-800">데이터 아카이브</h4>
+                    <p class="text-sm text-blue-700">학습 데이터를 백업한 후 계정만 삭제</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 삭제 확인 폼 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-check-square mr-2"></i>삭제 확인
+        </h3>
+        
+        <form method="post" id="deleteForm">
+            {% csrf_token %}
+            
+            <!-- 확인 체크박스들 -->
+            <div class="space-y-3 mb-6">
+                <label class="flex items-start">
+                    <input type="checkbox" id="confirm1" required 
+                           class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                    <span class="text-sm text-gray-700">
+                        중요한 학습 데이터가 백업되었거나 삭제해도 문제없음을 확인합니다.
+                    </span>
+                </label>
+                
+                <label class="flex items-start">
+                    <input type="checkbox" id="confirm2" required 
+                           class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                    <span class="text-sm text-gray-700">
+                        이 작업이 되돌릴 수 없음을 이해하고 동의합니다.
+                    </span>
+                </label>
+                
+                <label class="flex items-start">
+                    <input type="checkbox" id="confirm3" required 
+                           class="mt-1 mr-3 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                    <span class="text-sm text-gray-700">
+                        학생 계정 삭제에 대한 책임을 집니다.
+                    </span>
+                </label>
+            </div>
+            
+            <!-- 확인 문구 입력 -->
+            <div class="mb-6">
+                <label for="confirm_text" class="block text-sm font-medium text-gray-700 mb-2">
+                    확인을 위해 다음 문구를 정확히 입력하세요:
+                </label>
+                <div class="bg-gray-100 p-2 rounded mb-2">
+                    <code class="text-sm">{{ student.user.get_full_name }} 삭제</code>
+                </div>
+                <input type="text" id="confirm_text" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500" 
+                       placeholder="위 문구를 정확히 입력하세요"
+                       autocomplete="off">
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" id="deleteBtn" disabled
+                        class="flex-1 bg-red-600 text-white py-3 px-4 rounded-lg hover:bg-red-700 transition duration-200 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <i class="fas fa-trash mr-2"></i>영구 삭제
+                </button>
+                <a href="{% url 'teacher:student_detail' student.id %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-times mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 추가 도움말 -->
+    <div class="mt-6 text-center">
+        <p class="text-sm text-gray-500">
+            문제가 있거나 도움이 필요하시면 
+            <a href="mailto:admin@school.com" class="text-blue-600 hover:text-blue-800">관리자에게 문의</a>하세요.
+        </p>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('deleteForm');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const confirmText = document.getElementById('confirm_text');
+    const checkboxes = [
+        document.getElementById('confirm1'),
+        document.getElementById('confirm2'),
+        document.getElementById('confirm3')
+    ];
+    
+    const expectedText = '{{ student.user.get_full_name }} 삭제';
+    
+    function checkFormValid() {
+        const allChecked = checkboxes.every(cb => cb.checked);
+        const textMatches = confirmText.value.trim() === expectedText;
+        
+        deleteBtn.disabled = !(allChecked && textMatches);
+        
+        if (textMatches) {
+            confirmText.style.borderColor = '#10b981';
+        } else if (confirmText.value.trim()) {
+            confirmText.style.borderColor = '#ef4444';
+        } else {
+            confirmText.style.borderColor = '#d1d5db';
+        }
+    }
+    
+    // 이벤트 리스너 추가
+    checkboxes.forEach(cb => cb.addEventListener('change', checkFormValid));
+    confirmText.addEventListener('input', checkFormValid);
+    
+    // 폼 제출 시 최종 확인
+    form.addEventListener('submit', function(e) {
+        if (!confirm('정말로 {{ student.user.get_full_name }} 학생을 영구 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다!')) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // 추가 확인
+        if (!confirm('마지막 확인입니다.\n\n모든 학습 데이터가 영구적으로 삭제됩니다.\n\n정말 진행하시겠습니까?')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // 체크박스 첫 번째에 포커스
+    checkboxes[0].focus();
+});
+</script>
+{% endblock %}

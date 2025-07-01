@@ -1,0 +1,37 @@
+
+<!-- teacher/templates/teacher/contents/edit.html -->
+{% extends 'teacher/contents/create.html' %}
+
+{% block title %}콘텐츠 수정 - {{ object.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">콘텐츠 수정</h1>
+        <p class="text-gray-600">{{ object.title }}의 내용을 수정합니다</p>
+    </div>
+
+    {{ block.super }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+
+<script>
+// 기존 값 로드
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        // 기존 JSON 값이 있으면 로드
+        {% if object.meta_data %}
+        jsonEditor.setValue(JSON.stringify({{ object.meta_data|safe }}, null, 2));
+        {% endif %}
+        
+        {% if object.tags %}
+        tagsEditor.setValue(JSON.stringify({{ object.tags|safe }}, null, 2));
+        {% endif %}
+    }, 100);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,432 @@
+
+/* 미니 사이드바 */
+.mini-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 60px;
+    height: 100vh;
+    background: #1f2937;
+    z-index: 40;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 모바일에서 사이드바 숨기기 */
+@media (max-width: 768px) {
+    .mini-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .mini-sidebar.show-mobile {
+        transform: translateX(0);
+        width: 280px;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+    }
+}
+
+.mini-sidebar.expanded {
+    width: 280px;
+}
+
+/* 아이콘 메뉴와 확장 메뉴 토글 */
+.icon-menu {
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s ease;
+}
+
+.expanded-menu {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    transition: all 0.3s ease;
+}
+
+.mini-sidebar.expanded .icon-menu {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.mini-sidebar.expanded .expanded-menu {
+    opacity: 1;
+    visibility: visible;
+    position: static;
+}
+
+/* 하단 고정 인디케이터 */
+.bottom-indicator {
+    position: fixed;
+    bottom: 0;
+    left: 60px;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 30;
+    transition: left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .bottom-indicator {
+        left: 0;
+    }
+}
+
+.mini-sidebar.expanded ~ .main-content .bottom-indicator {
+    left: 280px;
+}
+
+/* 진도 점 스타일 */
+.progress-dot {
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.progress-dot.completed {
+    background: #10b981;
+}
+
+.progress-dot.current {
+    background: #3b82f6;
+    width: 28px;
+    min-width: 28px;
+    border-radius: 14px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+
+.progress-dot:hover:not(.current) {
+    transform: scale(1.3);
+    background: #9ca3af;
+}
+
+/* 콘텐츠 스타일 */
+.prose {
+    max-width: 100%;
+    color: #1f2937;
+}
+
+.prose h1 { 
+    font-size: 2em; 
+    font-weight: 700; 
+    margin: 1.5em 0 0.75em; 
+    color: #111827;
+    line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+    .prose h1 { font-size: 1.75em; }
+}
+
+.prose h2 { 
+    font-size: 1.5em; 
+    font-weight: 600; 
+    margin: 1.25em 0 0.5em; 
+    color: #1f2937;
+    line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+    .prose h2 { font-size: 1.375em; }
+}
+
+.prose h3 { 
+    font-size: 1.25em; 
+    font-weight: 600; 
+    margin: 1em 0 0.5em; 
+    color: #374151;
+    line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+    .prose h3 { font-size: 1.125em; }
+}
+
+.prose p { 
+    margin: 1em 0; 
+    line-height: 1.8; 
+    color: #4b5563;
+}
+
+.prose ul, .prose ol { 
+    margin: 1em 0; 
+    padding-left: 1.5em;
+}
+
+.prose li { 
+    margin: 0.5em 0; 
+    line-height: 1.7;
+}
+
+/* 모바일 오버레이 */
+.mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 35;
+    display: none;
+}
+
+.mobile-overlay.show {
+    display: block;
+}
+
+/* 토스트 메시지 위치 조정 */
+#toastContainer {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 50;
+}
+
+
+/* 제출 버튼 스타일 */
+.submit-button, .resubmit-button {
+    transition: all 0.3s ease;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.submit-button:hover, .resubmit-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.submit-button:disabled, .resubmit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 결과 GIF 스타일 */
+.result-gif {
+    animation: fadeInBounce 0.6s ease-out;
+    /* border: 3px solid #f3f4f6;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); */
+}
+
+@keyframes fadeInBounce {
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(20px);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05) translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 답안 선택 스타일 개선 */
+.answer {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.answer:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.answer.ring-2 {
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 제출 상태 표시 스타일 */
+.submission-status {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+}
+
+/* 토스트 메시지 개선 */
+.toast {
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 반응형 개선 */
+@media (max-width: 640px) {
+    .submit-button, .resubmit-button {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+    
+    .result-gif {
+        width: 100px !important;
+        height: 100px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    #toastContainer {
+        right: 10px;
+        left: 10px;
+    }
+    
+    .toast {
+        margin: 0 auto;
+        max-width: calc(100vw - 20px);
+    }
+}
+
+/* 메인 콘텐츠 여백 조정 */
+.main-content {
+    margin-left: 60px;
+    margin-bottom: 70px;
+    transition: margin-left 0.3s ease;
+}
+
+/* 애니메이션 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.content-card {
+    animation: slideIn 0.5s ease-out;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+}
+.option-button {
+    transition: all 0.3s ease;
+}
+.option-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.option-selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+.quiz-container {            
+    min-height: 100vh;
+}
+.question-box {
+    background: white;
+    border-radius: 2px;
+   
+}
+.result-gif {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+@media (max-width: 480px) {
+    .question-text {
+        font-size: 1.1rem !important;
+    }
+    .option-text {
+        font-size: 0.9rem !important;
+    }
+    .quiz-container {
+        padding: 0.9rem !important;
+    }
+}
+
+/* multi-input type css */
+.input-container {
+    position: relative;
+    display: inline-block;
+}
+.result-png {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 30px;
+    z-index: 10;
+}
+.answer-input {
+    transition: all 0.3s ease;
+}
+.answer-input.correct {
+    border-color: #10b981 !important;
+    background-color: #ecfdf5 !important;
+}
+.answer-input.incorrect {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+/* one_shot_submit형 css */
+.submit-gif {
+    width: 100px;
+    height: 100px;
+}
+
+/* ordering 형 css */
+
+ /* 드래그 시 빈 공간 스타일 */
+ .sortable-placeholder {
+    border: 3px dashed #f87171;
+    background-color: #fef2f2;
+    border-radius: 1rem; /* 16px */
+    height: 96px; /* 항목 높이와 일치 */
+    margin-bottom: 1rem; /* 16px */
+}
+/* 드래그 중인 카드 스타일 */
+.ui-sortable-helper {
+    background-color: #e0f2fe; /* 밝은 하늘색 배경 */
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); /* 더 진한 그림자 */
+    transform: rotate(2deg); /* 살짝 기울이기 */
+    cursor: grabbing !important;
+}
+

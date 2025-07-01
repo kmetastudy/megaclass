@@ -1,0 +1,1417 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}AI 문항 생성기{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+<style>
+    .CodeMirror {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        height: auto;
+        background-color: #f9fafb;
+    }
+    
+    .CodeMirror-focused {
+        background-color: #ffffff;
+    }
+    
+    .panel {
+        transition: all 0.3s ease;
+    }
+    
+    .panel-collapsed {
+        width: 0 !important;
+        overflow: hidden;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0;
+    }
+    
+    .editable-word {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: inline;
+        padding: 2px;
+        border-radius: 3px;
+    }
+    
+    .editable-word:hover {
+        background-color: #dbeafe;
+    }
+    
+    .editing-word {
+        background-color: #fef3c7;
+    }
+    
+    .editable-image {
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.2s;
+    }
+    
+    .editable-image:hover {
+        border-color: #3b82f6;
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .preview-tab-content {
+        display: none;
+    }
+    
+    .preview-tab-content.active {
+        display: block;
+    }
+    
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 4px solid #6b7280;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* 모던한 스크롤바 스타일 */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f3f4f6;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+    
+    /* 필터 섹션 스타일 */
+    .filter-section {
+        background-color: #f9fafb;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* 아코디언 스타일 */
+    .accordion-header {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    
+    .accordion-content.active {
+        max-height: 500px;
+        transition: max-height 0.3s ease-in;
+    }
+    
+    /* Markdown 스타일 */
+    .markdown-preview {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        min-height: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 gap-6">
+    <!-- 좌측 패널 (1/3) -->
+    <div id="leftPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="px-4 py-2.5 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-medium text-gray-800">🎇 문항 & 템플릿</h2>
+            <button onclick="togglePanel('left')" class="text-gray-600 hover:text-white hover:bg-orange-400 p-2 rounded transition">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto">
+            <!-- 탭 메뉴 -->
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                <button onclick="switchTab('contents')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-orange-400 bg-white" data-tab="contents">
+                    문항 리스트
+                </button>
+                <button onclick="switchTab('templates')" class="tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="templates">
+                    템플릿 리스트
+                </button>
+            </div>
+            
+            <!-- 문항 리스트 탭 -->
+            <div id="contentsTab" class="tab-content active p-4">
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="contentCategory" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="contentType" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">타입 선택</option>
+                        </select>
+                        
+                        <select id="contentCourse" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">코스 선택</option>
+                        </select>
+                        
+                        <select id="contentChapter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">대단원 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="contentSearch" placeholder="키워드 검색..." 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+                        <button onclick="searchContents()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="contentsCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 문항 리스트 -->
+                <div id="contentsList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+            
+            <!-- 템플릿 리스트 탭 -->
+            <div id="templatesTab" class="tab-content p-4">
+                <!-- 템플릿 만들기 버튼 -->
+                <button onclick="openTemplateModal()" class="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition mb-4">
+                    <i class="fas fa-plus mr-2"></i>템플릿 만들기
+                </button>
+                
+                <!-- 검색 필터 -->
+                <div class="filter-section">
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <select id="templateCategory" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">카테고리 선택</option>
+                        </select>
+                        
+                        <select id="templateType" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">타입 선택</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" id="templateSearch" placeholder="키워드 검색..." 
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400">
+                        <button onclick="searchTemplates()" class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3 text-sm text-gray-600">
+                        검색 결과: <span id="templatesCount" class="font-semibold">0</span>개
+                    </div>
+                </div>
+                
+                <!-- 템플릿 리스트 -->
+                <div id="templatesList" class="space-y-2">
+                    <!-- 동적으로 로드됨 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 좌측 패널 토글 버튼 (숨김 상태일 때) -->
+    <button id="leftToggleBtn" onclick="togglePanel('left')" class="bg-gray-600 hover:bg-orange-400 text-white p-2 rounded-r transition fixed left-0 top-1/2 transform -translate-y-1/2 z-10" style="display: none;">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- 중간 패널 (1/3) -->
+    <div id="middlePanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">✨ 문항 제작</h2>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <form id="contentForm">
+                <!-- 기본 정보 (한 줄 배치) -->
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">제목 *</label>
+                        <input type="text" id="title" name="title" required
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">타입 *</label>
+                        <select id="content_type" name="content_type" required
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">템플릿</label>
+                        <select id="template_select" name="template_select"
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                            <option value="">템플릿 없음</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">문항 생성 지시사항 (Markdown 지원)</label>
+                    <textarea id="prompt_content" name="prompt" rows="20" 
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm"
+                              placeholder="문항 생성을 위한 상세한 지시사항을 입력하세요..."></textarea>
+                </div>
+                
+                <!-- 답안 입력 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">답안 (JSON)</label>
+                    <textarea id="answer_input" name="answer_input" class="hidden">{}</textarea>
+                    <div id="answerInputEditor"></div>
+                </div>
+                
+                <!-- 아코디언 섹션 -->
+                <div class="mb-6">
+                    <div class="accordion-header flex items-center justify-between p-3 bg-gray-100 rounded-lg cursor-pointer" onclick="toggleAccordion(this)">
+                        <span class="text-sm font-medium text-gray-700">고급 설정</span>
+                        <i class="fas fa-chevron-down text-gray-500 transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="pt-4 space-y-4">
+                            <!-- 메타데이터 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                                <textarea id="meta_content" name="meta_data" class="hidden">{}</textarea>
+                                <div id="metaEditor"></div>
+                            </div>
+                            
+                            <!-- 태그 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">태그/평가기준 (JSON)</label>
+                                <textarea id="tags_content" name="tags" class="hidden">{}</textarea>
+                                <div id="tagsEditor"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- AI 요청 버튼 -->
+                <button type="button" onclick="requestAI()" 
+                        class="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white py-3 px-4 rounded-lg hover:from-gray-700 hover:to-gray-800 transition duration-200 font-medium shadow-sm">
+                    <i class="fas fa-magic mr-2"></i>AI로 문항 생성하기
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 우측 패널 (1/3) -->
+    <div id="rightPanel" class="w-1/3 bg-white border border-gray-300 panel overflow-hidden flex flex-col rounded shadow-sm">
+        <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-800">🎊 미리보기 & 편집</h2>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="flex border-b border-gray-200 bg-gray-50">
+            <button onclick="switchPreviewTab('render')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-700 hover:bg-white transition border-b-2 border-gray-600 bg-white" data-tab="render">
+                렌더링
+            </button>
+            <button onclick="switchPreviewTab('html')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="html">
+                HTML
+            </button>
+            <button onclick="switchPreviewTab('text')" class="preview-tab-btn flex-1 py-3 px-4 text-center text-gray-600 hover:bg-white transition border-b-2 border-transparent" data-tab="text">
+                텍스트 편집
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto bg-gray-50">
+            <!-- 렌더링 탭 -->
+            <div id="renderTab" class="preview-tab-content active p-6">
+                <div id="previewContent" class="prose max-w-none">
+                    <div class="text-center text-gray-400 py-8">
+                        <i class="fas fa-eye text-6xl mb-4"></i>
+                        <p>AI로 문항을 생성하면 여기에 표시됩니다</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HTML 탭 -->
+            <div id="htmlTab" class="preview-tab-content h-full flex flex-col">
+                <div class="flex-1" style="height: 80%;">
+                    <textarea id="htmlEditor" class="hidden"></textarea>
+                    <div id="htmlEditorContainer" class="h-full"></div>
+                </div>
+                <div style="height: 20%;" class="border-t border-gray-200">
+                    <div class="p-2 bg-gray-100">
+                        <label class="text-sm font-medium text-gray-700">정답 (JSON)</label>
+                    </div>
+                    <div id="answerEditorContainer" class="h-full"></div>
+                </div>
+            </div>
+            
+            <!-- 텍스트 편집 탭 -->
+            <div id="textTab" class="preview-tab-content p-6">
+                <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p class="text-sm text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        텍스트를 더블클릭하여 편집하고, 이미지를 클릭하여 교체할 수 있습니다.
+                    </p>
+                </div>
+                <div id="editableContent" class="space-y-4">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+                <!-- 숨겨진 파일 입력 -->
+                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- 저장 버튼 -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <button onclick="saveContent()" 
+                    class="w-full bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition duration-200 font-medium shadow-sm">
+                <i class="fas fa-save mr-2"></i>저장하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 템플릿 만들기 모달 -->
+<div id="templateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-800">템플릿 만들기</h3>
+                <button onclick="closeTemplateModal()" class="text-gray-500 hover:text-gray-700 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-gray-50" style="max-height: calc(90vh - 120px);">
+                <form id="templateForm">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                            <select id="templateFormCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                                <option value="">선택하세요</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">타입</label>
+                            <select id="templateFormType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                                <option value="">선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">템플릿 이름</label>
+                        <input type="text" id="templateName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-white">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">HTML 템플릿</label>
+                        <textarea id="templateHtml" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm"></textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">정답 템플릿 (JSON)</label>
+                        <textarea id="templateAnswer" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm">{}</textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">메타데이터 (JSON)</label>
+                        <textarea id="templateMeta" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm">{}</textarea>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">JavaScript (선택사항)</label>
+                        <textarea id="templateJs" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 bg-gray-50 font-mono text-sm"></textarea>
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <button type="button" onclick="testTemplate()" 
+                                class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition">
+                            <i class="fas fa-play mr-2"></i>실행해보기
+                        </button>
+                        <button type="button" onclick="saveTemplate()" 
+                                class="flex-1 bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition">
+                            <i class="fas fa-save mr-2"></i>저장하기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 로딩 모달 -->
+<div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-lg p-8 text-center shadow-xl">
+            <div class="loader mx-auto mb-4"></div>
+            <p class="text-gray-700">AI가 문항을 생성하고 있습니다...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+// 전역 변수
+let metaEditor, tagsEditor, htmlEditorInstance, answerEditor, answerInputEditor;
+let currentContent = null;
+let templates = [];
+let currentEditingImage = null;
+
+// ========== 유틸리티 함수들 ==========
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// ========== UI 컨트롤 함수들 ==========
+
+// 패널 토글
+function togglePanel(panel) {
+    const $panel = $(`#${panel}Panel`);
+    const $toggleBtn = $(`#${panel}ToggleBtn`);
+    const $middlePanel = $('#middlePanel');
+    const $rightPanel = $('#rightPanel');
+    
+    if ($panel.hasClass('panel-collapsed')) {
+        // 패널 열기
+        $panel.removeClass('panel-collapsed');
+        $toggleBtn.hide();
+        $middlePanel.removeClass('w-1/2').addClass('w-1/3');
+        $rightPanel.removeClass('w-1/2').addClass('w-1/3');
+    } else {
+        // 패널 닫기
+        $panel.addClass('panel-collapsed');
+        $toggleBtn.show();
+        $middlePanel.removeClass('w-1/3').addClass('w-1/2');
+        $rightPanel.removeClass('w-1/3').addClass('w-1/2');
+    }
+}
+
+// 탭 전환
+function switchTab(tab) {
+    $('.tab-btn').removeClass('border-orange-400 bg-white text-gray-700').addClass('border-transparent text-gray-600');
+    $(`.tab-btn[data-tab="${tab}"]`).removeClass('border-transparent text-gray-600').addClass('border-orange-400 bg-white text-gray-700');
+    
+    $('.tab-content').removeClass('active');
+    $(`#${tab}Tab`).addClass('active');
+}
+
+function switchPreviewTab(tab) {
+    console.log('탭 전환:', tab);
+    
+    // 모든 탭 버튼 스타일 초기화
+    $('.preview-tab-btn').removeClass('border-gray-600 bg-white text-gray-700').addClass('border-transparent text-gray-600');
+    
+    // 선택된 탭 버튼 활성화
+    $(`.preview-tab-btn[data-tab="${tab}"]`).removeClass('border-transparent text-gray-600').addClass('border-gray-600 bg-white text-gray-700');
+    
+    // 모든 탭 콘텐츠 숨기기
+    $('.preview-tab-content').removeClass('active').hide();
+    
+    // 선택된 탭 콘텐츠 보이기
+    $(`#${tab}Tab`).addClass('active').show();
+    
+    // 특별한 경우 처리
+    if (tab === 'html' && htmlEditorInstance) {
+        // HTML 에디터 리프레시
+        setTimeout(() => {
+            htmlEditorInstance.refresh();
+        }, 100);
+    }
+}
+
+// 아코디언 토글
+function toggleAccordion(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('i');
+    
+    content.classList.toggle('active');
+    icon.classList.toggle('fa-chevron-down');
+    icon.classList.toggle('fa-chevron-up');
+}
+
+// ========== 데이터 로드 함수들 ==========
+
+// 초기 데이터 로드
+function loadInitialData() {
+    // 카테고리 로드
+    $.get('/cp/api/categories/', function(data) {
+        const categorySelects = ['#contentCategory', '#templateCategory', '#templateFormCategory'];
+        categorySelects.forEach(selector => {
+            $(selector).empty().append('<option value="">카테고리 선택</option>');
+            data.forEach(category => {
+                $(selector).append(`<option value="${category.id}">${category.category_name}</option>`);
+            });
+        });
+    }).fail(function() {
+        console.error('카테고리 로드 실패');
+    });
+    
+    // 초기에는 모든 ContentType 로드
+    loadAllContentTypes();
+    
+    // 코스 로드
+    $.get('/cp/api/courses/', function(data) {
+        $('#contentCourse').empty().append('<option value="">코스 선택</option>');
+        data.forEach(course => {
+            $('#contentCourse').append(`<option value="${course.id}">${course.subject_name}</option>`);
+        });
+    }).fail(function() {
+        console.error('코스 로드 실패');
+    });
+    
+    // 초기 문항 리스트 로드
+    searchContents();
+    searchTemplates();
+}
+
+// 모든 컨텐츠 타입 로드 함수
+function loadAllContentTypes() {
+    $.get('/cp/api/content-types/', function(data) {
+        const typeSelects = ['#content_type', '#contentType', '#templateType', '#templateFormType'];
+        typeSelects.forEach(selector => {
+            $(selector).empty().append('<option value="">타입 선택</option>');
+            data.forEach(type => {
+                $(selector).append(`<option value="${type.id}">${type.type_name}</option>`);
+            });
+        });
+    }).fail(function() {
+        console.error('컨텐츠 타입 로드 실패');
+    });
+}
+
+// 카테고리별 컨텐츠 타입 로드 함수
+function loadContentTypesByCategory(categoryId) {
+    if (!categoryId) {
+        loadAllContentTypes();
+        return;
+    }
+    
+    $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+        // contentType select 업데이트
+        $('#contentType').empty().append('<option value="">타입 선택</option>');
+        data.forEach(type => {
+            $('#contentType').append(`<option value="${type.id}">${type.type_name}</option>`);
+        });
+        
+        // middlePanel의 content_type도 업데이트
+        $('#content_type').empty().append('<option value="">선택하세요</option>');
+        data.forEach(type => {
+            $('#content_type').append(`<option value="${type.id}">${type.type_name}</option>`);
+        });
+    }).fail(function() {
+        console.error('컨텐츠 타입 로드 실패');
+        loadAllContentTypes(); // 실패 시 전체 타입 로드
+    });
+}
+
+// ========== 검색 함수들 ==========
+
+// 문항 검색
+function searchContents() {
+    const params = {
+        category: $('#contentCategory').val(),
+        type: $('#contentType').val(),
+        course: $('#contentCourse').val(),
+        chapter: $('#contentChapter').val(),
+        search: $('#contentSearch').val()
+    };
+    
+    $.get('/cp/api/contents/search/', params, function(data) {
+        const $list = $('#contentsList');
+        $list.empty();
+        
+        $('#contentsCount').text(data.length);
+        
+        if (data.length === 0) {
+            $list.append('<p class="text-gray-500 text-center py-4">검색 결과가 없습니다</p>');
+            return;
+        }
+        
+        data.forEach(content => {
+            $list.append(`
+                <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition" onclick="loadContent(${content.id})">
+                    <h4 class="font-medium text-gray-800">${content.title}</h4>
+                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded mr-2">
+                            ${content.content_type_name}
+                        </span>
+                        <span>${content.created_at}</span>
+                    </div>
+                </div>
+            `);
+        });
+    }).fail(function() {
+        console.error('문항 검색 실패');
+    });
+}
+
+// 템플릿 검색
+function searchTemplates() {
+    const params = {
+        category: $('#templateCategory').val(),
+        type: $('#templateType').val(),
+        search: $('#templateSearch').val()
+    };
+    
+    $.get('/cp/api/templates/search/', params, function(data) {
+        templates = data;
+        const $list = $('#templatesList');
+        const $select = $('#template_select');
+        
+        $list.empty();
+        $select.empty().append('<option value="">템플릿 없음</option>');
+        
+        $('#templatesCount').text(data.length);
+        
+        if (data.length === 0) {
+            $list.append('<p class="text-gray-500 text-center py-4">템플릿이 없습니다</p>');
+            return;
+        }
+        
+        data.forEach(template => {
+            // 리스트에 추가
+            $list.append(`
+                <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition" onclick="selectTemplate(${template.id})">
+                    <h4 class="font-medium text-gray-800">${template.title}</h4>
+                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded mr-2">
+                            ${template.content_type_name}
+                        </span>
+                        <span>${template.created_at}</span>
+                    </div>
+                </div>
+            `);
+            
+            // 선택 옵션에 추가
+            $select.append(`<option value="${template.id}">${template.title}</option>`);
+        });
+    }).fail(function() {
+        console.error('템플릿 검색 실패');
+    });
+}
+
+// ========== 컨텐츠 관리 함수들 ==========
+
+// 문항 로드
+function loadContent(contentId) {
+    $.get(`/cp/api/contents/${contentId}/`, function(data) {
+        $('#title').val(data.title);
+        $('#content_type').val(data.content_type);
+        
+        // 프롬프트와 HTML 구분하여 처리
+        if (data.prompt) {
+            $('#prompt_content').val(data.prompt);
+        }
+        
+        // HTML 콘텐츠가 있으면 미리보기에 표시
+        if (data.page) {
+            htmlEditorInstance.setValue(data.page);
+            updatePreview(); // 미리보기 업데이트
+        }
+        
+        // 답안 설정
+        answerInputEditor.setValue(data.answer || '{}');
+        answerEditor.setValue(data.answer || '{}');
+        
+        // 메타데이터와 태그 설정
+        metaEditor.setValue(JSON.stringify(data.meta_data || {}, null, 2));
+        tagsEditor.setValue(JSON.stringify(data.tags || {}, null, 2));
+        
+        currentContent = data;
+    }).fail(function() {
+        alert('문항을 불러오는 중 오류가 발생했습니다.');
+    });
+}
+
+// 템플릿 선택
+function selectTemplate(templateId) {
+    $('#template_select').val(templateId).change();
+}
+
+// AI 요청
+function requestAI() {
+    const formData = {
+        title: $('#title').val(),
+        content_type: $('#content_type').val(),
+        template_id: $('#template_select').val(),
+        prompt: $('#prompt_content').val(),
+        answer_input: answerInputEditor.getValue(),
+        meta_data: metaEditor.getValue(),
+        tags: tagsEditor.getValue()
+    };
+    
+    if (!formData.title || !formData.content_type) {
+        alert('제목과 컨텐츠 타입은 필수입니다.');
+        return;
+    }
+    
+    $('#loadingModal').removeClass('hidden');
+    
+    $.ajax({
+        url: '/cp/api/generate-content/',
+        method: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            htmlEditorInstance.setValue(data.page || '');
+            answerEditor.setValue(data.answer || '');
+            metaEditor.setValue(data.meta_data || '{}');
+            tagsEditor.setValue(data.tags || '{}');
+            
+            updatePreview();
+            $('#loadingModal').addClass('hidden');
+        },
+        error: function(xhr) {
+            alert('AI 요청 중 오류가 발생했습니다.');
+            $('#loadingModal').addClass('hidden');
+        }
+    });
+}
+
+// 콘텐츠 저장
+function saveContent() {
+    const formData = {
+        title: $('#title').val(),
+        content_type: $('#content_type').val(),
+        page: htmlEditorInstance.getValue(),
+        answer: answerEditor.getValue(),
+        meta_data: metaEditor.getValue(),
+        tags: tagsEditor.getValue(),
+        prompt: $('#prompt_content').val()
+    };
+    
+    if (!formData.title || !formData.content_type || !formData.page) {
+        alert('제목, 컨텐츠 타입, 페이지 내용은 필수입니다.');
+        return;
+    }
+    
+    $.ajax({
+        url: currentContent ? `/cp/api/contents/${currentContent.id}/update/` : '/cp/api/contents/create/',
+        method: currentContent ? 'PUT' : 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            alert('저장되었습니다.');
+            currentContent = data;
+            searchContents(); // 리스트 새로고침
+        },
+        error: function(xhr) {
+            alert('저장 중 오류가 발생했습니다.');
+        }
+    });
+}
+
+// ========== 템플릿 관리 함수들 ==========
+
+// 템플릿 모달
+function openTemplateModal() {
+    $('#templateModal').removeClass('hidden');
+}
+
+function closeTemplateModal() {
+    $('#templateModal').addClass('hidden');
+}
+
+// 템플릿 테스트
+function testTemplate() {
+    const html = $('#templateHtml').val();
+    const js = $('#templateJs').val();
+    
+    $('#previewContent').html(html);
+    if (js) {
+        try {
+            eval(js);
+        } catch (e) {
+            console.error('JavaScript 실행 오류:', e);
+        }
+    }
+    
+    switchPreviewTab('render');
+}
+
+// 템플릿 저장
+function saveTemplate() {
+    const formData = {
+        title: $('#templateName').val(),
+        content_category: $('#templateFormCategory').val(),
+        content_type: $('#templateFormType').val(),
+        page: $('#templateHtml').val(),
+        answer: $('#templateAnswer').val(),
+        meta_data: $('#templateMeta').val(),
+        tags: $('#templateJs').val(), // JS를 tags 필드에 저장
+        is_public: true
+    };
+    
+    if (!formData.title || !formData.content_category || !formData.content_type) {
+        alert('템플릿 이름, 카테고리, 타입은 필수입니다.');
+        return;
+    }
+    
+    $.ajax({
+        url: '/cp/api/templates/create/',
+        method: 'POST',
+        data: JSON.stringify(formData),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            alert('템플릿이 저장되었습니다.');
+            closeTemplateModal();
+            searchTemplates(); // 리스트 새로고침
+        },
+        error: function(xhr) {
+            alert('템플릿 저장 중 오류가 발생했습니다.');
+        }
+    });
+}
+
+// ========== 이미지 관리 함수들 ==========
+
+// 이미지 업로드
+function uploadImage(file, $img) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('content_id', currentContent ? currentContent.id : '');
+    
+    $.ajax({
+        url: '/cp/api/upload-image/',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        success: function(data) {
+            // HTML에서 이미지 경로 업데이트
+            const oldSrc = $img.attr('src');
+            const newSrc = data.file_url;
+            
+            let html = htmlEditorInstance.getValue();
+            html = html.replace(oldSrc, newSrc);
+            htmlEditorInstance.setValue(html);
+            
+            updatePreview();
+            alert('이미지가 업로드되었습니다.');
+        },
+        error: function(xhr) {
+            alert('이미지 업로드 중 오류가 발생했습니다.');
+        }
+    });
+}
+
+// ========== 에디터 초기화 함수들 ==========
+
+// CodeMirror 에디터 초기화
+function initializeEditors() {
+    // 답안 입력 JSON 에디터 (middlePanel)
+    answerInputEditor = CodeMirror(document.getElementById('answerInputEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    answerInputEditor.setSize(null, 200);
+    answerInputEditor.on('change', function() {
+        $('#answer_input').val(answerInputEditor.getValue());
+    });
+    
+    // 메타데이터 JSON 에디터
+    metaEditor = CodeMirror(document.getElementById('metaEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    metaEditor.setSize(null, 150);
+    metaEditor.on('change', function() {
+        $('#meta_content').val(metaEditor.getValue());
+    });
+    
+    // 태그 JSON 에디터
+    tagsEditor = CodeMirror(document.getElementById('tagsEditor'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    tagsEditor.setSize(null, 150);
+    tagsEditor.on('change', function() {
+        $('#tags_content').val(tagsEditor.getValue());
+    });
+    
+    // HTML 편집 에디터
+    htmlEditorInstance = CodeMirror(document.getElementById('htmlEditorContainer'), {
+        mode: 'xml',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    htmlEditorInstance.setSize(null, '100%');
+    htmlEditorInstance.on('change', function() {
+        updatePreviewFromHtml();
+    });
+    
+    // 정답 JSON 에디터 (rightPanel)
+    answerEditor = CodeMirror(document.getElementById('answerEditorContainer'), {
+        value: '{}',
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+    answerEditor.setSize(null, '100%');
+}
+
+// ========== 미리보기 관련 함수들 ==========
+
+// 미리보기 업데이트
+function updatePreview() {
+    const html = htmlEditorInstance.getValue();
+    
+    // 렌더링 탭 업데이트
+    $('#previewContent').html(html);
+    
+    // 텍스트 편집 탭 업데이트
+    updateEditableContent(html);
+}
+
+// HTML 편집기에서 미리보기 업데이트
+function updatePreviewFromHtml() {
+    const html = htmlEditorInstance.getValue();
+    $('#previewContent').html(html);
+    updateEditableContent(html);
+}
+
+// 편집 가능한 텍스트 콘텐츠 업데이트
+function updateEditableContent(html) {
+    console.log('편집 가능한 콘텐츠 업데이트:', html);
+    
+    const $container = $('#editableContent');
+    $container.empty();
+    
+    if (!html || html.trim() === '') {
+        $container.html('<p class="text-gray-500 text-center py-4">편집할 콘텐츠가 없습니다</p>');
+        return;
+    }
+    
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // 모든 텍스트 노드 처리
+        function processNode(node, path = []) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) {
+                    const words = text.split(/(\s+)/);
+                    const $wordContainer = $('<div class="inline"></div>');
+                    
+                    words.forEach((word, index) => {
+                        if (word.trim()) {
+                            const $word = $(`<span class="editable-word" data-path="${path.join(',')}" data-word-index="${index}" data-original="${word}">${word}</span>`);
+                            $wordContainer.append($word);
+                        } else {
+                            $wordContainer.append(word);
+                        }
+                    });
+                    
+                    return $wordContainer;
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'IMG') {
+                    const $img = $(`<img src="${node.src}" class="editable-image max-w-full h-auto" data-path="${path.join(',')}">`);
+                    if (node.width) $img.attr('width', node.width);
+                    if (node.height) $img.attr('height', node.height);
+                    if (node.alt) $img.attr('alt', node.alt);
+                    return $img;
+                } else {
+                    const $elem = $(`<${node.tagName.toLowerCase()}></${node.tagName.toLowerCase()}>`);
+                    
+                    // 속성 복사
+                    Array.from(node.attributes).forEach(attr => {
+                        $elem.attr(attr.name, attr.value);
+                    });
+                    
+                    // 자식 노드 처리
+                    Array.from(node.childNodes).forEach((child, index) => {
+                        const childPath = [...path, index];
+                        const $child = processNode(child, childPath);
+                        if ($child) {
+                            $elem.append($child);
+                        }
+                    });
+                    
+                    return $elem;
+                }
+            }
+            return null;
+        }
+        
+        const $processed = processNode(doc.body, [0]);
+        if ($processed) {
+            $container.html($processed.html());
+        } else {
+            $container.html('<p class="text-gray-500 text-center py-4">처리할 수 있는 콘텐츠가 없습니다</p>');
+        }
+        
+        console.log('편집 가능한 요소 수:', $('.editable-word').length);
+        
+        // 편집 상태 업데이트
+        const editableCount = $('.editable-word').length;
+        const imageCount = $('.editable-image').length;
+        
+        if (editableCount > 0 || imageCount > 0) {
+            $('#editStatus').removeClass('hidden');
+            $('#editStatusText').text(`편집 가능한 텍스트: ${editableCount}개, 이미지: ${imageCount}개`);
+        } else {
+            $('#editStatus').addClass('hidden');
+        }
+        
+    } catch (error) {
+        console.error('HTML 파싱 오류:', error);
+        $container.html('<p class="text-red-500 text-center py-4">콘텐츠 파싱 중 오류가 발생했습니다</p>');
+    }
+}
+
+// HTML에서 텍스트 업데이트
+function updateTextInHtml(path, wordIndex, oldWord, newWord) {
+    let html = htmlEditorInstance.getValue();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // 경로를 따라 노드 찾기
+    let currentNode = doc.body;
+    const pathArray = path.split(',').map(Number);
+    
+    for (let i = 1; i < pathArray.length; i++) {
+        currentNode = currentNode.childNodes[pathArray[i]];
+    }
+    
+    if (currentNode && currentNode.nodeType === Node.TEXT_NODE) {
+        const text = currentNode.textContent;
+        const words = text.split(/(\s+)/);
+        
+        // 단어 교체
+        let wordCount = 0;
+        for (let i = 0; i < words.length; i++) {
+            if (words[i].trim()) {
+                if (wordCount === wordIndex && words[i] === oldWord) {
+                    words[i] = newWord;
+                    break;
+                }
+                wordCount++;
+            }
+        }
+        
+        currentNode.textContent = words.join('');
+    }
+    
+    // 업데이트된 HTML 설정
+    htmlEditorInstance.setValue(doc.body.innerHTML);
+}
+
+// ========== 이벤트 바인딩 함수들 ==========
+
+// 이벤트 바인딩
+function bindEvents() {
+    // contentCategory 선택 시 해당 카테고리의 타입만 표시
+    $('#contentCategory').on('change', function() {
+        const categoryId = $(this).val();
+        console.log('카테고리 변경:', categoryId);
+        
+        if (categoryId) {
+            // 선택된 카테고리의 타입만 로드
+            loadContentTypesByCategory(categoryId);
+        } else {
+            // 카테고리 선택 해제 시 모든 타입 표시
+            loadAllContentTypes();
+        }
+        
+        // 타입 선택 초기화
+        $('#contentType').val('');
+        
+        // 변경 후 자동 검색
+        searchContents();
+    });
+    
+    // contentType 변경 시 자동 검색
+    $('#contentType').on('change', function() {
+        searchContents();
+    });
+    
+    // 코스 선택 시 챕터 로드 및 표시
+    $('#contentCourse').on('change', function() {
+        const courseId = $(this).val();
+        const $chapterSelect = $('#contentChapter');
+        
+        if (courseId) {
+            $.get(`/cp/api/courses/${courseId}/chapters/`, function(data) {
+                $chapterSelect.empty().append('<option value="">대단원 선택</option>');
+                data.forEach(chapter => {
+                    $chapterSelect.append(`<option value="${chapter.id}">${chapter.chapter_title}</option>`);
+                });
+                $chapterSelect.prop('disabled', false); // 챕터 선택 활성화
+            });
+        } else {
+            $chapterSelect.empty().append('<option value="">대단원 선택</option>');
+            $chapterSelect.prop('disabled', true); // 챕터 선택 비활성화
+        }
+        
+        // 변경 후 자동 검색
+        searchContents();
+    });
+    
+    // 챕터 변경 시 자동 검색
+    $('#contentChapter').on('change', function() {
+        searchContents();
+    });
+    
+    // 템플릿 선택 시 내용 적용
+    $('#template_select').change(function() {
+        const templateId = $(this).val();
+        if (templateId) {
+            const template = templates.find(t => t.id == templateId);
+            if (template) {
+                $('#prompt_content').val(template.page || '');
+                answerInputEditor.setValue(template.answer || '{}');
+                metaEditor.setValue(JSON.stringify(template.meta_data || {}, null, 2));
+                tagsEditor.setValue(JSON.stringify(template.tags || {}, null, 2));
+            }
+        }
+    });
+    
+    // 이미지 업로드 이벤트
+    $('#imageUpload').change(function(e) {
+        const file = e.target.files[0];
+        if (file && currentEditingImage) {
+            uploadImage(file, currentEditingImage);
+        }
+    });
+    
+    // 템플릿 카테고리 선택 시 해당 카테고리의 타입만 표시
+    $('#templateCategory').on('change', function() {
+        const categoryId = $(this).val();
+        if (categoryId) {
+            $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+                $('#templateType').empty().append('<option value="">타입 선택</option>');
+                data.forEach(type => {
+                    $('#templateType').append(`<option value="${type.id}">${type.type_name}</option>`);
+                });
+            });
+        } else {
+            loadAllContentTypes();
+        }
+        
+        // 변경 후 자동 검색
+        searchTemplates();
+    });
+    
+    // 템플릿 타입 변경 시 자동 검색
+    $('#templateType').on('change', function() {
+        searchTemplates();
+    });
+    
+    // 초기에 챕터 선택 박스 비활성화
+    $('#contentChapter').prop('disabled', true);
+    
+    // 템플릿 모달의 카테고리에서도 타입 필터링
+    $('#templateFormCategory').on('change', function() {
+        const categoryId = $(this).val();
+        if (categoryId) {
+            $.get(`/cp/api/content-types/?category=${categoryId}`, function(data) {
+                $('#templateFormType').empty().append('<option value="">타입 선택</option>');
+                data.forEach(type => {
+                    $('#templateFormType').append(`<option value="${type.id}">${type.type_name}</option>`);
+                });
+            });
+        } else {
+            loadAllContentTypes();
+        }
+    });
+    
+    // 검색어 입력 시 엔터키로 검색
+    $('#contentSearch').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            searchContents();
+        }
+    });
+    
+    $('#templateSearch').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            searchTemplates();
+        }
+    });
+    
+    // ========== 텍스트 편집 이벤트 위임 ==========
+    // 동적으로 생성된 편집 가능한 단어에 대한 이벤트 위임
+    $(document).on('dblclick', '.editable-word', function() {
+        console.log('단어 더블클릭:', $(this).text());
+        
+        const $this = $(this);
+        const word = $this.text();
+        const path = $this.data('path');
+        const wordIndex = $this.data('word-index');
+        const original = $this.data('original');
+        
+        // 이미 편집 중인 경우 무시
+        if ($this.hasClass('editing-word')) {
+            return;
+        }
+        
+        $this.addClass('editing-word');
+        const $input = $(`<input type="text" class="edit-input px-2 py-1 border-2 border-blue-400 rounded bg-yellow-50" style="width: ${Math.max(80, word.length * 12)}px" value="${word}">`);
+        
+        // 원래 요소를 입력 필드로 교체
+        $this.replaceWith($input);
+        $input.focus().select();
+        
+        const updateWord = () => {
+            const newWord = $input.val().trim();
+            console.log('단어 업데이트:', word, '->', newWord);
+            
+            if (newWord !== word) {
+                updateTextInHtml(path, wordIndex, original || word, newWord);
+                updatePreview();
+            } else {
+                // 변경사항이 없으면 원래 상태로 복구
+                const $newWord = $(`<span class="editable-word" data-path="${path}" data-word-index="${wordIndex}" data-original="${original || word}">${word}</span>`);
+                $input.replaceWith($newWord);
+            }
+        };
+        
+        const cancelEdit = () => {
+            console.log('편집 취소');
+            const $newWord = $(`<span class="editable-word" data-path="${path}" data-word-index="${wordIndex}" data-original="${original || word}">${word}</span>`);
+            $input.replaceWith($newWord);
+        };
+        
+        // 엔터키로 저장
+        $input.on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                e.preventDefault();
+                updateWord();
+            } else if (e.which === 27) { // Escape key
+                e.preventDefault();
+                cancelEdit();
+            }
+        });
+        
+        // 포커스 아웃 시 저장
+        $input.on('blur', function() {
+            updateWord();
+        });
+    });
+    
+    // 이미지 편집 이벤트 위임
+    $(document).on('click', '.editable-image', function() {
+        console.log('이미지 클릭');
+        currentEditingImage = $(this);
+        $('#imageUpload').click();
+    });
+}
+
+// ========== 초기화 함수 ==========
+
+// 페이지 로드 시 초기화
+$(document).ready(function() {
+    console.log('CP Agent 초기화 시작...');
+    
+    try {
+        // 0. 탭 초기화 (첫 번째 탭들을 기본으로 활성화)
+        switchTab('contents'); // 문항 리스트 탭을 기본으로
+        switchPreviewTab('render'); // 렌더링 탭을 기본으로
+        console.log('탭 초기화 완료');
+        
+        // 1. 에디터 초기화
+        initializeEditors();
+        console.log('에디터 초기화 완료');
+        
+        // 2. 이벤트 바인딩
+        bindEvents();
+        console.log('이벤트 바인딩 완료');
+        
+        // 3. 초기 데이터 로드
+        loadInitialData();
+        console.log('초기 데이터 로드 완료');
+        
+        console.log('CP Agent 초기화 완료!');
+    } catch (error) {
+        console.error('CP Agent 초기화 중 오류 발생:', error);
+    }
+});
+{% endblock %}

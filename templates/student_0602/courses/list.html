@@ -1,0 +1,57 @@
+<!-- student/templates/student/courses/list.html -->
+{% extends 'student/base.html' %}
+
+{% block title %}내 코스 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">내 코스</h2>
+    <p class="text-gray-600">할당받은 코스들을 확인하고 학습을 진행하세요.</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for course_data in courses_with_progress %}
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">{{ course_data.course.subject_name }}</h3>
+            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">{{ course_data.course.target }}</span>
+        </div>
+        
+        <div class="text-gray-600 space-y-2 mb-4">
+            <p class="text-sm">{{ course_data.course.description|default:"설명이 없습니다." }}</p>
+            <p><i class="fas fa-user-tie mr-2"></i>담당교사: {{ course_data.course.teacher.user.get_full_name }}</p>
+            <p><i class="fas fa-calendar mr-2"></i>할당일: {{ course_data.assignment.assigned_date|date:"Y-m-d" }}</p>
+        </div>
+        
+        <!-- 진행률 -->
+        <div class="mb-4">
+            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                <span>진행률</span>
+                <span>{{ course_data.progress_percent }}%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="progress-bar h-2 rounded-full" style="width: {{ course_data.progress_percent }}%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                <span>{{ course_data.completed_slides }}/{{ course_data.total_slides }} 슬라이드</span>
+            </div>
+        </div>
+        
+        <a href="{% url 'student:learning_course' course_data.course.id %}" 
+           class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 text-center block">
+            {% if course_data.progress_percent > 0 %}
+                학습 계속하기
+            {% else %}
+                학습 시작하기
+            {% endif %}
+        </a>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center text-gray-500 py-12">
+        <i class="fas fa-book-open text-4xl mb-4"></i>
+        <p class="text-lg mb-2">할당받은 코스가 없습니다.</p>
+        <p class="text-sm">교사가 코스를 할당할 때까지 기다려주세요.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

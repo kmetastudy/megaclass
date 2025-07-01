@@ -1,0 +1,266 @@
+<!-- teacher/templates/teacher/dashboard.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}교사 대시보드 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">교사 대시보드</h2>
+    <p class="text-gray-600">안녕하세요, {{ user.get_full_name }}님! 오늘도 좋은 하루 되세요.</p>
+</div>
+
+<!-- 통계 카드들 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex items-center">
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-book text-blue-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">총 코스</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.total_courses }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex items-center">
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-users text-green-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">총 학생</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.total_students }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex items-center">
+            <div class="p-3 bg-yellow-100 rounded-full">
+                <i class="fas fa-chalkboard-teacher text-yellow-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">학급 수</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.total_classes }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex items-center justify-between w-full">
+            <div class="flex items-center">
+                <div class="p-3 bg-purple-100 rounded-full">
+                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-sm font-medium text-gray-500">제출 답안</h3>
+                    <div class="flex items-baseline space-x-3">
+                        <div>
+                            <span class="text-xs text-gray-400">누적</span>
+                            <p class="text-lg font-bold text-gray-900">{{ stats.total_submissions|default:0 }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400">월간</span>
+                            <p class="text-lg font-semibold text-gray-700">{{ stats.monthly_submissions|default:0 }}</p>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-400">주간</span>
+                            <p class="text-lg font-semibold text-gray-700">{{ stats.weekly_submissions|default:0 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 빠른 통계 섹션 -->
+<div class="mb-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">빠른 통계</h3>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 반별 통계 -->
+        <a href="{% url 'teacher:statistics_by_class' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="p-2 bg-blue-100 rounded-lg inline-block mb-2">
+                        <i class="fas fa-users text-blue-600 text-lg"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800">반별 통계</h4>
+                    <p class="text-sm text-gray-600 mb-2">학급별 성취도 분석</p>
+                    <div class="text-xs text-gray-500">
+                        평균 성취도: <span class="font-semibold text-blue-600">{{ stats.avg_class_achievement|default:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 코스별 통계 -->
+        <a href="{% url 'teacher:statistics_by_course' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="p-2 bg-green-100 rounded-lg inline-block mb-2">
+                        <i class="fas fa-book text-green-600 text-lg"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800">코스별 통계</h4>
+                    <p class="text-sm text-gray-600 mb-2">과목별 진도 현황</p>
+                    <div class="text-xs text-gray-500">
+                        평균 진도율: <span class="font-semibold text-green-600">{{ stats.avg_course_progress|default:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 제출 분석 -->
+        <a href="{% url 'teacher:submission_analysis' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="p-2 bg-yellow-100 rounded-lg inline-block mb-2">
+                        <i class="fas fa-clipboard-check text-yellow-600 text-lg"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800">제출 분석</h4>
+                    <p class="text-sm text-gray-600 mb-2">답안 제출 현황</p>
+                    <div class="text-xs text-gray-500">
+                        <span class="text-green-600">정답 {{ stats.correct_rate|default:0 }}%</span> |
+                        <span class="text-red-600">오답 {{ stats.wrong_rate|default:0 }}%</span> |
+                        <span class="text-gray-600">미제출 {{ stats.no_submit_rate|default:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- 취약점 분석 -->
+        <a href="{% url 'teacher:weakness_analysis' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="p-2 bg-red-100 rounded-lg inline-block mb-2">
+                        <i class="fas fa-chart-pie text-red-600 text-lg"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800">취약점 분석</h4>
+                    <p class="text-sm text-gray-600 mb-2">학습 개선 포인트</p>
+                    <div class="text-xs text-gray-500">
+                        40점 미만: <span class="font-semibold text-red-600">{{ stats.weakness_rate|default:0 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- 빠른 액션 -->
+<div class="mb-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">빠른 액션</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-6 gap-3">
+        <a href="{% url 'teacher:course_create' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-plus-circle text-blue-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">새 코스 생성</span>
+        </a>
+        <a href="{% url 'teacher:class_create' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-school text-green-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">학급 생성</span>
+        </a>
+        <a href="{% url 'teacher:student_list' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-users text-purple-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">학생 관리</span>
+        </a>
+        <a href="/teacher/app_home/" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-chart-bar text-yellow-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">수행관리</span>
+        </a>
+        <a href="{% url 'ncs:teacher_dashboard' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-brain text-indigo-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">NCS 관리</span>
+        </a>
+        <a href="{% url 'super_agent:index' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-robot text-orange-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">문항 생성 agent</span>
+        </a>
+    </div>
+</div>
+
+<!-- 하단 3분할 섹션 -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- 최근 생성된 코스들 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-md font-semibold text-gray-800">최근 생성된 코스</h3>
+            <a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">더보기 →</a>
+        </div>
+        <div class="space-y-2">
+            {% for course in recent_courses|slice:":3" %}
+            <div class="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <a href="{% url 'teacher:course_detail' course.id %}" class="block">
+                    <h4 class="font-medium text-sm text-gray-800 truncate">{{ course.subject_name }}</h4>
+                    <p class="text-xs text-gray-500">{{ course.target }}</p>
+                </a>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-3">
+                <i class="fas fa-book text-xl mb-1"></i>
+                <p class="text-sm">코스가 없습니다</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 최근 등록된 학생들 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-md font-semibold text-gray-800">최근 등록된 학생</h3>
+            <a href="{% url 'teacher:student_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">더보기 →</a>
+        </div>
+        <div class="space-y-2">
+            {% for student in recent_students|slice:":3" %}
+            <div class="flex items-center p-2 bg-gray-50 rounded-lg">
+                <div class="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium mr-2">
+                    {{ student.user.last_name|first }}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-medium text-sm text-gray-800 truncate">{{ student.user.get_full_name }}</h4>
+                    <p class="text-xs text-gray-500">{{ student.school_class.name }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-3">
+                <i class="fas fa-user-graduate text-xl mb-1"></i>
+                <p class="text-sm">학생이 없습니다</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 최근 생성된 반 -->
+    <div class="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-md font-semibold text-gray-800">최근 생성된 반</h3>
+            <a href="{% url 'teacher:class_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">더보기 →</a>
+        </div>
+        <div class="space-y-2">
+            {% for class in recent_classes|slice:":3" %}
+            <div class="p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <a href="{% url 'teacher:class_detail' class.id %}" class="block">
+                    <h4 class="font-medium text-sm text-gray-800">{{ class.name }}</h4>
+                    <p class="text-xs text-gray-500">학생 {{ class.student_count|default:0 }}명</p>
+                </a>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-3">
+                <i class="fas fa-school text-xl mb-1"></i>
+                <p class="text-sm">학급이 없습니다</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* 전체 페이지가 스크롤 없이 보이도록 조정 */
+body {
+    overflow-x: hidden;
+}
+.container {
+    max-height: 100vh;
+    padding: 1rem;
+}
+</style>
+{% endblock %}

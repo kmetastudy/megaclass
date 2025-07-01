@@ -1,0 +1,202 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}학습 결과 - NCS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-card {
+        transition: all 0.3s ease;
+    }
+    
+    .result-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .competency-bar {
+        transition: width 1s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.6s ease-out forwards;
+    }
+    
+    .score-circle {
+        width: 200px;
+        height: 200px;
+        position: relative;
+    }
+    
+    .score-circle svg {
+        transform: rotate(-90deg);
+    }
+    
+    .score-circle circle {
+        transition: stroke-dashoffset 1s ease-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 헤더 -->
+        <div class="mb-8 text-center fade-in">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">학습 결과</h1>
+            <p class="text-gray-600">
+                {{ session.started_at|date:"Y년 m월 d일 H:i" }} ~ 
+                {{ session.completed_at|date:"H:i" }}
+            </p>
+        </div>
+
+        <!-- 전체 점수 카드 -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8 text-center fade-in" style="animation-delay: 0.2s;">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">총점</h2>
+            
+            <!-- 점수 원형 그래프 -->
+            <div class="score-circle mx-auto mb-6">
+                <svg width="200" height="200" viewBox="0 0 200 200">
+                    <!-- 배경 원 -->
+                    <circle cx="100" cy="100" r="80" stroke="#e5e7eb" stroke-width="20" fill="none" />
+                    <!-- 점수 원 -->
+                    <circle cx="100" cy="100" r="80" 
+                            stroke="{{ score_color }}" 
+                            stroke-width="20" fill="none"
+                            stroke-dasharray="{{ score_circle_value }} 502.4"
+                            stroke-dashoffset="0" />
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div>
+                        <span class="text-5xl font-bold {{ score_color_class }}">
+                            {{ score_percentage|floatformat:0 }}
+                        </span>
+                        <span class="text-2xl text-gray-600">점</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-3xl font-bold text-gray-900">{{ session.total_questions }}</p>
+                    <p class="text-sm text-gray-600">전체 문항</p>
+                </div>
+                <div>
+                    <p class="text-3xl font-bold text-green-600">{{ session.correct_answers }}</p>
+                    <p class="text-sm text-gray-600">정답</p>
+                </div>
+                <div>
+                    <p class="text-3xl font-bold text-red-600">{{ wrong_answers }}</p>
+                    <p class="text-sm text-gray-600">오답</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 역량별 결과 -->
+        <div class="bg-white rounded-lg shadow-lg p-8 fade-in" style="animation-delay: 0.4s;">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">역량별 분석</h2>
+            
+            <div class="space-y-4">
+                {% for result in competency_results %}
+                <div class="border rounded-lg p-4 hover:bg-gray-50 transition">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="font-medium text-gray-900">{{ result.competency__competency_name }}</h3>
+                        <span class="text-sm font-semibold {% if result.accuracy >= 80 %}text-green-600{% elif result.accuracy >= 60 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                            {{ result.accuracy|floatformat:0 }}%
+                        </span>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>정답: {{ result.correct }}/{{ result.total }}</span>
+                        <span>
+                            {% if result.accuracy >= 80 %}
+                                <i class="fas fa-check-circle text-green-500"></i> 우수
+                            {% elif result.accuracy >= 60 %}
+                                <i class="fas fa-exclamation-circle text-yellow-500"></i> 보통
+                            {% else %}
+                                <i class="fas fa-times-circle text-red-500"></i> 보강필요
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="competency-bar h-2 rounded-full {% if result.accuracy >= 80 %}bg-green-500{% elif result.accuracy >= 60 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                             style="width: {{ result.accuracy|floatformat:0 }}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-gray-500 text-center py-4">역량별 결과가 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 학습 정보 -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mt-8 fade-in" style="animation-delay: 0.6s;">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6">학습 정보</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">학습 유형</p>
+                    <p class="font-medium text-gray-900">{{ session.get_session_type_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">소요 시간</p>
+                    <p class="font-medium text-gray-900">{{ time_display }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">평균 소요 시간</p>
+                    <p class="font-medium text-gray-900">
+                        문항당 {{ avg_time_per_question }}초
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">학습 완료일</p>
+                    <p class="font-medium text-gray-900">
+                        {{ session.completed_at|date:"Y년 m월 d일 H:i" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 액션 버튼들 -->
+        <div class="mt-8 flex justify-center gap-4 fade-in" style="animation-delay: 0.8s;">
+            <a href="{% url 'ncs:student_dashboard' %}" 
+               class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                <i class="fas fa-home mr-2"></i>대시보드로
+            </a>
+            <a href="{% url 'ncs:create_session' %}" 
+               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-plus mr-2"></i>새 학습 시작
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 점수에 따른 메시지
+    const score = {{ score_percentage|floatformat:0 }};
+    let message = '';
+    
+    if (score >= 90) {
+        message = '🎉 훌륭합니다! 매우 우수한 성적입니다.';
+    } else if (score >= 80) {
+        message = '👍 잘하셨습니다! 좋은 성적입니다.';
+    } else if (score >= 70) {
+        message = '😊 괜찮습니다! 조금만 더 노력하면 더 좋은 결과를 얻을 수 있을 거예요.';
+    } else if (score >= 60) {
+        message = '💪 노력이 필요합니다. 취약한 역량을 중심으로 복습해보세요.';
+    } else {
+        message = '📚 더 많은 학습이 필요합니다. 포기하지 마세요!';
+    }
+    
+    // 메시지 표시 (옵션)
+    console.log(message);
+});
+</script>
+{% endblock %}

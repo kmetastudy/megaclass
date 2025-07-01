@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+{% block title %}로그인 - 스마트 체육 학습 플랫폼{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    .login-container {
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-input {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .form-input:focus {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        border-color: #667eea;
+    }
+    
+    .login-card {
+        backdrop-filter: blur(15px);
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .floating-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-15px) rotate(5deg); }
+    }
+    
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .tab-button {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .tab-button.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .school-selector {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: all 0.4s ease;
+    }
+    
+    .school-selector.show {
+        max-height: 80px;
+        opacity: 1;
+        margin-bottom: 1rem;
+    }
+    
+    .login-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transition: all 0.3s ease;
+    }
+    
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+    }
+    
+    .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        animation: particles 20s infinite linear;
+    }
+    
+    @keyframes particles {
+        0% { transform: translateY(100vh) rotate(0deg); }
+        100% { transform: translateY(-100vh) rotate(360deg); }
+    }
+</style>
+
+<div class="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+    <!-- 애니메이션 파티클 -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 2s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 4s;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 8s;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 10s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 12s;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 14s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 16s;"></div>
+    </div>
+
+    <!-- 배경 장식 요소 -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-300 rounded-full opacity-20 blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/2 w-60 h-60 bg-indigo-300 rounded-full opacity-10 blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+    </div>
+
+    <div class="login-container relative z-10 max-w-md w-full">
+        <!-- 로고 및 타이틀 -->
+        <div class="text-center mb-8">
+            <div class="floating-icon inline-block mb-4">
+                <div class="w-20 h-20 bg-white rounded-2xl shadow-2xl flex items-center justify-center mx-auto relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-10"></div>
+                    <i class="fas fa-running text-3xl gradient-text relative z-10"></i>
+                </div>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2">
+                스마트 체육 학습 플랫폼
+            </h2>
+            <p class="text-purple-100 text-sm font-medium">
+                2025 Education Premium
+            </p>
+        </div>
+
+        <!-- 로그인 카드 -->
+        <div class="login-card rounded-2xl shadow-2xl p-8">
+            <!-- 탭 선택 -->
+            <div class="flex mb-6 bg-gray-100 rounded-xl p-1">
+                <button id="studentTab" class="tab-button flex-1 py-3 px-4 rounded-lg font-semibold text-sm text-white">
+                    <i class="fas fa-user-graduate mr-2"></i>학생
+                </button>
+                <button id="teacherTab" class="tab-button flex-1 py-3 px-4 rounded-lg font-semibold text-sm text-gray-600">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i>교사
+                </button>
+            </div>
+
+            <!-- 에러 메시지 -->
+            {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-400 mr-3"></i>
+                        <p class="text-sm text-red-700 font-medium">{{ message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- 로그인 폼 -->
+            <form method="POST" autocomplete="off" class="space-y-4">
+                {% csrf_token %}
+                
+                <!-- 학교 선택 (학생용) -->
+                <div id="schoolSelector" class="school-selector">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-school mr-2 text-purple-500"></i>학교 선택
+                    </label>
+                    <select id="school_code" 
+                            name="school_code" 
+                            class="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-gray-50">
+                        <option value="">학교를 선택해주세요</option>
+                        {% for school in schools %}
+                            <option value="{{ school.code }}">{{ school.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 아이디 입력 -->
+                <div class="relative">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-2 text-purple-500"></i><span id="usernameLabel">학번</span>
+                    </label>
+                    <input id="username" 
+                           name="username" 
+                           type="text" 
+                           required
+                           class="form-input block w-full px-4 py-3 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                           placeholder="학번을 입력하세요"
+                           autocomplete="username">
+                </div>
+
+                <!-- 비밀번호 입력 -->
+                <div class="relative">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-lock mr-2 text-purple-500"></i>비밀번호
+                    </label>
+                    <div class="relative">
+                        <input id="password" 
+                               name="password" 
+                               type="password" 
+                               required
+                               class="form-input block w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                               placeholder="비밀번호를 입력하세요"
+                               autocomplete="current-password">
+                        <button type="button" 
+                                onclick="togglePassword()"
+                                class="absolute inset-y-0 right-0 pr-4 flex items-center">
+                            <i id="toggleIcon" class="fas fa-eye text-gray-400 hover:text-gray-600 transition-colors"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 로그인 옵션 -->
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500 mr-2">
+                        <span class="text-gray-600 font-medium">로그인 상태 유지</span>
+                    </label>
+                    <a href="#" class="text-purple-600 hover:text-purple-700 font-semibold transition-colors">
+                        비밀번호 찾기
+                    </a>
+                </div>
+
+                <!-- 로그인 버튼 -->
+                <button type="submit"
+                        class="login-btn group relative w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 shadow-lg">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-4">
+                        <i class="fas fa-sign-in-alt text-purple-200 group-hover:text-purple-100"></i>
+                    </span>
+                    로그인하기
+                </button>
+            </form>
+
+            <!-- 회원가입 링크 -->
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    계정이 없으신가요?
+                    <a href="{% url 'accounts:teacher_register' %}" class="font-bold text-purple-600 hover:text-purple-700 transition-colors">
+                        교사 회원가입
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <!-- 하단 링크 -->
+        <div class="mt-8 text-center">
+            <a href="/" class="text-purple-100 hover:text-white text-sm font-medium transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>홈으로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// 탭 전환 및 학교 선택 표시/숨김
+document.getElementById('studentTab').addEventListener('click', function() {
+    // 학생 탭 활성화
+    this.classList.add('active', 'text-white');
+    this.classList.remove('text-gray-600');
+    document.getElementById('teacherTab').classList.remove('active', 'text-white');
+    document.getElementById('teacherTab').classList.add('text-gray-600');
+    
+    // 학교 선택 표시
+    document.getElementById('schoolSelector').classList.add('show');
+    
+    // 라벨 및 플레이스홀더 변경
+    document.getElementById('usernameLabel').textContent = '학번';
+    document.getElementById('username').placeholder = '학번을 입력하세요';
+    
+    // 학교 선택 필수로 설정
+    document.getElementById('school_code').required = true;
+});
+
+document.getElementById('teacherTab').addEventListener('click', function() {
+    // 교사 탭 활성화
+    this.classList.add('active', 'text-white');
+    this.classList.remove('text-gray-600');
+    document.getElementById('studentTab').classList.remove('active', 'text-white');
+    document.getElementById('studentTab').classList.add('text-gray-600');
+    
+    // 학교 선택 숨김
+    document.getElementById('schoolSelector').classList.remove('show');
+    
+    // 라벨 및 플레이스홀더 변경
+    document.getElementById('usernameLabel').textContent = '사번';
+    document.getElementById('username').placeholder = '사번을 입력하세요';
+    
+    // 학교 선택 초기화 및 필수 해제
+    document.getElementById('school_code').value = '';
+    document.getElementById('school_code').required = false;
+});
+
+// 초기 상태 설정 (학생 탭 활성화)
+document.getElementById('studentTab').click();
+
+// 비밀번호 표시/숨기기
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+// 폼 제출 시 검증
+document.querySelector('form').addEventListener('submit', function(e) {
+    const isStudentTab = document.getElementById('studentTab').classList.contains('active');
+    const schoolCode = document.getElementById('school_code').value;
+    
+    if (isStudentTab && !schoolCode) {
+        e.preventDefault();
+        alert('학생은 반드시 학교를 선택해야 합니다.');
+        document.getElementById('school_code').focus();
+    }
+});
+</script>
+{% endblock %}

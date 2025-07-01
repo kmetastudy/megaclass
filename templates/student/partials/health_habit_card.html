@@ -1,0 +1,104 @@
+<!-- templates/student/partials/health_habit_card.html -->
+<!-- 기록 헤더 -->
+<div class="px-6 py-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-200">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">건강한 생활 습관 기록</h3>
+            <p class="text-sm text-slate-600 mt-1">{{ habit_record.tracker.slide.chasi.chasi_title }}</p>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if habit_record.is_submitted %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                <i class="fas fa-check-circle mr-1"></i>
+                제출 완료
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                <i class="fas fa-pencil-alt mr-1"></i>
+                작성 중
+            </span>
+            {% endif %}
+            <span class="text-sm text-slate-500">
+                <i class="far fa-calendar mr-1"></i>
+                {{ habit_record.tracker.created_at|date:"Y년 m월 d일" }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- 기록 내용 -->
+<div class="p-6">
+    <!-- 6가지 약속 표시 -->
+    <div class="mb-6">
+        <h4 class="text-sm font-medium text-slate-700 mb-3">나의 건강 약속</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for promise in habit_record.promises_list %}
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br {{ promise.color_class }}
+                            flex items-center justify-center">
+                    <span class="text-white text-xs font-bold">{{ promise.number }}</span>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-slate-700">{{ promise.text }}</p>
+                    <div class="mt-1 flex items-center gap-2">
+                        <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full transition-all duration-300" 
+                                 style="width: {{ promise.completion_rate }}%"></div>
+                        </div>
+                        <span class="text-xs text-slate-500">{{ promise.completed_days }}/14일</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 통계 정보 -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="text-center p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+            <div class="text-2xl font-bold text-blue-600">{{ habit_record.total_reflections }}</div>
+            <div class="text-xs text-slate-600 mt-1">작성한 소감</div>
+        </div>
+        <div class="text-center p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
+            <div class="text-2xl font-bold text-green-600">{{ habit_record.completion_rate }}%</div>
+            <div class="text-xs text-slate-600 mt-1">완료율</div>
+        </div>
+        {% if habit_record.has_evaluation %}
+        <div class="text-center p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200">
+            <div class="text-2xl font-bold text-yellow-600">{{ habit_record.evaluation_grade }}</div>
+            <div class="text-xs text-slate-600 mt-1">평가 등급</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 최종 소감 미리보기 (있는 경우) -->
+    {% if habit_record.tracker.final_reflection %}
+    <div class="mt-4 p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+        <h5 class="text-sm font-medium text-slate-700 mb-2">
+            <i class="fas fa-comment-dots mr-1"></i>
+            최종 소감
+        </h5>
+        <p class="text-sm text-slate-600 line-clamp-3">
+            {{ habit_record.tracker.final_reflection|truncatechars:150 }}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 기록 푸터 -->
+<div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4 text-sm text-slate-600">
+            {% if habit_record.tracker.submitted_at %}
+            <span>
+                <i class="fas fa-check-double mr-1"></i>
+                제출일: {{ habit_record.tracker.submitted_at|date:"Y-m-d H:i" }}
+            </span>
+            {% endif %}
+        </div>
+        <a href="{% url 'health_habit:student_view' habit_record.tracker.slide.id %}" 
+           class="text-sm text-green-600 hover:text-green-700 font-medium">
+            상세 보기 →
+        </a>
+    </div>
+</div>

@@ -1,0 +1,307 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}NCS 과제 만들기{% endblock %}
+
+{% block extra_css %}
+<style>
+    .assignment-type-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .assignment-type-card:hover {
+        border-color: #3b82f6;
+        transform: translateY(-2px);
+    }
+    .assignment-type-card.selected {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+    .competency-item {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .competency-item:hover {
+        background-color: #f3f4f6;
+    }
+    .competency-item.selected {
+        background-color: #dbeafe;
+        border-color: #3b82f6;
+    }
+    .student-checkbox:checked + label {
+        background-color: #dbeafe;
+        border-color: #3b82f6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-3xl font-bold text-gray-900">NCS 과제 만들기</h1>
+            <a href="{% url 'ncs:teacher_dashboard' %}" class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-times text-xl"></i>
+            </a>
+        </div>
+        <p class="text-lg text-gray-600">학생들에게 NCS 과제를 할당하세요</p>
+    </div>
+
+    <form method="post" id="assignmentForm">
+        {% csrf_token %}
+        
+        <!-- 기본 정보 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">1</span>
+                기본 정보
+            </h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-1">과제명 *</label>
+                    <input type="text" id="title" name="title" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="예: 1차 NCS 평가">
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                    <textarea id="description" name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="과제에 대한 설명을 입력하세요"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="question_count" class="block text-sm font-medium text-gray-700 mb-1">문항 수 *</label>
+                        <select id="question_count" name="question_count" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="5">5문항</option>
+                            <option value="10" selected>10문항</option>
+                            <option value="15">15문항</option>
+                            <option value="20">20문항</option>
+                            <option value="30">30문항</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="due_date" class="block text-sm font-medium text-gray-700 mb-1">마감일</label>
+                        <input type="datetime-local" id="due_date" name="due_date"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 할당 유형 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">2</span>
+                할당 유형
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="block">
+                    <input type="radio" name="assignment_type" value="class" class="hidden peer" checked>
+                    <div class="assignment-type-card border-2 rounded-lg p-4 peer-checked:selected">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-users text-blue-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">반별 할당</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">특정 반 전체 학생에게 할당</p>
+                    </div>
+                </label>
+                
+                <label class="block">
+                    <input type="radio" name="assignment_type" value="individual" class="hidden peer">
+                    <div class="assignment-type-card border-2 rounded-lg p-4 peer-checked:selected">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-user text-green-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">개별 할당</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">선택한 학생들에게만 할당</p>
+                    </div>
+                </label>
+                
+                <label class="block">
+                    <input type="radio" name="assignment_type" value="weakness" class="hidden peer">
+                    <div class="assignment-type-card border-2 rounded-lg p-4 peer-checked:selected">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">취약점 보강</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">취약 역량 중심으로 할당</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- 대상 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6" id="targetSection">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">3</span>
+                대상 선택
+            </h2>
+            
+            <!-- 반 선택 (반별 할당) -->
+            <div id="classSelection" class="space-y-3">
+                <label for="class_id" class="block text-sm font-medium text-gray-700 mb-1">반 선택</label>
+                <select id="class_id" name="class_id" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">반을 선택하세요</option>
+                    {% for class in classes %}
+                    <option value="{{ class.id }}">{{ class.name }} ({{ class.student_set.count }}명)</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- 학생 선택 (개별 할당) -->
+            <div id="studentSelection" class="hidden">
+                <div class="mb-3">
+                    <input type="text" id="studentSearch" placeholder="학생 이름으로 검색..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                    {% for student in students %}
+                    <div class="student-item" data-name="{{ student.user.get_full_name }}">
+                        <input type="checkbox" id="student_{{ student.id }}" name="students" value="{{ student.id }}" 
+                               class="hidden student-checkbox">
+                        <label for="student_{{ student.id }}" 
+                               class="block p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium">{{ student.user.get_full_name }}</span>
+                                <span class="text-sm text-gray-500">{{ student.school_class.name }}</span>
+                            </div>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 역량 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">4</span>
+                평가 역량 선택
+            </h2>
+            
+            <div class="mb-4">
+                <input type="text" id="competencySearch" placeholder="역량명 또는 코드로 검색..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-96 overflow-y-auto">
+                {% for competency in competencies %}
+                <div class="competency-item border rounded-lg p-3" 
+                     data-name="{{ competency.competency_name }}" 
+                     data-code="{{ competency.code }}"
+                     onclick="toggleCompetency({{ competency.id }}, this)">
+                    <input type="checkbox" name="competencies" value="{{ competency.id }}" class="hidden">
+                    <div>
+                        <h4 class="font-medium text-gray-900">{{ competency.competency_name }}</h4>
+                        <p class="text-xs text-gray-600">{{ competency.main_category }} > {{ competency.sub_category }}</p>
+                        <p class="text-xs text-gray-500 mt-1">코드: {{ competency.code }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-4 text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                선택하지 않으면 전체 역량에서 무작위로 출제됩니다.
+            </div>
+        </div>
+
+        <!-- 제출 버튼 -->
+        <div class="flex justify-center gap-4">
+            <a href="{% url 'ncs:teacher_dashboard' %}" 
+               class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition">
+                취소
+            </a>
+            <button type="submit" 
+                    class="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-indigo-600 transition">
+                <i class="fas fa-check mr-2"></i>과제 생성
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// 할당 유형 변경 시
+document.querySelectorAll('input[name="assignment_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const classSelection = document.getElementById('classSelection');
+        const studentSelection = document.getElementById('studentSelection');
+        
+        if (this.value === 'class') {
+            classSelection.classList.remove('hidden');
+            studentSelection.classList.add('hidden');
+        } else if (this.value === 'individual') {
+            classSelection.classList.add('hidden');
+            studentSelection.classList.remove('hidden');
+        } else {
+            classSelection.classList.add('hidden');
+            studentSelection.classList.add('hidden');
+        }
+    });
+});
+
+// 학생 검색
+document.getElementById('studentSearch').addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    document.querySelectorAll('.student-item').forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        item.style.display = name.includes(query) ? 'block' : 'none';
+    });
+});
+
+// 역량 검색
+document.getElementById('competencySearch').addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    document.querySelectorAll('.competency-item').forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        const code = item.dataset.code.toLowerCase();
+        item.style.display = (name.includes(query) || code.includes(query)) ? 'block' : 'none';
+    });
+});
+
+// 역량 토글
+function toggleCompetency(id, element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+    element.classList.toggle('selected', checkbox.checked);
+}
+
+// 폼 제출 검증
+document.getElementById('assignmentForm').addEventListener('submit', function(e) {
+    const assignmentType = document.querySelector('input[name="assignment_type"]:checked').value;
+    
+    if (assignmentType === 'class') {
+        const classId = document.getElementById('class_id').value;
+        if (!classId) {
+            e.preventDefault();
+            alert('반을 선택해주세요.');
+            return;
+        }
+    } else if (assignmentType === 'individual') {
+        const checkedStudents = document.querySelectorAll('input[name="students"]:checked');
+        if (checkedStudents.length === 0) {
+            e.preventDefault();
+            alert('학생을 선택해주세요.');
+            return;
+        }
+    }
+});
+
+// 페이지 로드 시 취약점 보강 모드 체크
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('type') === 'weakness') {
+    document.querySelector('input[name="assignment_type"][value="weakness"]').checked = true;
+    document.querySelector('input[name="assignment_type"][value="weakness"]').dispatchEvent(new Event('change'));
+}
+</script>
+{% endblock %}

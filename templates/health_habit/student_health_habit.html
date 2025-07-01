@@ -1,0 +1,654 @@
+<!-- student_health_habit.html -->
+{% extends 'health_habit/base_health_habit.html' %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- 상단 안내 메시지 -->
+    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-3xl p-6 mb-6 shadow-xl">
+        <h2 class="fun-font text-2xl text-center mb-2">
+            🌟 건강한 생활 습관 2주 실천 기록 🌟
+        </h2>
+        <p class="text-center">
+            매일 실천한 약속에 체크하고, 소감을 작성해보세요!<br>
+            꾸준히 실천하면 건강한 습관이 만들어져요! 💪
+        </p>
+    </div>
+
+    <!-- 진행 상황 표시 -->
+    <div class="bg-white rounded-3xl p-6 mb-8 shadow-xl">
+        <h2 class="fun-font text-3xl text-center mb-4">
+            <span class="sticker">📊</span> 나의 실천 현황
+        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-yellow-100 rounded-2xl">
+                <p class="text-4xl mb-2">🎯</p>
+                <p class="text-2xl font-bold" id="totalDays">0/84</p>
+                <p class="text-sm">전체 실천</p>
+            </div>
+            <div class="text-center p-4 bg-green-100 rounded-2xl">
+                <p class="text-4xl mb-2">📝</p>
+                <p class="text-2xl font-bold" id="totalReflections">0</p>
+                <p class="text-sm">작성한 소감</p>
+            </div>
+            <div class="text-center p-4 bg-blue-100 rounded-2xl">
+                <p class="text-4xl mb-2">⭐</p>
+                <p class="text-2xl font-bold" id="totalStars">0</p>
+                <p class="text-sm">받은 별</p>
+            </div>
+            <div class="text-center p-4 bg-purple-100 rounded-2xl">
+                <p class="text-4xl mb-2">🏆</p>
+                <p class="text-2xl font-bold" id="completionRate">0%</p>
+                <p class="text-sm">달성률</p>
+            </div>
+        </div>
+        
+        <!-- 통계 보기 버튼 추가 -->
+        <div class="text-center mt-4">
+            <button onclick="showStatisticsModal()" 
+                    class="bg-blue-500 text-white px-6 py-2 rounded-full font-bold hover:bg-blue-600 transition">
+                📈 상세 통계 보기
+            </button>
+        </div>
+    </div>
+
+    <!-- 약속 카드들 -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for promise in promises_list %}
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden transform hover:scale-105 transition">
+            <div class="promise-card p-4">
+                <h3 class="fun-font text-2xl text-white text-center">
+                    약속 {{ promise.number }}
+                </h3>
+            </div>
+            <div class="p-6">
+                <!-- 고정된 약속 내용 표시 -->
+                <div class="bg-gray-100 rounded-xl p-4 mb-4 text-center">
+                    <p class="text-lg font-bold text-gray-800">{{ promise.title }}</p>
+                </div>
+                
+                <!-- 1주차 -->
+                <div class="mb-4">
+                    <h4 class="font-bold text-lg mb-2 text-purple-600">🌟 1주차</h4>
+                    <div class="grid grid-cols-4 gap-2">
+                        {% for day in week_days %}
+                        <button class="day-bubble bg-gray-200 hover:bg-purple-200"
+                                data-promise="{{ promise.number }}"
+                                data-week="1"
+                                data-day="{{ day.num }}"
+                                onclick="openReflectionModal(this)">
+                            {{ day.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- 2주차 -->
+                <div class="mb-4">
+                    <h4 class="font-bold text-lg mb-2 text-pink-600">🌈 2주차</h4>
+                    <div class="grid grid-cols-4 gap-2">
+                        {% for day in week_days %}
+                        <button class="day-bubble bg-gray-200 hover:bg-pink-200"
+                                data-promise="{{ promise.number }}"
+                                data-week="2"
+                                data-day="{{ day.num }}"
+                                onclick="openReflectionModal(this)">
+                            {{ day.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- 소감 목록 버튼 -->
+                <button class="w-full bubble-button text-white py-3 rounded-xl font-bold"
+                        onclick="toggleReflectionList({{ promise.number }})">
+                    📖 소감 보기
+                </button>
+                
+                <!-- 소감 목록 (숨김) -->
+                <div id="reflection-list-{{ promise.number }}" class="mt-4 hidden">
+                    <div class="max-h-40 overflow-y-auto space-y-2">
+                        <!-- 동적으로 로드 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 하단 고정 버튼 영역 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-30">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <a href="{% url 'student:slide_view' slide_id %}" 
+               class="bg-gray-500 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-600 transition">
+                ← 슬라이드로 돌아가기
+            </a>
+            <button onclick="showFinalReflectionModal()" 
+                    class="bubble-button text-white px-8 py-4 rounded-full text-xl font-bold shadow-xl">
+                🎉 최종 소감 작성하고 제출하기!
+            </button>
+        </div>
+    </div>
+    
+    <!-- 하단 여백 추가 (고정 버튼 영역만큼) -->
+    <div class="h-24"></div>
+</div>
+
+<!-- 일일 소감 모달 -->
+<div id="reflectionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full">
+        <h3 class="fun-font text-2xl mb-4">
+            <span class="sticker">✏️</span> 일일 실천 소감
+        </h3>
+        
+        <div class="mb-4">
+            <p class="font-bold text-lg mb-2" id="modalInfo"></p>
+            
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1">날짜 선택</label>
+                    <input type="date" id="reflectionDate" 
+                           class="w-full p-2 border-2 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">시간 선택</label>
+                    <input type="time" id="reflectionTime" 
+                           class="w-full p-2 border-2 rounded-lg">
+                </div>
+            </div>
+            
+            <label class="block font-semibold mb-2">오늘의 실천 소감</label>
+            <textarea id="reflectionText" rows="4" 
+                      class="w-full p-3 border-2 rounded-lg"
+                      placeholder="오늘 이 약속을 실천하면서 느낀 점을 작성해주세요..."></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-2">
+            <button class="px-6 py-2 bg-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-400 transition" 
+                    onclick="closeReflectionModal()">
+                취소
+            </button>
+            <button class="px-6 py-2 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition" 
+                    onclick="saveReflection()">
+                저장하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 최종 소감 모달 -->
+<div id="finalReflectionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h3 class="fun-font text-2xl mb-4 text-center">
+            <span class="sticker">🎊</span> 2주 실천을 마치며
+        </h3>
+        
+        <!-- 전체 요약 -->
+        <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-4 mb-6">
+            <h4 class="font-bold text-lg mb-3">📊 나의 실천 요약</h4>
+            <div id="finalSummary" class="space-y-2">
+                <!-- 동적으로 생성 -->
+            </div>
+        </div>
+        
+        <!-- 최종 소감 작성 -->
+        <div class="mb-6">
+            <label class="block font-bold text-lg mb-2">
+                💭 2주간의 건강 습관 실천을 마치고 느낀 점
+            </label>
+            <textarea id="finalReflectionText" rows="6" 
+                      class="w-full p-4 border-2 rounded-xl text-lg"
+                      placeholder="2주 동안 건강한 생활 습관을 실천하면서 느낀 점, 변화된 점, 앞으로의 다짐 등을 자유롭게 작성해주세요..."></textarea>
+        </div>
+        
+        <div class="flex justify-end gap-3">
+            <button class="px-6 py-3 bg-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-400 transition" 
+                    onclick="closeFinalReflectionModal()">
+                취소
+            </button>
+            <button class="px-8 py-3 bg-purple-600 text-white rounded-xl font-bold text-lg hover:bg-purple-700 transition shadow-lg" 
+                    onclick="submitFinal()">
+                📤 최종 제출하기
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 통계 모달 -->
+<div id="statisticsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h3 class="fun-font text-2xl mb-4 text-center">
+            <span class="sticker">📊</span> 나의 실천 통계
+        </h3>
+        
+        <div id="statisticsContent" class="space-y-4">
+            <!-- 동적으로 로드 -->
+        </div>
+        
+        <div class="text-center mt-6">
+            <button onclick="closeStatisticsModal()" 
+                    class="bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-400 transition">
+                닫기
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 전역 변수
+let currentButton = null;
+let trackerId = null;
+const slideId = {{ slide_id }};
+
+// 고정된 약속 정의
+const fixedPromises = {
+    1: '바른 자세로 생활하기',
+    2: '규칙적으로 가벼운 운동하기',
+    3: '바른 식습관 기르기',
+    4: '몸을 깨끗하게 하기',
+    5: '생활 주변을 깨끗하게 하기',
+    6: '마음 건강하게 관리하기'
+};
+
+// 페이지 로드 시 데이터 불러오기
+$(document).ready(function() {
+    loadTrackerData();
+});
+
+// 트래커 데이터 로드
+function loadTrackerData() {
+    $.ajax({
+        url: `/health_habit/api/tracker/${slideId}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                trackerId = response.data.id;
+                
+                // 트래커가 없으면 자동 생성
+                if (!trackerId) {
+                    createTracker();
+                } else {
+                    // 완료된 날짜 표시
+                    response.data.reflections.forEach(reflection => {
+                        const $btn = $(`.day-bubble[data-promise="${reflection.promise_number}"][data-week="${reflection.week}"][data-day="${reflection.day}"]`);
+                        $btn.addClass('completed');
+                        
+                        // 평가 받은 경우 별 표시
+                        if (reflection.has_evaluation) {
+                            $btn.html($btn.text() + '<br>⭐');
+                        }
+                    });
+                    
+                    // 통계 업데이트
+                    updateStatistics(response.data.statistics);
+                }
+            } else {
+                // 트래커가 없으면 생성
+                createTracker();
+            }
+        }
+    });
+}
+
+// 트래커 자동 생성
+function createTracker() {
+    $.ajax({
+        url: '/health_habit/api/save-promises/',
+        type: 'POST',
+        data: JSON.stringify({
+            slide_id: slideId,
+            promises: fixedPromises
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            loadTrackerData(); // 다시 로드
+        }
+    });
+}
+
+// 통계 업데이트
+function updateStatistics(stats) {
+    $('#totalDays').text(`${stats.total_reflections}/84`);
+    $('#totalReflections').text(stats.total_reflections);
+    $('#totalStars').text(stats.total_stars || 0);
+    $('#completionRate').text(stats.completion_rate + '%');
+}
+
+// 소감 모달 열기
+function openReflectionModal(button) {
+    currentButton = button;
+    const $btn = $(button);
+    const promise = $btn.data('promise');
+    const week = $btn.data('week');
+    const day = $btn.data('day');
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
+    
+    // 모달 정보 설정
+    const promiseText = fixedPromises[promise];
+    $('#modalInfo').text(`${promiseText} - ${week}주차 ${days[day-1]}요일`);
+    
+    // 현재 날짜/시간 설정
+    const now = new Date();
+    $('#reflectionDate').val(now.toISOString().split('T')[0]);
+    $('#reflectionTime').val(now.toTimeString().slice(0, 5));
+    
+    // 기존 소감 로드
+    if (trackerId) {
+        loadReflection(promise, week, day);
+    }
+    
+    $('#reflectionModal').css('display', 'flex');
+}
+
+// 기존 소감 로드
+function loadReflection(promise, week, day) {
+    $.ajax({
+        url: `/health_habit/api/reflection/${trackerId}/${promise}/${week}/${day}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                $('#reflectionText').val(response.data.reflection_text);
+                $('#reflectionDate').val(response.data.reflection_date);
+                $('#reflectionTime').val(response.data.reflection_time);
+            } else {
+                $('#reflectionText').val('');
+            }
+        }
+    });
+}
+
+// 소감 저장
+function saveReflection() {
+    const $btn = $(currentButton);
+    const promise = $btn.data('promise');
+    const week = $btn.data('week');
+    const day = $btn.data('day');
+    
+    const reflectionText = $('#reflectionText').val().trim();
+    if (!reflectionText) {
+        alert('소감을 작성해주세요!');
+        return;
+    }
+    
+    $.ajax({
+        url: '/health_habit/api/save-reflection/',
+        type: 'POST',
+        data: JSON.stringify({
+            tracker_id: trackerId,
+            promise_number: promise,
+            week: week,
+            day: day,
+            reflection_text: reflectionText,
+            reflection_date: $('#reflectionDate').val(),
+            reflection_time: $('#reflectionTime').val()
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                $btn.addClass('completed');
+                closeReflectionModal();
+                alert('소감이 저장되었습니다! 💚');
+                loadTrackerData(); // 통계 업데이트
+                
+                // 소감 목록이 열려있으면 업데이트
+                if ($(`#reflection-list-${promise}`).is(':visible')) {
+                    loadPromiseReflections(promise);
+                }
+            }
+        }
+    });
+}
+
+// 소감 모달 닫기
+function closeReflectionModal() {
+    $('#reflectionModal').hide();
+    $('#reflectionText').val('');
+    currentButton = null;
+}
+
+// 소감 목록 토글
+function toggleReflectionList(promiseNum) {
+    const $list = $(`#reflection-list-${promiseNum}`);
+    
+    if ($list.is(':visible')) {
+        $list.slideUp();
+    } else {
+        $list.slideDown();
+        loadPromiseReflections(promiseNum);
+    }
+}
+
+// 약속별 소감 목록 로드
+function loadPromiseReflections(promiseNum) {
+    if (!trackerId) return;
+    
+    $.ajax({
+        url: `/health_habit/api/reflections/${trackerId}/${promiseNum}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                displayReflections(promiseNum, response.reflections);
+            }
+        }
+    });
+}
+
+// 소감 목록 표시
+function displayReflections(promiseNum, reflections) {
+    const $container = $(`#reflection-list-${promiseNum}`);
+    $container.empty();
+    
+    if (reflections.length === 0) {
+        $container.html('<p class="text-center text-gray-500">아직 작성된 소감이 없습니다.</p>');
+        return;
+    }
+    
+    reflections.forEach(ref => {
+        let evalHtml = '';
+        if (ref.evaluation) {
+            evalHtml = `
+                <div class="mt-2 bg-yellow-50 rounded p-2">
+                    <span class="text-lg">${ref.evaluation.emoji}</span>
+                    ${'⭐'.repeat(ref.evaluation.score)}
+                    ${ref.evaluation.comment ? `<p class="text-sm text-gray-600">"${ref.evaluation.comment}"</p>` : ''}
+                </div>
+            `;
+        }
+        
+        $container.append(`
+            <div class="bg-gray-50 rounded-xl p-3 mb-2">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-bold text-sm">${ref.week}주차 ${ref.day_name}요일</span>
+                    <span class="text-xs text-gray-500">${ref.reflection_date}</span>
+                </div>
+                <p class="text-sm">${ref.reflection_text}</p>
+                ${evalHtml}
+            </div>
+        `);
+    });
+}
+
+// 통계 모달 표시
+function showStatisticsModal() {
+    if (!trackerId) return;
+    
+    $.ajax({
+        url: `/health_habit/api/tracker/${slideId}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                displayDetailedStatistics(response.data);
+                $('#statisticsModal').css('display', 'flex');
+            }
+        }
+    });
+}
+
+// 상세 통계 표시
+function displayDetailedStatistics(data) {
+    const $content = $('#statisticsContent');
+    $content.empty();
+    
+    // 전체 통계
+    $content.append(`
+        <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-4">
+            <h4 class="font-bold text-lg mb-2">📊 전체 실천 현황</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">전체 실천률</p>
+                    <p class="text-2xl font-bold">${data.statistics.completion_rate}%</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">총 실천 일수</p>
+                    <p class="text-2xl font-bold">${data.statistics.total_reflections}/84일</p>
+                </div>
+            </div>
+        </div>
+    `);
+    
+    // 약속별 통계
+    for (let i = 1; i <= 6; i++) {
+        const promiseStat = data.statistics.promises_stats[i];
+        $content.append(`
+            <div class="bg-gray-50 rounded-xl p-4">
+                <h5 class="font-bold mb-2">약속 ${i}: ${fixedPromises[i]}</h5>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1 bg-gray-200 rounded-full h-4">
+                        <div class="bg-green-500 h-4 rounded-full transition-all duration-500" style="width: ${promiseStat.rate}%"></div>
+                    </div>
+                    <span class="text-sm font-bold">${promiseStat.completed_days}/14일 (${promiseStat.rate}%)</span>
+                </div>
+            </div>
+        `);
+    }
+}
+
+// 통계 모달 닫기
+function closeStatisticsModal() {
+    $('#statisticsModal').hide();
+}
+
+// 최종 소감 모달 표시
+function showFinalReflectionModal() {
+    if (!trackerId) return;
+    
+    // 최종 요약 표시
+    $.ajax({
+        url: `/health_habit/api/tracker/${slideId}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                displayFinalSummary(response.data.statistics);
+                
+                // 기존 최종 소감 로드
+                loadFinalReflection();
+                
+                $('#finalReflectionModal').css('display', 'flex');
+            }
+        }
+    });
+}
+
+// 최종 요약 표시
+function displayFinalSummary(stats) {
+    const $summary = $('#finalSummary');
+    $summary.empty();
+    
+    for (let i = 1; i <= 6; i++) {
+        const promiseStat = stats.promises_stats[i];
+        $summary.append(`
+            <div class="flex justify-between items-center">
+                <span class="font-semibold">약속 ${i}: ${fixedPromises[i]}</span>
+                <span class="text-green-600 font-bold">${promiseStat.completed_days}/14일</span>
+            </div>
+        `);
+    }
+    
+    $summary.append(`
+        <div class="border-t pt-2 mt-2">
+            <div class="flex justify-between items-center">
+                <span class="font-bold">전체 달성률</span>
+                <span class="text-purple-600 font-bold text-lg">${stats.completion_rate}%</span>
+            </div>
+        </div>
+    `);
+}
+
+// 기존 최종 소감 로드
+function loadFinalReflection() {
+    $.ajax({
+        url: `/health_habit/api/final-reflection/${trackerId}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                $('#finalReflectionText').val(response.data);
+            }
+        }
+    });
+}
+
+// 최종 소감 모달 닫기
+function closeFinalReflectionModal() {
+    $('#finalReflectionModal').hide();
+}
+
+// 최종 제출
+function submitFinal() {
+    const finalReflection = $('#finalReflectionText').val().trim();
+    
+    if (!finalReflection) {
+        alert('최종 소감을 작성해주세요! 📝');
+        return;
+    }
+    
+    if (!confirm('정말 제출하시겠습니까? 제출 후에는 수정할 수 없습니다.')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '/health_habit/api/submit/',
+        type: 'POST',
+        data: JSON.stringify({
+            tracker_id: trackerId,
+            final_reflection: finalReflection
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('🎉 축하합니다! 2주간의 건강 습관 실천 기록이 제출되었습니다!');
+                window.location.href = "{% url 'student:slide_view' slide_id %}";
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+    });
+}
+</script>
+
+<style>
+/* 추가 스타일 */
+.reflection-items::-webkit-scrollbar {
+    width: 4px;
+}
+.reflection-items::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+.reflection-items::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+.reflection-items::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+</style>
+{% endblock %}

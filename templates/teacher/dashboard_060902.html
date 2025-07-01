@@ -1,0 +1,290 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}교사 대시보드{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    .recent-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .recent-item:last-child {
+        border-bottom: none;
+    }
+    .quick-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+    }
+    .quick-stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    .quick-stat-card h4 {
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+    }
+    .quick-stat-card p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h2 mb-3">안녕하세요, {{ request.user.get_full_name }} 선생님! 👋</h1>
+            <p class="text-muted">오늘도 좋은 하루 되세요. 여기에서 모든 학습 활동을 관리할 수 있습니다.</p>
+        </div>
+    </div>
+
+    <!-- Main Stats -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="stat-number">{{ stats.total_courses }}</div>
+                <div class="stat-label">전체 코스</div>
+                <a href="{% url 'teacher:course_list' %}" class="btn btn-sm btn-primary mt-3">
+                    코스 관리 →
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-number">{{ stats.total_students }}</div>
+                <div class="stat-label">전체 학생</div>
+                <a href="{% url 'teacher:student_list' %}" class="btn btn-sm btn-success mt-3">
+                    학생 목록 →
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                    <i class="fas fa-school"></i>
+                </div>
+                <div class="stat-number">{{ stats.total_classes }}</div>
+                <div class="stat-label">담당 학급</div>
+                <a href="{% url 'teacher:class_list' %}" class="btn btn-sm btn-info mt-3">
+                    학급 관리 →
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="dashboard-card">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-number">{{ stats.total_assignments }}</div>
+                <div class="stat-label">할당된 과제</div>
+                <a href="{% url 'teacher:course_list' %}" class="btn btn-sm btn-warning mt-3">
+                    과제 확인 →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    빠른 통계
+                </h5>
+                <div class="quick-stats-grid">
+                    <a href="{% url 'teacher:statistics_by_class' %}" class="text-decoration-none">
+                        <div class="quick-stat-card">
+                            <i class="fas fa-users mb-2"></i>
+                            <h4>반별 통계</h4>
+                            <p>학급별 성취도 분석</p>
+                        </div>
+                    </a>
+                    <a href="{% url 'teacher:statistics_by_course' %}" class="text-decoration-none">
+                        <div class="quick-stat-card">
+                            <i class="fas fa-book mb-2"></i>
+                            <h4>코스별 통계</h4>
+                            <p>과목별 진도 현황</p>
+                        </div>
+                    </a>
+                    <a href="{% url 'teacher:submission_analysis' %}" class="text-decoration-none">
+                        <div class="quick-stat-card">
+                            <i class="fas fa-clipboard-check mb-2"></i>
+                            <h4>제출 분석</h4>
+                            <p>답안 제출 현황</p>
+                        </div>
+                    </a>
+                    <a href="{% url 'teacher:weakness_analysis' %}" class="text-decoration-none">
+                        <div class="quick-stat-card">
+                            <i class="fas fa-chart-pie mb-2"></i>
+                            <h4>취약점 분석</h4>
+                            <p>학습 개선 포인트</p>
+                        </div>
+                    </a>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{% url 'teacher:statistics_dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        전체 통계 대시보드 보기
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Recent Courses -->
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-book text-primary me-2"></i>
+                    최근 코스
+                </h5>
+                {% for course in recent_courses %}
+                <div class="recent-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ course.subject_name }}</h6>
+                            <small class="text-muted">{{ course.target }}</small>
+                        </div>
+                        <a href="{% url 'teacher:course_detail' course.id %}" class="btn btn-sm btn-outline-primary">
+                            보기
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">아직 생성된 코스가 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Students -->
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-user-graduate text-success me-2"></i>
+                    최근 등록 학생
+                </h5>
+                {% for student in recent_students %}
+                <div class="recent-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ student.user.get_full_name }}</h6>
+                            <small class="text-muted">
+                                {{ student.school_class.name }} | {{ student.student_id }}
+                            </small>
+                        </div>
+                        <a href="{% url 'teacher:student_detail' student.id %}" class="btn btn-sm btn-outline-success">
+                            보기
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">최근 등록된 학생이 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Assignments -->
+        <div class="col-lg-4">
+            <div class="dashboard-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-tasks text-info me-2"></i>
+                    최근 과제 할당
+                </h5>
+                {% for assignment in recent_assignments %}
+                <div class="recent-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ assignment.course.subject_name }}</h6>
+                            <small class="text-muted">
+                                {% if assignment.assigned_class %}
+                                    {{ assignment.assigned_class.name }}
+                                {% else %}
+                                    {{ assignment.assigned_student.user.get_full_name }}
+                                {% endif %}
+                                | {{ assignment.assigned_at|date:"m/d" }}
+                            </small>
+                        </div>
+                        {% if assignment.is_completed %}
+                        <span class="badge bg-success">완료</span>
+                        {% else %}
+                        <span class="badge bg-warning">진행중</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted text-center py-3">최근 할당된 과제가 없습니다.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 대시보드 실시간 업데이트 (선택사항)
+function updateDashboard() {
+    fetch('{% url "teacher:api_dashboard_stats" %}')
+        .then(response => response.json())
+        .then(data => {
+            // 통계 업데이트
+            console.log('Dashboard updated', data);
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// 5분마다 대시보드 업데이트
+// setInterval(updateDashboard, 300000);
+</script>
+{% endblock %}

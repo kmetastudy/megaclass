@@ -1,0 +1,135 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}학습 관리 시스템{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    {% block extra_css %}{% endblock %}
+    <style>
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .content-area { min-height: calc(100vh - 4rem); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        @media (max-width: 768px) {
+            .mobile-hidden { display: none !important; }
+            .mobile-full { width: 100% !important; }
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            transition: width 0.3s ease;
+        }
+
+         /* 스크롤바 스타일링 */
+            .overflow-y-auto::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .overflow-y-auto::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+            }
+            
+            .overflow-y-auto::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 10px;
+            }
+            
+            .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+            
+        
+    </style>
+</head>
+<body class="bg-gray-50">
+    {% if user.is_authenticated %}
+    <!-- 헤더 -->
+    <header class="bg-white shadow-md">
+        <!-- 상단 헤더 내용 -->
+    </header>
+
+    <!-- 레이아웃 래퍼: flex 컨테이너 -->
+    <div class="flex">
+        <!-- 사이드바 -->
+        <!-- 
+             * 모바일: fixed + -translate-x-full 로 숨겨둠. 
+             * md 이상: translate-x-0 + static 으로 일반 flow 진입.  
+             * md:ml-64는 메인영역 쪽에서 적용.
+        -->
+        <aside id="sidebar"
+            class="sidebar-transition fixed md:static inset-y-0 left-0 w-64 bg-white shadow-lg z-40
+                transform -translate-x-full md:translate-x-0 h-screen">
+            <nav class="mt-8 h-full overflow-y-auto">
+                <div class="px-4 space-y-2">
+                    {% block sidebar %}
+                    <!-- teacher/base.html 에서 override -->
+                    {% endblock %}
+                </div>
+            </nav>
+    </aside>
+
+        <!-- 메인 컨텐츠 -->
+        <!-- 
+             * md 이상일 때 사이드바 폭(64rem=16em)을 피해서 margin-left를 줌.
+        -->
+        <main class="flex-1 content-area p-2 md:ml-4">
+    {% endif %}
+
+    <!-- 메시지 표시 -->
+   <!-- 메시지 표시 -->
+   {% if messages %}
+   <div class="fixed top-20 right-4 z-50 space-y-2">
+       {% for message in messages %}
+           <div class="bg-{{ message.tags }}-500 text-white px-6 py-3 rounded-lg shadow-lg">
+               <div class="flex items-center space-x-2">
+                   <i class="fas 
+                      {% if message.tags == 'success' %}fa-check
+                      {% elif message.tags == 'error' %}fa-exclamation-triangle
+                      {% else %}fa-info{% endif %} mr-2"></i>
+                   <span>{{ message }}</span>
+               </div>
+           </div>
+       {% endfor %}
+   </div>
+   {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+  
+        </main>
+    </div>
+
+    <!-- 스크립트 -->
+    <script>
+        // 사이드바 토글
+        $('#sidebarToggle').click(function() {
+            $('#sidebar').toggleClass('-translate-x-full');
+        });
+
+        // 반응형 처리
+        $(window).resize(function() {
+            if (window.innerWidth >= 768) {
+                // 데스크톱 사이즈 이상이면 사이드바 항상 보이도록
+                $('#sidebar').removeClass('-translate-x-full');
+            }
+        });
+
+        // // 메시지 자동 숨김
+        // setTimeout(function() {
+        //     $('.fixed .bg-success-500, .fixed .bg-error-500, .fixed .bg-info-500').fadeOut();
+        // }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!-- teacher/templates/teacher/courses/detail.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ course.subject_name }} - 코스 상세{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <a href="{% url 'teacher:course_list' %}" 
+                   class="mr-4 text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-arrow-left text-lg"></i>
+                </a>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">{{ course.subject_name }}</h1>
+                    <p class="text-gray-600">{{ course.target }}</p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <a href="{% url 'teacher:course_edit' course.id %}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-edit mr-2"></i>코스 수정
+                </a>
+
+                <a href="{% url 'teacher:course_detail_onepage' course.id %}" 
+                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-layer-group mr-2"></i>통합 관리
+                </a>
+
+                  <!-- 구조 통합 관리 버튼 추가 -->
+                    <a href="{% url 'teacher:course_structure_manage' course.id %}" 
+                    class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-sitemap mr-2"></i>구조 통합 관리
+                </a>
+
+                <a href="{% url 'teacher:chapter_list' course.id %}" 
+                   class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    <i class="fas fa-sitemap mr-2"></i>구조 편집
+                </a>
+                <a href="{% url 'teacher:course_assign' course.id %}" 
+                   class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200">
+                    <i class="fas fa-share mr-2"></i>코스 할당
+                </a>
+            </div>
+        </div>
+        
+        <!-- 코스 설명 -->
+        {% if course.description %}
+        <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-gray-700">{{ course.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-list-alt text-blue-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_chapters }}</p>
+            <p class="text-sm text-gray-500">대단원</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-bookmark text-green-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_subchapters }}</p>
+            <p class="text-sm text-gray-500">소단원</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-clock text-purple-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_chasis }}</p>
+            <p class="text-sm text-gray-500">차시</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-images text-yellow-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.total_slides }}</p>
+            <p class="text-sm text-gray-500">슬라이드</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-users text-red-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.assigned_classes }}</p>
+            <p class="text-sm text-gray-500">할당 학급</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-md p-4 text-center">
+            <i class="fas fa-user-graduate text-indigo-600 text-2xl mb-2"></i>
+            <p class="text-2xl font-bold text-gray-800">{{ stats.assigned_students }}</p>
+            <p class="text-sm text-gray-500">할당 학생</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 코스 구조 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-sitemap mr-2"></i>코스 구조
+                    </h3>
+                    <a href="{% url 'teacher:chapter_create' course.id %}" 
+                       class="text-blue-600 hover:text-blue-800 text-sm">
+                        <i class="fas fa-plus mr-1"></i>대단원 추가
+                    </a>
+                </div>
+                
+                {% if chapters %}
+                <div class="space-y-4">
+                    {% for chapter in chapters %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-800">
+                                {{ chapter.chapter_order }}. {{ chapter.chapter_title }}
+                            </h4>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                    {{ chapter.subchapter_count }}개 소단원
+                                </span>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {{ chapter.chasi_count }}개 차시
+                                </span>
+                                <a href="{% url 'teacher:subchapter_list' chapter.id %}" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 진행률 바 (예시) -->
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ chapter.chasi_count|add:0|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-list-alt text-4xl text-gray-300 mb-4"></i>
+                    <p class="text-gray-500 mb-4">아직 대단원이 없습니다</p>
+                    <a href="{% url 'teacher:chapter_create' course.id %}" 
+                       class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-plus mr-2"></i>첫 번째 대단원 만들기
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 최근 할당 -->
+          <!-- 최근 할당 섹션 수정 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-clock mr-2"></i>최근 할당
+                </h3>
+                
+                {% if recent_assignments %}
+                <div class="space-y-3">
+                    {% for assignment in recent_assignments %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-800">
+                                {% if assignment.assigned_class %}
+                                    {{ assignment.assigned_class.name }}
+                                {% else %}
+                                    {{ assignment.assigned_student.user.get_full_name }}
+                                {% endif %}
+                            </p>
+                            <p class="text-xs text-gray-500">{{ assignment.assigned_at|date:"m.d H:i" }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            {% if assignment.is_completed %}
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">완료</span>
+                            {% elif assignment.due_date %}
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                    ~{{ assignment.due_date|date:"m/d" }}
+                                </span>
+                            {% endif %}
+                            <i class="fas fa-{% if assignment.assigned_class %}users{% else %}user{% endif %} text-gray-400"></i>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-share text-2xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500 text-sm">할당 기록이 없습니다</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 빠른 액션 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-bolt mr-2"></i>빠른 액션
+                </h3>
+                
+                <div class="space-y-3">
+                    <a href="{% url 'teacher:chapter_create' course.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-plus text-blue-600 mr-3"></i>
+                        <span class="text-gray-800">대단원 추가</span>
+                    </a>
+                    
+                    <a href="{% url 'teacher:course_assign' course.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-share text-green-600 mr-3"></i>
+                        <span class="text-gray-800">학급/학생 할당</span>
+                    </a>
+                    
+                    <a href="#" onclick="alert('미리보기 기능은 개발 중입니다.')" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-eye text-purple-600 mr-3"></i>
+                        <span class="text-gray-800">코스 미리보기</span>
+                    </a>
+                    
+                    <a href="#" onclick="if(confirm('정말 삭제하시겠습니까?')) { alert('삭제 기능은 구현 중입니다.'); }" 
+                       class="w-full flex items-center p-3 border border-red-200 rounded-lg hover:bg-red-50 transition duration-200">
+                        <i class="fas fa-trash text-red-600 mr-3"></i>
+                        <span class="text-red-800">코스 삭제</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 표시 -->
+{% if messages %}
+<div class="fixed top-4 right-4 z-50">
+    {% for message in messages %}
+    <div class="bg-white border-l-4 {% if message.tags == 'success' %}border-green-500{% else %}border-red-500{% endif %} p-4 mb-4 shadow-lg rounded-lg max-w-sm">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                {% if message.tags == 'success' %}
+                <i class="fas fa-check-circle text-green-500"></i>
+                {% else %}
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                {% endif %}
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-gray-700">{{ message }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 메시지 자동 숨김
+    setTimeout(function() {
+        const messages = document.querySelectorAll('[class*="border-green-500"], [class*="border-red-500"]');
+        messages.forEach(function(message) {
+            message.style.transition = 'opacity 0.5s';
+            message.style.opacity = '0';
+            setTimeout(function() {
+                message.remove();
+            }, 500);
+        });
+    }, 5000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,522 @@
+<!-- teacher/templates/teacher/courses/structure_manage.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ course.subject_name }} - 통합 구조 관리{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tree-view {
+        font-family: inherit;
+    }
+    
+    .tree-item {
+        position: relative;
+        padding-left: 20px;
+        margin: 4px 0;
+    }
+    
+    .tree-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 15px;
+        height: 1px;
+        background-color: #d1d5db;
+    }
+    
+    .tree-item.collapsed > .tree-children {
+        display: none;
+    }
+    
+    .tree-children {
+        margin-left: 20px;
+        border-left: 1px solid #e5e7eb;
+        padding-left: 0;
+    }
+    
+    .tree-toggle {
+        cursor: pointer;
+        user-select: none;
+        margin-right: 8px;
+        color: #6b7280;
+        transition: transform 0.2s;
+    }
+    
+    .tree-toggle.collapsed {
+        transform: rotate(-90deg);
+    }
+    
+    .tree-content {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    
+    .tree-content:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .tree-content.selected {
+        background-color: #ede9fe;
+        border: 1px solid #a78bfa;
+    }
+    
+    .add-button {
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    
+    .tree-item:hover > .tree-content .add-button {
+        opacity: 1;
+    }
+    
+    .quick-add-form {
+        margin: 8px 0 8px 20px;
+        padding: 12px;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">통합 구조 관리 - 한 곳에서 모든 구조를 관리하세요</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="expandAll()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-expand-alt mr-2"></i>모두 펼치기
+                </button>
+                <button onclick="collapseAll()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-compress-alt mr-2"></i>모두 접기
+                </button>
+                <a href="{% url 'teacher:course_detail' course.id %}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-arrow-left mr-2"></i>코스 상세로
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 트리 구조 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-sitemap mr-2"></i>코스 구조
+                </h2>
+                
+                <div class="tree-view" id="courseTree">
+                    <!-- 코스 루트 -->
+                    <div class="tree-item" data-type="course" data-id="{{ course.id }}">
+                        <div class="tree-content">
+                            <i class="fas fa-book text-purple-600 mr-2"></i>
+                            <span class="font-semibold">{{ course.subject_name }}</span>
+                            <button onclick="showAddChapterForm({{ course.id }})" 
+                                    class="add-button ml-auto bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+                                <i class="fas fa-plus mr-1"></i>대단원 추가
+                            </button>
+                        </div>
+                        
+                        <div class="tree-children" id="chapters-container">
+                            <!-- 동적으로 로드됨 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 사이드바 - 선택된 항목 정보 -->
+        <div>
+            <div class="bg-white rounded-xl shadow-md p-6 sticky top-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>선택된 항목
+                </h3>
+                
+                <div id="selectedItemInfo">
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-mouse-pointer text-4xl mb-2"></i>
+                        <p>항목을 선택하세요</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 통계 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mt-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-chart-bar mr-2"></i>구조 통계
+                </h3>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">대단원</span>
+                        <span class="font-medium" id="chapterCount">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">소단원</span>
+                        <span class="font-medium" id="subchapterCount">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">차시</span>
+                        <span class="font-medium" id="chasiCount">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">슬라이드</span>
+                        <span class="font-medium" id="slideCount">0</span>
+                    </div>
+                    <hr class="my-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">총 학습 시간</span>
+                        <span class="font-medium" id="totalDuration">0분</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 빠른 추가 폼 템플릿 -->
+<template id="quickAddTemplate">
+    <div class="quick-add-form">
+        <form onsubmit="return false;">
+            <div class="mb-3">
+                <input type="text" 
+                       placeholder="제목을 입력하세요" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       required>
+            </div>
+            <div class="flex space-x-2">
+                <button type="button" onclick="submitQuickAdd(this)" 
+                        class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                    <i class="fas fa-check mr-1"></i>추가
+                </button>
+                <button type="button" onclick="cancelQuickAdd(this)" 
+                        class="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700">
+                    <i class="fas fa-times mr-1"></i>취소
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
+<script>
+// 전역 상태
+let selectedItem = null;
+let structureData = null;
+
+// 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    loadCourseStructure();
+});
+
+// 코스 구조 로드
+function loadCourseStructure() {
+    fetch(`/teacher/api/courses/{{ course.id }}/structure/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                structureData = data.structure;
+                renderStructure();
+                updateStatistics();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('구조를 불러오는 중 오류가 발생했습니다.', 'error');
+        });
+}
+
+// 구조 렌더링
+function renderStructure() {
+    const container = document.getElementById('chapters-container');
+    container.innerHTML = '';
+    
+    if (structureData.chapters && structureData.chapters.length > 0) {
+        structureData.chapters.forEach(chapter => {
+            container.appendChild(createChapterElement(chapter));
+        });
+    } else {
+        container.innerHTML = `
+            <div class="text-center py-4 text-gray-500">
+                <p>대단원이 없습니다.</p>
+            </div>
+        `;
+    }
+}
+
+// 대단원 엘리먼트 생성
+function createChapterElement(chapter) {
+    const div = document.createElement('div');
+    div.className = 'tree-item';
+    div.dataset.type = 'chapter';
+    div.dataset.id = chapter.id;
+    
+    div.innerHTML = `
+        <div class="tree-content">
+            <i class="fas fa-chevron-down tree-toggle" onclick="toggleItem(this)"></i>
+            <i class="fas fa-folder text-blue-600 mr-2"></i>
+            <span class="font-medium">${chapter.order}. ${chapter.title}</span>
+            <span class="ml-2 text-xs text-gray-500">(${chapter.subchapters.length}개 소단원)</span>
+            <button onclick="showAddSubchapterForm(${chapter.id})" 
+                    class="add-button ml-auto bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+                <i class="fas fa-plus mr-1"></i>소단원
+            </button>
+        </div>
+        <div class="tree-children">
+            ${chapter.subchapters.map(subchapter => createSubchapterElement(subchapter)).join('')}
+        </div>
+    `;
+    
+    // 클릭 이벤트
+    div.querySelector('.tree-content').addEventListener('click', function(e) {
+        if (!e.target.classList.contains('add-button') && !e.target.classList.contains('tree-toggle')) {
+            selectItem('chapter', chapter.id);
+        }
+    });
+    
+    return div;
+}
+
+// 소단원 엘리먼트 생성
+function createSubchapterElement(subchapter) {
+    return `
+        <div class="tree-item" data-type="subchapter" data-id="${subchapter.id}">
+            <div class="tree-content">
+                <i class="fas fa-chevron-down tree-toggle" onclick="toggleItem(this)"></i>
+                <i class="fas fa-folder-open text-green-600 mr-2"></i>
+                <span>${subchapter.order}. ${subchapter.title}</span>
+                <span class="ml-2 text-xs text-gray-500">(${subchapter.chasis.length}개 차시)</span>
+                <button onclick="showAddChasiForm(${subchapter.id})" 
+                        class="add-button ml-auto bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+                    <i class="fas fa-plus mr-1"></i>차시
+                </button>
+            </div>
+            <div class="tree-children">
+                ${subchapter.chasis.map(chasi => createChasiElement(chasi)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// 차시 엘리먼트 생성
+function createChasiElement(chasi) {
+    return `
+        <div class="tree-item" data-type="chasi" data-id="${chasi.id}">
+            <div class="tree-content">
+                <i class="fas fa-book-reader text-purple-600 mr-2"></i>
+                <span>${chasi.order}. ${chasi.title}</span>
+                <span class="ml-2 text-xs text-gray-500">(${chasi.slide_count}개 슬라이드)</span>
+                <a href="/teacher/chasis/${chasi.id}/slides/" 
+                   class="add-button ml-auto bg-purple-500 text-white px-2 py-1 rounded text-xs hover:bg-purple-600">
+                    <i class="fas fa-images mr-1"></i>슬라이드
+                </a>
+            </div>
+        </div>
+    `;
+}
+
+// 항목 토글
+function toggleItem(toggleBtn) {
+    const treeItem = toggleBtn.closest('.tree-item');
+    treeItem.classList.toggle('collapsed');
+    toggleBtn.classList.toggle('collapsed');
+}
+
+// 모두 펼치기/접기
+function expandAll() {
+    document.querySelectorAll('.tree-item').forEach(item => {
+        item.classList.remove('collapsed');
+    });
+    document.querySelectorAll('.tree-toggle').forEach(toggle => {
+        toggle.classList.remove('collapsed');
+    });
+}
+
+function collapseAll() {
+    document.querySelectorAll('.tree-item').forEach(item => {
+        item.classList.add('collapsed');
+    });
+    document.querySelectorAll('.tree-toggle').forEach(toggle => {
+        toggle.classList.add('collapsed');
+    });
+}
+
+// 항목 선택
+function selectItem(type, id) {
+    // 이전 선택 제거
+    document.querySelectorAll('.tree-content.selected').forEach(el => {
+        el.classList.remove('selected');
+    });
+    
+    // 새 선택 추가
+    const item = document.querySelector(`[data-type="${type}"][data-id="${id}"]`);
+    if (item) {
+        item.querySelector('.tree-content').classList.add('selected');
+        selectedItem = { type, id };
+        loadItemInfo(type, id);
+    }
+}
+
+// 항목 정보 로드
+function loadItemInfo(type, id) {
+    const container = document.getElementById('selectedItemInfo');
+    container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i></div>';
+    
+    // API 호출하여 상세 정보 로드
+    let apiUrl = '';
+    switch(type) {
+        case 'chapter':
+            apiUrl = `/teacher/api/chapter/${id}/detail/`;
+            break;
+        case 'subchapter':
+            apiUrl = `/teacher/api/subchapter/${id}/detail/`;
+            break;
+        case 'chasi':
+            apiUrl = `/teacher/api/chasi/${id}/detail/`;
+            break;
+    }
+    
+    if (apiUrl) {
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                displayItemInfo(type, data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = '<p class="text-red-600">정보를 불러올 수 없습니다.</p>';
+            });
+    }
+}
+
+// 항목 정보 표시
+function displayItemInfo(type, data) {
+    const container = document.getElementById('selectedItemInfo');
+    let html = '';
+    
+    switch(type) {
+        case 'chapter':
+            html = `
+                <h4 class="font-semibold text-gray-800 mb-3">${data.chapter_title}</h4>
+                <div class="space-y-2 text-sm">
+                    <p><span class="text-gray-600">순서:</span> ${data.chapter_order}</p>
+                    <p><span class="text-gray-600">소단원:</span> ${data.subchapters.length}개</p>
+                    ${data.description ? `<p class="text-gray-700">${data.description}</p>` : ''}
+                </div>
+                <div class="mt-4 space-y-2">
+                    <a href="/teacher/chapters/${data.id}/edit/" 
+                       class="block w-full bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </a>
+                </div>
+            `;
+            break;
+            
+        case 'subchapter':
+            html = `
+                <h4 class="font-semibold text-gray-800 mb-3">${data.sub_chapter_title}</h4>
+                <div class="space-y-2 text-sm">
+                    <p><span class="text-gray-600">순서:</span> ${data.sub_chapter_order}</p>
+                    <p><span class="text-gray-600">차시:</span> ${data.chasis.length}개</p>
+                    ${data.description ? `<p class="text-gray-700">${data.description}</p>` : ''}
+                </div>
+                <div class="mt-4 space-y-2">
+                    <a href="/teacher/subchapters/${data.id}/edit/" 
+                       class="block w-full bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </a>
+                </div>
+            `;
+            break;
+            
+        case 'chasi':
+            html = `
+                <h4 class="font-semibold text-gray-800 mb-3">${data.chasi_title}</h4>
+                <div class="space-y-2 text-sm">
+                    <p><span class="text-gray-600">순서:</span> ${data.chasi_order}</p>
+                    <p><span class="text-gray-600">슬라이드:</span> ${data.slides.length}개</p>
+                    <p><span class="text-gray-600">수업시간:</span> ${data.duration_minutes}분</p>
+                    ${data.learning_objectives ? `
+                        <div class="mt-2 p-2 bg-blue-50 rounded">
+                            <p class="text-xs font-medium text-blue-800">학습목표</p>
+                            <p class="text-blue-700 text-xs">${data.learning_objectives}</p>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="mt-4 space-y-2">
+                    <a href="/teacher/chasis/${data.id}/slides/" 
+                       class="block w-full bg-purple-600 text-white text-center py-2 rounded hover:bg-purple-700">
+                        <i class="fas fa-images mr-1"></i>슬라이드 관리
+                    </a>
+                    <a href="/teacher/chasis/${data.id}/edit/" 
+                       class="block w-full bg-blue-600 text-white text-center py-2 rounded hover:bg-blue-700">
+                        <i class="fas fa-edit mr-1"></i>수정
+                    </a>
+                </div>
+            `;
+            break;
+    }
+    
+    container.innerHTML = html;
+}
+
+// 통계 업데이트
+function updateStatistics() {
+    let chapterCount = 0;
+    let subchapterCount = 0;
+    let chasiCount = 0;
+    let slideCount = 0;
+    let totalDuration = 0;
+    
+    if (structureData && structureData.chapters) {
+        chapterCount = structureData.chapters.length;
+        
+        structureData.chapters.forEach(chapter => {
+            subchapterCount += chapter.subchapters.length;
+            
+            chapter.subchapters.forEach(subchapter => {
+                chasiCount += subchapter.chasis.length;
+                
+                subchapter.chasis.forEach(chasi => {
+                    slideCount += chasi.slide_count;
+                    totalDuration += (chasi.duration || 45); // 기본 45분
+                });
+            });
+        });
+    }
+    
+    document.getElementById('chapterCount').textContent = chapterCount;
+    document.getElementById('subchapterCount').textContent = subchapterCount;
+    document.getElementById('chasiCount').textContent = chasiCount;
+    document.getElementById('slideCount').textContent = slideCount;
+    document.getElementById('totalDuration').textContent = `${totalDuration}분 (${Math.round(totalDuration/60)}시간)`;
+}
+
+// 빠른 추가 폼 관련 함수들
+function showAddChapterForm(courseId) {
+    // 구현 필요
+}
+
+function showAddSubchapterForm(chapterId) {
+    // 구현 필요
+}
+
+function showAddChasiForm(subchapterId) {
+    // 구현 필요
+}
+
+// 메시지 표시
+function showMessage(message, type) {
+    // 기존 구현 재사용
+}
+</script>
+{% endblock %}

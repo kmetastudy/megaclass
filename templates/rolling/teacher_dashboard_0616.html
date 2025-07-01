@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>앞구르기 수행평가 - 교사 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800 mb-8">앞구르기 수행평가 - 교사 대시보드</h1>
+            
+            <!-- 담당 학급 선택 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">담당 학급</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {% for class in teacher_classes %}
+                    <a href="{% url 'rolling:teacher_class' class.id %}" class="block p-4 border rounded-lg hover:bg-blue-50 transition">
+                        <h3 class="font-semibold">{{ class.name }}</h3>
+                        <p class="text-sm text-gray-600">{{ class.grade }}학년 {{ class.class_number }}반</p>
+                        <p class="text-sm text-gray-500">학생 수: {{ class.student_set.count }}명</p>
+                    </a>
+                    {% empty %}
+                    <p class="text-gray-500">담당 학급이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- 통계 차트 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">회차별 성공 학생 수 (담당 학급)</h2>
+                    <canvas id="successChart"></canvas>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">피드백 분석</h2>
+                    <div id="feedbackAnalysis" class="space-y-4">
+                        <button id="loadAnalysis" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            AI 분석 결과 보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 차트 데이터
+        const successStats = {{ success_stats|safe }};
+        
+        // 차트 생성
+        const ctx = document.getElementById('successChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: successStats.map(s => s.attempt + '회차'),
+                datasets: [{
+                    label: '성공 학생 수',
+                    data: successStats.map(s => s.count),
+                    backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 피드백 분석 로드
+        $('#loadAnalysis').click(function() {
+            $.ajax({
+                url: '{% url "rolling:feedback_analysis" %}',
+                method: 'GET',
+                success: function(data) {
+                    let html = '<div class="space-y-4">';
+                    
+                    // 성공 피드백 분석
+                    html += '<div><h3 class="font-semibold text-green-600 mb-2">성공 시 주요 요인</h3><div class="space-y-2">';
+                    const successTotal = Object.values(data.success_analysis).reduce((a, b) => a + b, 0);
+                    for (const [category, count] of Object.entries(data.success_analysis)) {
+                        const percentage = successTotal > 0 ? (count / successTotal * 100).toFixed(1) : 0;
+                        html += `
+                            <div class="flex items-center">
+                                <span class="w-24 text-sm">${category}</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-4 mr-2">
+                                    <div class="bg-green-500 h-4 rounded-full" style="width: ${percentage}%"></div>
+                                </div>
+                                <span class="text-sm">${percentage}%</span>
+                            </div>
+                        `;
+                    }
+                    html += '</div></div>';
+                    
+                    // 실패 피드백 분석
+                    html += '<div><h3 class="font-semibold text-red-600 mb-2">실패 시 주요 원인</h3><div class="space-y-2">';
+                    const failTotal = Object.values(data.fail_analysis).reduce((a, b) => a + b, 0);
+                    for (const [category, count] of Object.entries(data.fail_analysis)) {
+                        const percentage = failTotal > 0 ? (count / failTotal * 100).toFixed(1) : 0;
+                        html += `
+                            <div class="flex items-center">
+                                <span class="w-24 text-sm">${category}</span>
+                                <div class="flex-1 bg-gray-200 rounded-full h-4 mr-2">
+                                    <div class="bg-red-500 h-4 rounded-full" style="width: ${percentage}%"></div>
+                                </div>
+                                <span class="text-sm">${percentage}%</span>
+                            </div>
+                        `;
+                    }
+                    html += '</div></div>';
+                    
+                    html += '</div>';
+                    $('#feedbackAnalysis').html(html);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

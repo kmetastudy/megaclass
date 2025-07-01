@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}학습 관리 시스템{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+        .sidebar-transition {
+            transition: transform 0.3s ease-in-out;
+        }
+        /* 메인 컨텐츠 높이 */
+        .content-area {
+            min-height: calc(100vh - 4rem); /* 헤더 높이가 대략 h-16 */
+        }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+{% if user.is_authenticated %}
+<!-- 헤더 -->
+<header class="bg-white shadow-md">
+    <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+            <!-- 로고 / 사이드바 토글 버튼 -->
+            <div class="flex items-center space-x-4">
+                <button id="sidebarToggle" class="md:hidden p-2 rounded-md hover:bg-gray-100">
+                    <i class="fas fa-bars text-gray-600"></i>
+                </button>
+                <h1 class="text-xl font-bold text-gray-800">
+                    <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
+                    <a href="/" class="hover:text-blue-600">학습 관리 시스템</a>
+                </h1>
+            </div>
+
+            <!-- 사용자 정보 -->
+            <div class="flex items-center space-x-4">
+                <div class="text-sm text-gray-600">
+                    <span>{{ user.get_full_name|default:user.username }}</span>
+                    <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        {% if user.teacher %}교사{% elif user.student %}학생{% endif %}
+                    </span>
+                </div>
+                <a href="{% url 'accounts:profile' %}" class="text-gray-600 hover:text-gray-800">
+                    <i class="fas fa-user"></i>
+                </a>
+                <a href="{% url 'accounts:logout' %}" class="text-gray-600 hover:text-gray-800">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- 전체 레이아웃: 헤더 아래 영역 -->
+<div class="flex">
+    <!-- 사이드바 -->
+    <!-- 
+        - 모바일: fixed + -translate-x-full 로 숨김, 토글로 열림
+        - md 이상: static + translate-x-0 로 항상 보임
+        - h-screen or inset-y-0 등으로 화면 전체 높이
+    -->
+    <aside id="sidebar"
+           class="sidebar-transition fixed md:static inset-y-0 left-0 w-64 bg-white shadow-lg z-40
+                  transform -translate-x-full md:translate-x-0 h-screen">
+        <nav class="mt-8 h-full overflow-y-auto">
+            <div class="px-4 space-y-2">
+                {% block sidebar %}
+                <!-- teacher/base.html 에서 override -->
+                {% endblock %}
+            </div>
+        </nav>
+    </aside>
+
+    <!-- 메인 컨텐츠 -->
+    <!-- md:ml-64 -> 데스크톱에선 사이드바 폭만큼 왼쪽 여백 확보 -->
+    <main class="flex-1 content-area p-6 md:ml-64">
+{% endif %}
+
+    <!-- 메시지 표시 -->
+    {% if messages %}
+    <div class="fixed top-20 right-4 z-50 space-y-2">
+        {% for message in messages %}
+            <div class="bg-{{ message.tags }}-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                <div class="flex items-center space-x-2">
+                    <i class="fas 
+                       {% if message.tags == 'success' %}fa-check
+                       {% elif message.tags == 'error' %}fa-exclamation-triangle
+                       {% else %}fa-info{% endif %} mr-2"></i>
+                    <span>{{ message }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+{% if user.is_authenticated %}
+    </main>
+</div>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+
+<script>
+    // 사이드바 토글 (모바일용)
+    $('#sidebarToggle').click(function() {
+        $('#sidebar').toggleClass('-translate-x-full');
+    });
+
+    // 창 크기 변경 시 데스크톱이면 사이드바 강제로 보여주기
+    $(window).resize(function() {
+        if (window.innerWidth >= 768) {
+            $('#sidebar').removeClass('-translate-x-full');
+        }
+    });
+
+    // 메시지 자동 숨김
+    setTimeout(function() {
+        $('.fixed .bg-success-500, .fixed .bg-error-500, .fixed .bg-info-500').fadeOut();
+    }, 3000);
+</script>
+
+</body>
+</html>

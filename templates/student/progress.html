@@ -1,0 +1,239 @@
+{% extends 'student/base.html' %}
+
+{% block title %}학습 진도 - 학습 관리 시스템{% endblock %}
+{% block page_title %}학습 진도{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">학습 진도</h1>
+    <p class="text-lg text-slate-600">전체 학습 현황을 한눈에 확인하세요.</p>
+</div>
+
+<!-- 전체 진도 요약 -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <!-- 전체 진도율 -->
+    <div class="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i class="fas fa-chart-pie text-3xl text-white/80"></i>
+            <span class="text-2xl font-bold">전체</span>
+        </div>
+        <div class="mb-2">
+            <span class="text-4xl font-bold">{{ overall_progress_percent }}%</span>
+        </div>
+        <p class="text-sm text-white/80">평균 진도율</p>
+    </div>
+    
+    <!-- 학습 시간 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <i class="fas fa-clock text-2xl text-blue-500"></i>
+            <span class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">시간</span>
+        </div>
+        <div class="mb-2">
+            <span class="text-3xl font-bold text-slate-900">{{ total_study_time }}</span>
+            <span class="text-sm text-slate-600 ml-1">시간</span>
+        </div>
+        <p class="text-sm text-slate-500">총 학습 시간</p>
+    </div>
+    
+    <!-- 완료 코스 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <i class="fas fa-trophy text-2xl text-green-500"></i>
+            <span class="text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">완료</span>
+        </div>
+        <div class="mb-2">
+            <span class="text-3xl font-bold text-slate-900">{{ completed_courses }}</span>
+            <span class="text-sm text-slate-600 ml-1">/ {{ total_courses }}</span>
+        </div>
+        <p class="text-sm text-slate-500">완료한 코스</p>
+    </div>
+    
+    <!-- 평균 점수 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <i class="fas fa-star text-2xl text-yellow-500"></i>
+            <span class="text-sm font-medium text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">점수</span>
+        </div>
+        <div class="mb-2">
+            <span class="text-3xl font-bold text-slate-900">{{ overall_avg_score }}</span>
+            <span class="text-sm text-slate-600 ml-1">점</span>
+        </div>
+        <p class="text-sm text-slate-500">평균 점수</p>
+    </div>
+</div>
+
+<!-- 코스별 진도 -->
+<div class="space-y-6">
+    {% for progress in course_progress %}
+    <div class="bg-white rounded-2xl p-6 border border-slate-200 card-hover">
+        <!-- 코스 헤더 -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-6">
+            <div class="mb-4 lg:mb-0">
+                <h3 class="text-xl font-semibold text-slate-900 mb-2">{{ progress.course.subject_name }}</h3>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                    <span class="flex items-center gap-1">
+                        <i class="fas fa-user-tie"></i>
+                        {{ progress.course.teacher.user.get_full_name }} 선생님
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <i class="fas fa-users"></i>
+                        {{ progress.course.target }}
+                    </span>
+                    {% if progress.avg_score %}
+                    <span class="flex items-center gap-1">
+                        <i class="fas fa-star text-yellow-500"></i>
+                        평균 {{ progress.avg_score }}점
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 진도율 표시 -->
+            <div class="text-center lg:text-right">
+                <div class="relative inline-flex items-center justify-center">
+                    <svg class="transform -rotate-90 w-20 h-20">
+                        <circle cx="40" cy="40" r="36" stroke="#e2e8f0" stroke-width="8" fill="none"></circle>
+                        <circle cx="40" cy="40" r="36" 
+                                stroke="url(#gradient-{{ forloop.counter }})" 
+                                stroke-width="8" 
+                                fill="none"
+                                stroke-dasharray="{{ progress.progress_percent|floatformat:0 }} 100"
+                                stroke-linecap="round"></circle>
+                        <defs>
+                            <linearGradient id="gradient-{{ forloop.counter }}">
+                                <stop offset="0%" stop-color="#8b5cf6" />
+                                <stop offset="100%" stop-color="#6366f1" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <span class="absolute text-2xl font-bold text-slate-900">{{ progress.progress_percent }}%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 진도 바 -->
+        <div class="mb-6">
+            <div class="flex justify-between text-sm text-slate-600 mb-2">
+                <span>{{ progress.completed_slides }}/{{ progress.total_slides }} 슬라이드 완료</span>
+                <span>
+                    {% if progress.progress_percent == 100 %}
+                        <i class="fas fa-check-circle text-green-500 mr-1"></i>완료
+                    {% elif progress.progress_percent > 0 %}
+                        <i class="fas fa-spinner text-blue-500 mr-1"></i>진행 중
+                    {% else %}
+                        <i class="fas fa-circle text-slate-400 mr-1"></i>미시작
+                    {% endif %}
+                </span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r 
+                     {% if progress.progress_color == 'green' %}from-green-500 to-green-600
+                     {% elif progress.progress_color == 'blue' %}from-blue-500 to-blue-600
+                     {% elif progress.progress_color == 'yellow' %}from-yellow-500 to-yellow-600
+                     {% else %}from-slate-400 to-slate-500{% endif %}"
+                     style="width: {{ progress.progress_percent }}%">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 세부 정보 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="text-center p-4 bg-green-50 rounded-xl">
+                <i class="fas fa-check-circle text-green-500 text-2xl mb-2"></i>
+                <p class="text-2xl font-bold text-slate-900">{{ progress.completed_slides }}</p>
+                <p class="text-sm text-slate-600">완료</p>
+            </div>
+            <div class="text-center p-4 bg-yellow-50 rounded-xl">
+                <i class="fas fa-play-circle text-yellow-500 text-2xl mb-2"></i>
+                <p class="text-2xl font-bold text-slate-900">{{ progress.in_progress }}</p>
+                <p class="text-sm text-slate-600">진행 중</p>
+            </div>
+            <div class="text-center p-4 bg-slate-50 rounded-xl">
+                <i class="far fa-circle text-slate-400 text-2xl mb-2"></i>
+                <p class="text-2xl font-bold text-slate-900">{{ progress.not_started }}</p>
+                <p class="text-sm text-slate-600">미시작</p>
+            </div>
+        </div>
+        
+        <!-- 액션 버튼 -->
+        <div class="flex justify-end">
+            <a href="{% url 'student:learning_course' progress.course.id %}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all">
+                <span>상세 보기</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+        <i class="fas fa-chart-line text-6xl text-slate-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-slate-700 mb-2">학습 진도가 없습니다</h3>
+        <p class="text-slate-500">코스를 시작하여 학습 진도를 확인하세요.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 최근 학습 활동 -->
+<div class="mt-8">
+    <h2 class="text-2xl font-semibold text-slate-900 mb-6">최근 학습 활동</h2>
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-200 bg-slate-50">
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">날짜</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">코스</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">슬라이드</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">유형</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">상태</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">조회수</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for activity in recent_activities %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {{ activity.started_at|date:"m월 d일 H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {{ activity.slide.chasi.sub_chapter.chapter.subject.subject_name }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-900">
+                            {{ activity.slide.slide_title|default:activity.slide.chasi.chasi_title }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                                {{ activity.slide.content_type.type_name }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if activity.is_completed %}
+                                <span class="flex items-center gap-1 text-green-600 text-sm">
+                                    <i class="fas fa-check-circle"></i> 완료
+                                </span>
+                            {% else %}
+                                <span class="flex items-center gap-1 text-yellow-600 text-sm">
+                                    <i class="fas fa-play-circle"></i> 진행 중
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                            {{ activity.view_count }}회
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                            아직 학습 활동이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

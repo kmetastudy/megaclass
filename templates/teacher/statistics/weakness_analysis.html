@@ -1,0 +1,281 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}취약점 및 강점 분석{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 헤더 및 네비게이션 -->
+        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-sm p-6 mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <span class="text-3xl mr-3">📊</span>
+                취약점 및 강점 분석
+            </h1>
+            
+            <!-- 네비게이션 탭 -->
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'teacher:statistics_dashboard' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-chart-line text-sm"></i>
+                    <span>개요</span>
+                </a>
+                <a href="{% url 'teacher:statistics_by_class' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-users text-sm"></i>
+                    <span>반별 통계</span>
+                </a>
+                <a href="{% url 'teacher:statistics_by_course' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-book text-sm"></i>
+                    <span>코스별 통계</span>
+                </a>
+                <a href="{% url 'teacher:submission_analysis' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-clipboard-check text-sm"></i>
+                    <span>제출 분석</span>
+                </a>
+                <a href="{% url 'teacher:weakness_analysis' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md transform scale-105 flex items-center gap-2">
+                    <i class="fas fa-chart-pie text-sm"></i>
+                    <span>취약점 분석</span>
+                </a>
+                <a href="{% url 'teacher:physical_records' %}" 
+                   class="px-4 py-2 rounded-lg font-medium text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-heartbeat text-sm"></i>
+                    <span>신체기록</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- 필터 섹션 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <form method="get" action="">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div class="md:col-span-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-filter text-indigo-500 mr-1"></i>분석 유형
+                        </label>
+                        <select name="type" onchange="this.form.submit()"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
+                            <option value="class" {% if analysis_type == 'class' %}selected{% endif %}>학급별 분석</option>
+                            <option value="student" {% if analysis_type == 'student' %}selected{% endif %}>학생별 분석</option>
+                        </select>
+                    </div>
+                    
+                    <div class="md:col-span-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            {% if analysis_type == 'class' %}
+                                <i class="fas fa-users text-indigo-500 mr-1"></i>학급 선택
+                            {% else %}
+                                <i class="fas fa-user-graduate text-indigo-500 mr-1"></i>학생 선택
+                            {% endif %}
+                        </label>
+                        <select name="id" onchange="this.form.submit()"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
+                            <option value="">-- 선택하세요 --</option>
+                            {% if analysis_type == 'class' %}
+                                {% for class in classes %}
+                                <option value="{{ class.id }}" {% if request.GET.id == class.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ class.name }}
+                                </option>
+                                {% endfor %}
+                            {% else %}
+                                {% for student in students %}
+                                <option value="{{ student.id }}" {% if request.GET.id == student.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ student.user.get_full_name }} ({{ student.student_id }})
+                                </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="md:col-span-3">
+                        <button type="button" onclick="generateReport()" 
+                                class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center gap-2">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>분석 보고서 생성</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {% if weakness_data or strength_data %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- 취약 영역 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h5 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                    취약 영역 (정답률 60% 미만)
+                </h5>
+                <div class="space-y-3">
+                    {% for item in weakness_data %}
+                    <div class="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 hover:bg-red-100 transition-colors duration-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <h6 class="font-medium text-gray-800">{{ item.type }}</h6>
+                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                개선 필요
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">총 {{ item.total }}문제 중 정답률 {{ item.accuracy }}%</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-red-500 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ item.accuracy }}%"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-trophy text-4xl text-gray-300 mb-2"></i>
+                        <p>취약 영역이 없습니다. 훌륭합니다!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 강점 영역 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h5 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-star text-green-500 mr-2"></i>
+                    강점 영역 (정답률 80% 이상)
+                </h5>
+                <div class="space-y-3">
+                    {% for item in strength_data %}
+                    <div class="bg-green-50 border-l-4 border-green-500 rounded-lg p-4 hover:bg-green-100 transition-colors duration-200">
+                        <div class="flex items-center justify-between mb-2">
+                            <h6 class="font-medium text-gray-800">{{ item.type }}</h6>
+                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                우수
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">총 {{ item.total }}문제 중 정답률 {{ item.accuracy }}%</p>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ item.accuracy }}%"></div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-chart-line text-4xl text-gray-300 mb-2"></i>
+                        <p>아직 강점 영역이 파악되지 않았습니다.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 자주 틀리는 문제 -->
+        {% if frequent_errors %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+            <h5 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-times-circle text-amber-500 mr-2"></i>
+                자주 틀리는 문제 TOP 10
+            </h5>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {% for error in frequent_errors %}
+                <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                    <div class="flex items-start justify-between mb-2">
+                        <h6 class="font-medium text-gray-800 flex-1 pr-2">{{ error.slide__content__title }}</h6>
+                        <span class="inline-flex px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 whitespace-nowrap">
+                            {{ error.error_count }}회 오답
+                        </span>
+                    </div>
+                    <a href="{% url 'teacher:slide_content' error.slide_id %}" 
+                       class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-900 transition-colors duration-200">
+                        <i class="fas fa-eye mr-1"></i>문제 보기
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 정답률 차트 -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h5 class="text-lg font-semibold text-gray-800 mb-4">영역별 정답률 차트</h5>
+            <div class="relative h-[300px]">
+                <canvas id="accuracyChart"></canvas>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <i class="fas fa-chart-pie text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500">분석할 대상을 선택해주세요.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function generateReport() {
+    // 보고서 생성 기능 구현
+    const type = document.querySelector('[name="type"]').value;
+    const id = document.querySelector('[name="id"]').value;
+    
+    if (!id) {
+        alert('분석 대상을 선택해주세요.');
+        return;
+    }
+    
+    // 실제 구현 시에는 서버로 요청을 보내 PDF 생성
+    alert('분석 보고서 생성 기능은 준비 중입니다.');
+}
+
+{% if weakness_data or strength_data %}
+// Accuracy Chart
+const ctx = document.getElementById('accuracyChart').getContext('2d');
+const accuracyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for item in weakness_data %}'{{ item.type }}',{% endfor %}
+            {% for item in strength_data %}'{{ item.type }}',{% endfor %}
+        ],
+        datasets: [{
+            label: '정답률 (%)',
+            data: [
+                {% for item in weakness_data %}{{ item.accuracy }},{% endfor %}
+                {% for item in strength_data %}{{ item.accuracy }},{% endfor %}
+            ],
+            backgroundColor: function(context) {
+                const value = context.parsed.y;
+                if (value < 60) return '#ef4444'; // red-500
+                if (value < 80) return '#f59e0b'; // amber-500
+                return '#10b981'; // green-500
+            },
+            borderRadius: 8,
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.y + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

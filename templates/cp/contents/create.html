@@ -1,0 +1,171 @@
+<!-- cp/templates/cp/contents/create.html -->
+{% extends 'cp/base.html' %}
+
+{% block title %}컨텐츠 생성 - 학습 관리 시스템{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">새 컨텐츠 생성</h2>
+        <p class="text-gray-600">마크다운 형식으로 학습 컨텐츠를 작성하세요.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-6">
+                <label for="content_type" class="block text-sm font-medium text-gray-700 mb-2">컨텐츠 타입</label>
+                <select name="content_type" id="content_type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">타입 선택</option>
+                    {% for content_type in content_types %}
+                    <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                <input type="text" name="title" id="title" required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                       placeholder="컨텐츠 제목을 입력하세요">
+            </div>
+
+            <div class="mb-6">
+                <label for="content" class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                <textarea name="content" id="content" rows="15" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                          placeholder="마크다운 형식으로 내용을 입력하세요..."></textarea>
+            </div>
+
+            <!-- 선택형 문제 설정 -->
+            <div id="choiceSettings" class="hidden mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">선택지 설정</label>
+                <div id="choiceList" class="space-y-2">
+                    <!-- 동적으로 생성됨 -->
+                </div>
+                <button type="button" id="addChoiceBtn" class="mt-2 text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-plus mr-1"></i>선택지 추가
+                </button>
+            </div>
+
+            <div class="mb-6">
+                <label for="rubric" class="block text-sm font-medium text-gray-700 mb-2">평가 기준 (루브릭)</label>
+                <textarea name="rubric" id="rubric" rows="3" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                          placeholder="평가 기준을 입력하세요..."></textarea>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-save mr-2"></i>저장
+                </button>
+                <button type="button" id="previewBtn" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i class="fas fa-eye mr-2"></i>미리보기
+                </button>
+                <a href="{% url 'cp:content_list' %}" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition duration-200">
+                    <i class="fas fa-times mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.js"></script>
+<script>
+let markdownEditor = null;
+let choiceCount = 0;
+
+// 마크다운 에디터 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    markdownEditor = new EasyMDE({
+        element: document.getElementById('content'),
+        spellChecker: false,
+        toolbar: ["bold", "italic", "strikethrough", "|", "heading-1", "heading-2", "heading-3", "|", 
+                 "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "guide"]
+    });
+});
+
+// 컨텐츠 타입 변경 시
+document.getElementById('content_type').addEventListener('change', function() {
+    const selectedType = this.options[this.selectedIndex].text;
+    if (selectedType === '선택형') {
+        document.getElementById('choiceSettings').classList.remove('hidden');
+        initializeChoices();
+    } else {
+        document.getElementById('choiceSettings').classList.add('hidden');
+    }
+});
+
+function initializeChoices() {
+    choiceCount = 0;
+    document.getElementById('choiceList').innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+        addChoice();
+    }
+}
+
+function addChoice() {
+    choiceCount++;
+    const choiceHtml = `
+        <div class="flex items-center space-x-2 choice-item-container">
+            <input type="radio" name="correct_answer" value="${choiceCount}" class="text-blue-600">
+            <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                   placeholder="선택지 ${choiceCount}" name="choices[]" data-choice="${choiceCount}">
+            <button type="button" class="text-red-600 hover:text-red-800" onclick="removeChoice(${choiceCount})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('choiceList').insertAdjacentHTML('beforeend', choiceHtml);
+}
+
+function removeChoice(choiceNum) {
+    const element = document.querySelector(`input[data-choice="${choiceNum}"]`).closest('.choice-item-container');
+    element.remove();
+}
+
+document.getElementById('addChoiceBtn').addEventListener('click', addChoice);
+
+// 미리보기 기능
+document.getElementById('previewBtn').addEventListener('click', function() {
+    const title = document.getElementById('title').value || '제목 없음';
+    const content = markdownEditor ? markdownEditor.value() : '';
+    
+    if (!content.trim()) {
+        alert('미리볼 내용이 없습니다.');
+        return;
+    }
+    
+    // 간단한 마크다운 변환
+    const html = content
+        .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-4">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4">$1</h1>')
+        .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gim, '<em>$1</em>')
+        .replace(/\n/gim, '<br>');
+    
+    const previewWindow = window.open('', '_blank');
+    previewWindow.document.write(`
+        <html>
+            <head>
+                <title>컨텐츠 미리보기</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="p-8">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-2xl font-bold mb-4">${title}</h1>
+                    <div class="prose max-w-none">${html}</div>
+                </div>
+            </body>
+        </html>
+    `);
+    previewWindow.document.close();
+});
+</script>
+{% endblock %}

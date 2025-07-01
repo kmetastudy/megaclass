@@ -1,0 +1,579 @@
+<!-- teacher/templates/teacher/courses/course_detail_onepage.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.subject_name }} - 통합 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/teacher/course.css' %}">
+<style>
+    /* 패널 너비 조정을 위한 추가 스타일 */
+    .main-container {
+        display: flex;
+        height: calc(100vh - 80px);
+        position: relative;
+    }
+    
+    .tree-panel {
+        width: 300px;
+        min-width: 250px;
+        max-width: 400px;
+        transition: width 0.3s ease;
+    }
+    
+    .tree-panel.collapsed {
+        width: 0;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    /* contentPanel과 contentsPanel이 동일한 너비를 갖도록 설정 */
+    .content-panel {
+        flex: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .contents-panel {
+        width: 0;
+        min-width: 0;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    /* contentsPanel이 열렸을 때 두 패널이 동일한 너비를 갖도록 */
+    .main-container.contents-open .content-panel {
+        width: calc(50% - 150px); /* 트리 패널 너비의 절반을 뺀 값 */
+    }
+    
+    .main-container.contents-open .contents-panel {
+        width: calc(50% - 150px); /* 트리 패널 너비의 절반을 뺀 값 */
+        min-width: 400px;
+    }
+    
+    /* 드롭 영역 스타일 */
+    .drop-zone {
+        min-height: 400px;
+        border: 2px dashed #cbd5e0;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        text-align: center;
+        transition: all 0.3s ease;
+        background-color: #f7fafc;
+    }
+    
+    .drop-zone.drag-over {
+        border-color: #4299e1;
+        background-color: #ebf8ff;
+        transform: scale(1.02);
+    }
+    
+    .drop-zone-icon {
+        font-size: 4rem;
+        color: #a0aec0;
+        margin-bottom: 20px;
+    }
+    
+    .drop-zone-text {
+        color: #4a5568;
+        font-size: 1.125rem;
+        margin-bottom: 10px;
+    }
+    
+    .drop-zone-hint {
+        color: #718096;
+        font-size: 0.875rem;
+    }
+    
+    /* 드롭된 콘텐츠 아이템 스타일 */
+    .dropped-content-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        cursor: move;
+    }
+    
+    .dropped-content-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .dropped-content-info {
+        flex: 1;
+    }
+    
+    .dropped-content-title {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 4px;
+    }
+    
+    .dropped-content-meta {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+    
+    .dropped-content-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .dropped-content-actions button {
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-remove {
+        background-color: #feb2b2;
+        color: #c53030;
+    }
+    
+    .btn-remove:hover {
+        background-color: #fc8181;
+    }
+    
+    /* 콘텐츠 아이템 드래그 가능 표시 */
+    .content-item {
+        cursor: grab;
+        transition: all 0.2s ease;
+    }
+    
+    .content-item:active {
+        cursor: grabbing;
+    }
+    
+    .content-item.dragging {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:course_detail' course.id %}" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">{{ course.target }} | 통합 관리 시스템</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleContentsPanel()" class="btn-modern btn-secondary">
+                <i class="fas fa-database"></i>
+                콘텐츠 라이브러리
+            </button>
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <a href="{% url 'teacher:contents_create' %}" target="_blank" class="btn-modern btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                콘텐츠 제작
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 컨테이너 -->
+<div class="main-container" id="mainContainer">
+    <!-- 트리 패널 -->
+    <div class="tree-panel" id="treePanel">
+        <div class="tree-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-sitemap tree-header-icon"></i>
+                    <span class="tree-header-title font-semibold text-gray-700">코스 구조</span>
+                </div>
+                <button onclick="toggleTreePanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-left" id="treePanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tree-content">
+            <div id="courseTree"></div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 패널 (드롭 영역) -->
+    <div class="content-panel" id="contentPanel">
+        <div class="content-header">
+            <h2 class="text-xl font-semibold text-gray-800" id="contentTitle">
+                <i class="fas fa-layer-group mr-2"></i>콘텐츠 구성
+            </h2>
+        </div>
+        <div class="content-body" id="contentArea">
+            <!-- 드롭 영역 -->
+            <div class="drop-zone" id="dropZone">
+                <i class="fas fa-hand-pointer drop-zone-icon"></i>
+                <p class="drop-zone-text">콘텐츠를 여기로 드래그하세요</p>
+                <p class="drop-zone-hint">오른쪽 라이브러리에서 콘텐츠를 선택하여 끌어다 놓으면 됩니다</p>
+            </div>
+            <!-- 드롭된 콘텐츠 목록 -->
+            <div id="droppedContents" style="display: none;">
+                <div class="mb-4 text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    드래그하여 순서를 변경할 수 있습니다
+                </div>
+                <div id="droppedContentsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 라이브러리 패널 -->
+    <div class="contents-panel collapsed" id="contentsPanel">
+        <div class="contents-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-database contents-header-icon"></i>
+                    <span class="contents-header-title font-semibold text-gray-700">콘텐츠 라이브러리</span>
+                </div>
+                <button onclick="toggleContentsPanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-right" id="contentsPanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="contents-tabs">
+            <button class="tab-button active" onclick="switchTab('search')">
+                <i class="fas fa-search mr-1"></i>검색
+            </button>
+            <button class="tab-button" onclick="switchTab('create')">
+                <i class="fas fa-plus mr-1"></i>생성
+            </button>
+        </div>
+
+        <!-- 검색 탭 -->
+        <div id="searchTab" class="tab-content active">
+            <!-- 검색 필터 -->
+            <div class="contents-filters">
+                <div class="mb-3">
+                    <input type="text" id="contentSearchInput" 
+                           class="form-input w-full" 
+                           placeholder="콘텐츠 검색...">
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <select id="contentTypeFilter" class="form-input">
+                        <option value="">모든 타입</option>
+                        <option value="multiple_choice">객관식</option>
+                        <option value="short_answer">단답형</option>
+                        <option value="essay">서술형</option>
+                        <option value="presentation">PPT</option>
+                    </select>
+                    <select id="chapterFilter" class="form-input">
+                        <option value="">모든 대단원</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <select id="subchapterFilter" class="form-input w-full">
+                        <option value="">모든 소단원</option>
+                    </select>
+                </div>
+                <button onclick="searchContents()" class="btn-modern btn-primary w-full">
+                    <i class="fas fa-search mr-2"></i>검색
+                </button>
+            </div>
+
+            <!-- 콘텐츠 목록 -->
+            <div class="contents-list" id="contentsList">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-search text-4xl mb-2"></i>
+                    <p>검색 조건을 입력하세요</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 생성 탭 -->
+        <div id="createTab" class="tab-content">
+            <div class="p-4">
+                <form id="quickContentForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                        <input type="text" name="title" class="form-input w-full" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 타입</label>
+                        <select name="content_type" class="form-input w-full" required>
+                            <option value="">선택하세요</option>
+                            {% for ct in content_types %}
+                            <option value="{{ ct.id }}">{{ ct.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                        <textarea name="page" rows="10" class="form-input w-full" required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">정답 (선택)</label>
+                        <textarea name="answer" rows="3" class="form-input w-full"></textarea>
+                    </div>
+                    <button type="submit" class="btn-modern btn-primary w-full">
+                        <i class="fas fa-save mr-2"></i>콘텐츠 생성
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 컨테이너 -->
+<div id="messageContainer"></div>
+
+<!-- 전역 변수 설정 -->
+<script>
+    window.courseConfig = {
+        courseId: {{ course.id }},
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            courseStructure: "{% url 'teacher:api_course_structure' course.id %}",
+            courseDetail: "{% url 'teacher:api_course_detail' course.id %}",
+            chapterCreate: "{% url 'teacher:chapter_create' course.id %}",
+            chasiSlideManage: "{% url 'teacher:chasi_slide_manage' 0 %}",
+            contentsCreate: "{% url 'teacher:contents_create' %}",
+            contentsSearch: "/teacher/api/contents/search/"
+        },
+        stats: {
+            totalChapters: {{ stats.total_chapters|default:0 }},
+            totalSubchapters: {{ stats.total_subchapters|default:0 }},
+            totalChasis: {{ stats.total_chasis|default:0 }},
+            totalSlides: {{ stats.total_slides|default:0 }}
+        }
+    };
+    
+    window.currentNode = null;
+    window.currentActiveNodeId = null;
+    window.contentsPanelOpen = false;
+    window.droppedContents = [];
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 외부 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<!-- 드래그 앤 드롭 기능 -->
+<script>
+    // 전역 함수로 정의
+    window.toggleContentsPanel = function() {
+        const mainContainer = document.getElementById('mainContainer');
+        const contentsPanel = document.getElementById('contentsPanel');
+        const toggleIcon = document.getElementById('contentsPanelToggle');
+        
+        window.contentsPanelOpen = !window.contentsPanelOpen;
+        
+        if (window.contentsPanelOpen) {
+            mainContainer.classList.add('contents-open');
+            contentsPanel.classList.remove('collapsed');
+            toggleIcon.classList.remove('fa-chevron-right');
+            toggleIcon.classList.add('fa-chevron-left');
+        } else {
+            mainContainer.classList.remove('contents-open');
+            contentsPanel.classList.add('collapsed');
+            toggleIcon.classList.remove('fa-chevron-left');
+            toggleIcon.classList.add('fa-chevron-right');
+        }
+    }
+    
+    // 트리 패널 토글 함수도 전역으로 정의
+    window.toggleTreePanel = function() {
+        const panel = document.getElementById('treePanel');
+        const icon = document.getElementById('treePanelToggle');
+        
+        panel.classList.toggle('collapsed');
+        if (panel.classList.contains('collapsed')) {
+            icon.classList.remove('fa-chevron-left');
+            icon.classList.add('fa-chevron-right');
+        } else {
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-left');
+        }
+    }
+    
+    // 드래그 앤 드롭 초기화
+    function initDragAndDrop() {
+        const dropZone = document.getElementById('dropZone');
+        const droppedContentsList = document.getElementById('droppedContentsList');
+        
+        // 드롭 영역 이벤트
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const contentData = e.dataTransfer.getData('application/json');
+            if (contentData) {
+                const content = JSON.parse(contentData);
+                addDroppedContent(content);
+            }
+        });
+        
+        // Sortable 초기화 (드롭된 콘텐츠 순서 변경)
+        new Sortable(droppedContentsList, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            handle: '.dropped-content-item',
+            onEnd: function(evt) {
+                updateDroppedContentsOrder();
+            }
+        });
+    }
+    
+    // 드롭된 콘텐츠 추가
+    window.addDroppedContent = function(content) {
+        // 중복 체크
+        if (window.droppedContents.find(c => c.id === content.id)) {
+            showMessage('이미 추가된 콘텐츠입니다.', 'warning');
+            return;
+        }
+        
+        window.droppedContents.push(content);
+        
+        // UI 업데이트
+        if (window.droppedContents.length === 1) {
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('droppedContents').style.display = 'block';
+        }
+        
+        renderDroppedContents();
+    }
+    
+    // 드롭된 콘텐츠 렌더링
+    function renderDroppedContents() {
+        const droppedContentsList = document.getElementById('droppedContentsList');
+        droppedContentsList.innerHTML = '';
+        
+        window.droppedContents.forEach((content, index) => {
+            const item = document.createElement('div');
+            item.className = 'dropped-content-item';
+            item.dataset.contentId = content.id;
+            item.innerHTML = `
+                <div class="dropped-content-info">
+                    <div class="dropped-content-title">${content.title}</div>
+                    <div class="dropped-content-meta">
+                        <span class="mr-3"><i class="fas fa-tag mr-1"></i>${content.type}</span>
+                        <span><i class="fas fa-book mr-1"></i>${content.chapter || '미분류'}</span>
+                    </div>
+                </div>
+                <div class="dropped-content-actions">
+                    <button class="btn-remove" onclick="removeDroppedContent(${content.id})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            droppedContentsList.appendChild(item);
+        });
+    }
+    
+    // 드롭된 콘텐츠 제거 (전역 함수로 변경)
+    window.removeDroppedContent = function(contentId) {
+        window.droppedContents = window.droppedContents.filter(c => c.id !== contentId);
+        
+        if (window.droppedContents.length === 0) {
+            document.getElementById('dropZone').style.display = 'flex';
+            document.getElementById('droppedContents').style.display = 'none';
+        } else {
+            renderDroppedContents();
+        }
+    }
+    
+    // 드롭된 콘텐츠 순서 업데이트
+    function updateDroppedContentsOrder() {
+        const items = document.querySelectorAll('.dropped-content-item');
+        const newOrder = [];
+        
+        items.forEach(item => {
+            const contentId = parseInt(item.dataset.contentId);
+            const content = window.droppedContents.find(c => c.id === contentId);
+            if (content) {
+                newOrder.push(content);
+            }
+        });
+        
+        window.droppedContents = newOrder;
+    }
+    
+    // 콘텐츠 아이템에 드래그 가능 속성 추가 (contents_panel.js에서 호출)
+    window.makeContentItemDraggable = function(element, contentData) {
+        element.draggable = true;
+        element.classList.add('content-item');
+        
+        element.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('application/json', JSON.stringify(contentData));
+            element.classList.add('dragging');
+        });
+        
+        element.addEventListener('dragend', () => {
+            element.classList.remove('dragging');
+        });
+    }
+    
+    // 메시지 표시 함수 (전역)
+    window.showMessage = function(message, type = 'info') {
+        const container = document.getElementById('messageContainer');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type} fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50`;
+        messageDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        container.appendChild(messageDiv);
+        
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 3000);
+    }
+    
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        initDragAndDrop();
+    });
+</script>
+
+<!-- 공통 유틸리티 -->
+<script src="{% static 'js/teacher/course/utils.js' %}"></script>
+
+<!-- 기능별 모듈 -->
+<script src="{% static 'js/teacher/course/chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/sub_chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/chasi.js' %}"></script>
+<script src="{% static 'js/teacher/course/sliders.js' %}"></script>
+<script src="{% static 'js/teacher/course/contents.js' %}"></script>
+<script src="{% static 'js/teacher/course/contents_panel.js' %}"></script>
+
+<!-- 메인 초기화 스크립트 -->
+<script src="{% static 'js/teacher/course/main.js' %}"></script>
+{% endblock %}

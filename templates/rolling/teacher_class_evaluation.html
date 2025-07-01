@@ -1,0 +1,392 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ school_class.name }} - 앞구르기 평가 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    .student-row {
+        transition: all 0.3s ease;
+    }
+    .student-row:hover {
+        transform: translateX(5px);
+    }
+    .evaluation-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease;
+    }
+    .evaluation-panel.active {
+        max-height: 1000px;
+    }
+    
+    /* 등급별 스타일 추가 */
+    .grade-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        min-width: 80px;
+        justify-content: center;
+    }
+    .grade-a {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+    .grade-b {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+    .grade-c {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    .grade-d {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+    .grade-none {
+        background-color: #f3f4f6;
+        color: #6b7280;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 페이지 헤더 및 네비게이션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <nav class="flex items-center text-sm mb-4">
+                <a href="{% url 'teacher:dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-home"></i>
+                </a>
+                <span class="mx-2 text-gray-400">/</span>
+                <a href="{% url 'rolling:teacher_dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                    앞구르기 평가
+                </a>
+                <span class="mx-2 text-gray-400">/</span>
+                <span class="text-gray-700 font-medium">{{ school_class.name }}</span>
+            </nav>
+            
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">{{ school_class.name }}</h1>
+                    <p class="text-gray-600 mt-2">{{ school_class.grade }}학년 {{ school_class.class_number }}반 앞구르기 수행평가</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500">평가 진행률</p>
+                    <p class="text-2xl font-bold text-blue-600">{{ evaluation_rate }}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 및 검색 -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex-1 min-w-[200px]">
+                    <div class="relative">
+                        <input type="text" id="studentSearch" placeholder="학생 이름 검색..." 
+                               class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="filterStudents('all')" class="filter-btn px-4 py-2 rounded-lg bg-blue-500 text-white">
+                        전체
+                    </button>
+                    <button onclick="filterStudents('evaluated')" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        평가완료
+                    </button>
+                    <button onclick="filterStudents('pending')" class="filter-btn px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+                        미평가
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생 목록 및 평가 -->
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold mb-4">학생 평가 현황</h2>
+                
+                <div class="space-y-3">
+                    {% for student in students %}
+                    <div class="student-card" data-status="{% if student.has_evaluation %}evaluated{% else %}pending{% endif %}">
+                        <!-- 학생 정보 행 -->
+                        <div class="student-row bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100" 
+                             onclick="toggleEvaluation({{ student.id }})">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span class="text-blue-600 font-semibold">{{ student.student_id|slice:"-2:" }}</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-semibold text-gray-800">{{ student.name }}</h3>
+                                        <p class="text-sm text-gray-500">학번: {{ student.student_id }}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-6">
+                                    <div class="text-center">
+                                        <p class="text-xs text-gray-500">시도</p>
+                                        <p class="font-semibold">{{ student.attempt_count }}/5</p>
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="text-xs text-gray-500">성공</p>
+                                        <p class="font-semibold text-green-600">{{ student.success_count }}회</p>
+                                    </div>
+                                    <div>
+                                        {% if student.evaluation %}
+                                            {% if student.evaluation.grade == 'A' %}
+                                                <span class="grade-badge grade-a">
+                                                    🏆 최우수
+                                                </span>
+                                            {% elif student.evaluation.grade == 'B' %}
+                                                <span class="grade-badge grade-b">
+                                                    🥇 우수
+                                                </span>
+                                            {% elif student.evaluation.grade == 'C' %}
+                                                <span class="grade-badge grade-c">
+                                                    🥈 보통
+                                                </span>
+                                            {% elif student.evaluation.grade == 'D' %}
+                                                <span class="grade-badge grade-d">
+                                                    🥉 노력필요
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="grade-badge grade-none">
+                                                <i class="fas fa-clock mr-1"></i>평가전
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <button class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-chevron-down transition-transform" id="arrow-{{ student.id }}"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 평가 패널 (숨김 상태) -->
+                        <div id="eval-panel-{{ student.id }}" class="evaluation-panel">
+                            <div class="bg-white border-l-4 border-blue-500 p-6 mt-2 rounded-lg">
+                                <!-- 시도 기록 -->
+                                <div class="mb-6">
+                                    <h4 class="font-semibold mb-3">시도 기록</h4>
+                                    <div class="space-y-2" id="attempts-{{ student.id }}">
+                                        <!-- AJAX로 로드됨 -->
+                                    </div>
+                                </div>
+                                
+                                <!-- 평가 폼 -->
+                                <div class="border-t pt-6">
+                                    <h4 class="font-semibold mb-3">종합 평가</h4>
+                                    <form class="evaluation-form" data-student-id="{{ student.id }}">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">등급</label>
+                                                <select name="grade" class="w-full border-gray-300 rounded-md shadow-sm">
+                                                    <option value="">선택하세요</option>
+                                                    <option value="A" {% if student.evaluation and student.evaluation.grade == 'A' %}selected{% endif %}>🏆 최우수 (A)</option>
+                                                    <option value="B" {% if student.evaluation and student.evaluation.grade == 'B' %}selected{% endif %}>🥇 우수 (B)</option>
+                                                    <option value="C" {% if student.evaluation and student.evaluation.grade == 'C' %}selected{% endif %}>🥈 보통 (C)</option>
+                                                    <option value="D" {% if student.evaluation and student.evaluation.grade == 'D' %}selected{% endif %}>🥉 노력필요 (D)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">평가일</label>
+                                                <input type="text" class="w-full border-gray-300 rounded-md shadow-sm bg-gray-50" 
+                                                       value="{% if student.evaluation %}{{ student.evaluation.evaluated_at|date:'Y-m-d H:i' }}{% else %}자동 입력{% endif %}" 
+                                                       readonly>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">종합 피드백</label>
+                                            <textarea name="feedback" rows="4" 
+                                                      class="w-full border-gray-300 rounded-md shadow-sm"
+                                                      placeholder="학생의 전반적인 수행 능력과 개선점을 작성해주세요...">{% if student.evaluation %}{{ student.evaluation.overall_feedback }}{% endif %}</textarea>
+                                        </div>
+                                        
+                                        <div class="flex justify-end space-x-3">
+                                            <button type="button" onclick="toggleEvaluation({{ student.id }})" 
+                                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                                                취소
+                                            </button>
+                                            <button type="submit" 
+                                                    class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                                                {% if student.evaluation %}수정하기{% else %}저장하기{% endif %}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-users-slash text-4xl mb-2"></i>
+                        <p>등록된 학생이 없습니다.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 일괄 작업 버튼 -->
+        <div class="mt-6 flex justify-between">
+            <a href="{% url 'rolling:teacher_dashboard' %}" 
+               class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i>대시보드로 돌아가기
+            </a>
+            <button onclick="exportEvaluations()" 
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                <i class="fas fa-download mr-2"></i>평가 결과 내보내기
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF 토큰 설정
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+// 평가 패널 토글
+function toggleEvaluation(studentId) {
+    const panel = document.getElementById(`eval-panel-${studentId}`);
+    const arrow = document.getElementById(`arrow-${studentId}`);
+    
+    if (panel.classList.contains('active')) {
+        panel.classList.remove('active');
+        arrow.style.transform = 'rotate(0deg)';
+    } else {
+        // 다른 패널 닫기
+        document.querySelectorAll('.evaluation-panel').forEach(p => {
+            p.classList.remove('active');
+        });
+        document.querySelectorAll('[id^="arrow-"]').forEach(a => {
+            a.style.transform = 'rotate(0deg)';
+        });
+        
+        panel.classList.add('active');
+        arrow.style.transform = 'rotate(180deg)';
+        
+        // 시도 기록 로드
+        loadAttempts(studentId);
+    }
+}
+
+// 시도 기록 로드
+function loadAttempts(studentId) {
+    $.ajax({
+        url: `/rolling/api/student-attempts/${studentId}/`,
+        success: function(data) {
+            let html = '';
+            data.attempts.forEach(attempt => {
+                html += `
+                    <div class="flex items-center justify-between p-3 rounded-lg ${attempt.is_success ? 'bg-green-50' : 'bg-red-50'}">
+                        <div>
+                            <span class="font-medium">${attempt.attempt_number}회차</span>
+                            <span class="text-sm text-gray-600 ml-2">${attempt.created_at}</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="${attempt.is_success ? 'text-green-700' : 'text-red-700'} text-sm mr-3">
+                                ${attempt.feedback}
+                            </span>
+                            <span class="px-2 py-1 rounded text-xs font-medium ${attempt.is_success ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}">
+                                ${attempt.is_success ? '성공' : '실패'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            $(`#attempts-${studentId}`).html(html || '<p class="text-gray-500">시도 기록이 없습니다.</p>');
+        }
+    });
+}
+
+// 평가 폼 제출
+$('.evaluation-form').on('submit', function(e) {
+    e.preventDefault();
+    const form = $(this);
+    const studentId = form.data('student-id');
+    const grade = form.find('[name="grade"]').val();
+    const feedback = form.find('[name="feedback"]').val();
+    
+    if (!grade || !feedback.trim()) {
+        alert('등급과 피드백을 모두 입력해주세요.');
+        return;
+    }
+    
+    $.ajax({
+        url: `/rolling/save-evaluation/${studentId}/`,
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json'
+        },
+        data: JSON.stringify({
+            grade: grade,
+            overall_feedback: feedback
+        }),
+        success: function(response) {
+            alert('평가가 저장되었습니다!');
+            location.reload();
+        },
+        error: function() {
+            alert('평가 저장 중 오류가 발생했습니다.');
+        }
+    });
+});
+
+// 학생 검색
+$('#studentSearch').on('input', function() {
+    const searchTerm = $(this).val().toLowerCase();
+    $('.student-card').each(function() {
+        const studentName = $(this).find('h3').text().toLowerCase();
+        $(this).toggle(studentName.includes(searchTerm));
+    });
+});
+
+// 필터링
+function filterStudents(status) {
+    $('.filter-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-100 text-gray-700');
+    event.target.classList.remove('bg-gray-100', 'text-gray-700');
+    event.target.classList.add('bg-blue-500', 'text-white');
+    
+    $('.student-card').each(function() {
+        if (status === 'all') {
+            $(this).show();
+        } else {
+            const cardStatus = $(this).data('status');
+            $(this).toggle(cardStatus === status);
+        }
+    });
+}
+
+// 평가 결과 내보내기
+function exportEvaluations() {
+    window.location.href = "{% url 'rolling:export_evaluations' school_class.id %}";
+}
+</script>
+{% endblock %}

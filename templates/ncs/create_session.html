@@ -1,0 +1,285 @@
+{% extends 'student/base.html' %}
+{% load static %}
+
+{% block title %}NCS 학습 시작{% endblock %}
+
+{% block extra_css %}
+<style>
+    .competency-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .competency-card:hover {
+        border-color: #6366f1;
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.1);
+    }
+    .competency-card.selected {
+        border-color: #6366f1;
+        background-color: #eef2ff;
+    }
+    .competency-card.recommended {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+    }
+    .question-count-btn {
+        transition: all 0.2s ease;
+    }
+    .question-count-btn.active {
+        background-color: #6366f1;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-3xl font-bold text-gray-900">NCS 학습 시작하기</h1>
+            <a href="{% url 'ncs:student_dashboard' %}" class="text-gray-600 hover:text-gray-800">
+                <i class="fas fa-times text-xl"></i>
+            </a>
+        </div>
+        <p class="text-lg text-gray-600">학습 방식과 역량을 선택하세요</p>
+    </div>
+
+    <form method="post" id="sessionForm">
+        {% csrf_token %}
+        
+        <!-- 학습 방식 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">1</span>
+                학습 방식 선택
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label class="block">
+                    <input type="radio" name="session_type" value="weakness" class="hidden peer" 
+                           {% if request.GET.type == 'weakness' %}checked{% endif %}
+                           {% if not has_learning_history %}disabled{% endif %}>
+                    <div class="border-2 rounded-lg p-4 cursor-pointer transition-all 
+                         peer-checked:border-red-500 peer-checked:bg-red-50 hover:border-gray-300
+                         {% if not has_learning_history %}opacity-50 cursor-not-allowed{% endif %}">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">취약점 집중</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            정답률이 낮은 역량을 자동으로 선별하여 학습
+                            {% if not has_learning_history %}
+                            <span class="block text-xs text-red-500 mt-1">(학습 이력이 없어 사용할 수 없습니다)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </label>
+                
+                <label class="block">
+                    <input type="radio" name="session_type" value="manual" class="hidden peer" 
+                           {% if not request.GET.type or request.GET.type == 'manual' %}checked{% endif %}>
+                    <div class="border-2 rounded-lg p-4 cursor-pointer transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:border-gray-300">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-hand-pointer text-blue-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">수동 선택</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">원하는 역량을 직접 선택하여 학습</p>
+                    </div>
+                </label>
+                
+                <label class="block">
+                    <input type="radio" name="session_type" value="auto" class="hidden peer">
+                    <div class="border-2 rounded-lg p-4 cursor-pointer transition-all peer-checked:border-green-500 peer-checked:bg-green-50 hover:border-gray-300">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-random text-green-500 text-xl mr-2"></i>
+                            <h3 class="font-semibold">랜덤 학습</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">전체 역량에서 무작위로 문제 출제</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- 역량 선택 -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6" id="competencySection">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">2</span>
+                학습할 역량 선택
+            </h2>
+
+            {% if weak_analyses %}
+            <!-- 취약 역량 추천 -->
+            <div class="mb-6 p-4 bg-red-50 rounded-lg">
+                <h3 class="font-semibold text-red-900 mb-3">
+                    <i class="fas fa-lightbulb mr-2"></i>추천: 취약 역량
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {% for analysis in weak_analyses %}
+                    <div class="competency-card recommended p-3 rounded-lg border-2" 
+                         onclick="toggleCompetency({{ analysis.competency.id }}, this)">
+                        <input type="checkbox" name="competencies" value="{{ analysis.competency.id }}" class="hidden">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h4 class="font-medium text-gray-900">{{ analysis.competency.competency_name }}</h4>
+                                <p class="text-xs text-gray-600">{{ analysis.competency.main_category }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-lg font-bold text-red-600">{{ analysis.accuracy_rate|floatformat:0 }}%</span>
+                                <p class="text-xs text-gray-500">정답률</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 전체 역량 목록 -->
+            <div class="mb-4">
+                <h3 class="font-semibold text-gray-900 mb-3">전체 역량</h3>
+                
+                <!-- 검색 -->
+                <div class="mb-4">
+                    <input type="text" id="competencySearch" placeholder="역량명 또는 코드로 검색..." 
+                           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+
+                <!-- 역량 목록 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto" id="competencyList">
+                    {% for competency in competencies %}
+                    <div class="competency-card p-3 rounded-lg border-2 bg-white" 
+                         onclick="toggleCompetency({{ competency.id }}, this)"
+                         data-name="{{ competency.competency_name }}"
+                         data-category="{{ competency.main_category }}">
+                        <input type="checkbox" name="competencies" value="{{ competency.id }}" class="hidden">
+                        <div>
+                            <h4 class="font-medium text-gray-900">{{ competency.competency_name }}</h4>
+                            <p class="text-xs text-gray-600">{{ competency.main_category }} > {{ competency.sub_category }}</p>
+                            <p class="text-xs text-gray-500 mt-1">코드: {{ competency.code }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 문항 수 선택 -->
+<div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <span class="bg-indigo-100 text-indigo-800 rounded-full w-8 h-8 inline-flex items-center justify-center mr-2">3</span>
+        문항 수 선택
+    </h2>
+    
+    <div class="grid grid-cols-5 gap-3">
+        <button type="button" 
+                class="question-count-btn py-3 px-4 border rounded-lg font-medium hover:bg-gray-50"
+                onclick="selectQuestionCount(5, this)">
+            5문제
+        </button>
+        <button type="button" 
+                class="question-count-btn py-3 px-4 border rounded-lg font-medium hover:bg-gray-50 active"
+                onclick="selectQuestionCount(10, this)">
+            10문제
+        </button>
+        <button type="button" 
+                class="question-count-btn py-3 px-4 border rounded-lg font-medium hover:bg-gray-50"
+                onclick="selectQuestionCount(15, this)">
+            15문제
+        </button>
+        <button type="button" 
+                class="question-count-btn py-3 px-4 border rounded-lg font-medium hover:bg-gray-50"
+                onclick="selectQuestionCount(20, this)">
+            20문제
+        </button>
+        <button type="button" 
+                class="question-count-btn py-3 px-4 border rounded-lg font-medium hover:bg-gray-50"
+                onclick="selectQuestionCount(30, this)">
+            30문제
+        </button>
+    </div>
+    <input type="hidden" name="question_count" id="questionCount" value="10">
+</div>
+
+        <!-- 시작 버튼 -->
+        <div class="flex justify-center">
+            <button type="submit" 
+                    class="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-medium text-lg hover:from-indigo-600 hover:to-purple-600 transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                    id="startButton">
+                <i class="fas fa-play mr-2"></i>학습 시작하기
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// 역량 토글
+function toggleCompetency(id, element) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+    element.classList.toggle('selected', checkbox.checked);
+    updateStartButton();
+}
+
+// 문항 수 선택
+function selectQuestionCount(count, btn) {
+    document.querySelectorAll('.question-count-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('questionCount').value = count;
+}
+
+// 시작 버튼 상태 업데이트
+function updateStartButton() {
+    const sessionType = document.querySelector('input[name="session_type"]:checked').value;
+    const selectedCompetencies = document.querySelectorAll('input[name="competencies"]:checked').length;
+    const startButton = document.getElementById('startButton');
+    
+    if (sessionType === 'manual' && selectedCompetencies === 0) {
+        startButton.disabled = true;
+        startButton.textContent = '역량을 선택해주세요';
+    } else {
+        startButton.disabled = false;
+        startButton.innerHTML = '<i class="fas fa-play mr-2"></i>학습 시작하기';
+    }
+}
+
+// 학습 방식 변경 시
+document.querySelectorAll('input[name="session_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const competencySection = document.getElementById('competencySection');
+        if (this.value === 'weakness' || this.value === 'auto') {
+            competencySection.style.display = 'none';
+        } else {
+            competencySection.style.display = 'block';
+        }
+        updateStartButton();
+    });
+});
+
+// 역량 검색
+document.getElementById('competencySearch').addEventListener('input', function() {
+    const query = this.value.toLowerCase();
+    document.querySelectorAll('#competencyList .competency-card').forEach(card => {
+        const name = card.dataset.name.toLowerCase();
+        const category = card.dataset.category.toLowerCase();
+        card.style.display = (name.includes(query) || category.includes(query)) ? 'block' : 'none';
+    });
+});
+
+// 초기 설정
+document.addEventListener('DOMContentLoaded', function() {
+     // 비활성화된 라디오 버튼 클릭 방지
+     document.querySelectorAll('input[name="session_type"]:disabled').forEach(radio => {
+        radio.parentElement.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('학습 이력이 없어 취약점 집중 학습을 사용할 수 없습니다. 먼저 다른 방식으로 학습을 진행해주세요.');
+        });
+    });
+    const sessionType = document.querySelector('input[name="session_type"]:checked').value;
+    if (sessionType === 'weakness' || sessionType === 'auto') {
+        document.getElementById('competencySection').style.display = 'none';
+    }
+    updateStartButton();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,444 @@
+<!-- teacher/templates/teacher/courses/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}새 코스 만들기 - 학습 관리 시스템{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 모바일 키보드 제어 */
+    input[type="text"], textarea {
+        -webkit-user-select: text;
+        user-select: text;
+        -webkit-touch-callout: none;
+    }
+    
+    /* 폼 제출 방지 스타일 */
+    #courseForm {
+        -webkit-touch-callout: none;
+       
+    }
+    
+    /* 로딩 오버레이 */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    /* 디버그 콘솔 */
+    #debugConsole {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 300px;
+        max-height: 200px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #0f0;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        overflow-y: auto;
+        display: none;
+        z-index: 10000;
+        border-radius: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 로딩 오버레이 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="bg-white p-6 rounded-lg shadow-lg">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i>
+        <p class="mt-4 text-gray-700">처리 중...</p>
+    </div>
+</div>
+
+<!-- 디버그 콘솔 -->
+<div id="debugConsole">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>Debug Console</span>
+        <button onclick="clearDebugConsole()" style="background: none; color: white; border: none; cursor: pointer;">Clear</button>
+    </div>
+    <div id="debugLog"></div>
+</div>
+
+<div class="max-w-2xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="{% url 'teacher:course_list' %}" 
+               class="mr-4 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">새 코스 만들기</h1>
+                <p class="text-gray-600">새로운 교육 과정을 생성합니다</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오류 메시지 표시 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- 코스 생성 폼 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <!-- action="#" 추가하여 기본 동작 차단 -->
+        <form method="post" 
+              id="courseForm" 
+              action="#"
+              autocomplete="off"
+              onsubmit="return false;">
+            {% csrf_token %}
+            
+            <!-- 숨겨진 디버그 필드 -->
+            <input type="hidden" id="formState" value="initialized">
+            <input type="hidden" id="submitCount" value="0">
+            
+            <!-- 기본 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-book mr-2"></i>기본 정보
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="subject_name" class="block text-sm font-medium text-gray-700 mb-2">과목명 *</label>
+                        <input type="text" 
+                               name="subject_name" 
+                               id="subject_name" 
+                               required 
+                               autocomplete="off"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               enterkeyhint="next"
+                               inputmode="text"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="예: 국어, 수학, 영어 등"
+                               value="{{ request.POST.subject_name|default:'' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="target" class="block text-sm font-medium text-gray-700 mb-2">대상 *</label>
+                        <input type="text" 
+                               name="target" 
+                               id="target" 
+                               required 
+                               autocomplete="off"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false"
+                               enterkeyhint="next"
+                               inputmode="text"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                               placeholder="예: 중학교 1학년, 고등학교 2학년 등"
+                               value="{{ request.POST.target|default:'' }}">
+                    </div>
+                    
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" 
+                                  id="description" 
+                                  rows="4"
+                                  autocomplete="off"
+                                  enterkeyhint="done"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                                  placeholder="코스에 대한 간단한 설명을 입력하세요...">{{ request.POST.description|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 코스 구성 안내 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-sitemap mr-2"></i>코스 구성 안내
+                </h3>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-800 mb-2">코스 생성 후 다음 단계를 진행하세요:</h4>
+                    <ol class="text-sm text-blue-700 space-y-1">
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">1</span>
+                            대단원 추가 (Chapter)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">2</span>
+                            소단원 추가 (SubChapter)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">3</span>
+                            차시 추가 (Chasi)
+                        </li>
+                        <li class="flex items-center">
+                            <span class="bg-blue-200 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">4</span>
+                            슬라이드 구성 (Contents)
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <!-- type="button" 명시 및 onclick 이벤트 -->
+                <button type="button" 
+                        id="submitBtn"
+                        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                    <i class="fas fa-plus mr-2"></i>코스 생성하기
+                </button>
+                <a href="{% url 'teacher:course_list' %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-times mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 코스 생성 팁 -->
+    <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+        <h4 class="text-sm font-semibold text-green-800 mb-2">
+            <i class="fas fa-lightbulb mr-2"></i>코스 생성 팁
+        </h4>
+        <ul class="text-sm text-green-700 space-y-1">
+            <li>• 과목명은 간단하고 명확하게 작성하세요</li>
+            <li>• 대상은 구체적인 학년이나 수준을 명시하세요</li>
+            <li>• 설명에는 학습 목표나 주요 내용을 포함하세요</li>
+            <li>• 코스 생성 후 체계적으로 단원을 구성해보세요</li>
+        </ul>
+    </div>
+    
+    <!-- 디버그 토글 버튼 -->
+    <div class="mt-4 text-center">
+        <button type="button" 
+                onclick="toggleDebugConsole()" 
+                class="text-xs text-gray-400 hover:text-gray-600">
+            디버그 콘솔 토글 (Ctrl+D)
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 전역 변수
+window.courseFormSubmitting = false;
+window.debugMode = true;
+
+// 디버그 로그 함수
+function debugLog(message, type = 'info') {
+    if (!window.debugMode) return;
+    
+    const time = new Date().toLocaleTimeString();
+    const color = type === 'error' ? '#f00' : type === 'warn' ? '#ff0' : '#0f0';
+    const logEntry = `<div style="color: ${color}">[${time}] ${message}</div>`;
+    
+    console.log(`[CourseCreate ${type}]`, message);
+    
+    const debugLogDiv = document.getElementById('debugLog');
+    if (debugLogDiv) {
+        debugLogDiv.innerHTML += logEntry;
+        debugLogDiv.scrollTop = debugLogDiv.scrollHeight;
+    }
+}
+
+// 디버그 콘솔 토글
+function toggleDebugConsole() {
+    const console = document.getElementById('debugConsole');
+    console.style.display = console.style.display === 'none' ? 'block' : 'none';
+}
+
+// 디버그 콘솔 클리어
+function clearDebugConsole() {
+    document.getElementById('debugLog').innerHTML = '';
+}
+
+// 폼 제출 함수
+function submitCourseForm() {
+    debugLog('submitCourseForm() 호출됨');
+    
+    if (window.courseFormSubmitting) {
+        debugLog('이미 제출 중입니다', 'warn');
+        return false;
+    }
+    
+    const subjectName = $('#subject_name').val().trim();
+    const target = $('#target').val().trim();
+    
+    debugLog(`검증 - 과목명: "${subjectName}", 대상: "${target}"`);
+    
+    if (!subjectName || !target) {
+        alert('과목명과 대상은 필수 입력 항목입니다.');
+        debugLog('필수 항목 누락', 'error');
+        return false;
+    }
+    
+    if (subjectName.length < 2) {
+        alert('과목명은 2자 이상 입력해주세요.');
+        $('#subject_name').focus();
+        debugLog('과목명 길이 부족', 'error');
+        return false;
+    }
+    
+    window.courseFormSubmitting = true;
+    $('#submitCount').val(parseInt($('#submitCount').val()) + 1);
+    
+    debugLog('폼 제출 시작 - 제출 횟수: ' + $('#submitCount').val());
+    
+    // UI 업데이트
+    $('#loadingOverlay').css('display', 'flex');
+    $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...');
+    
+    // action을 올바른 URL로 설정하고 제출
+    const form = document.getElementById('courseForm');
+    form.action = "{% url 'teacher:course_create' %}";
+    form.onsubmit = null; // onsubmit 핸들러 제거
+    
+    debugLog('실제 폼 제출 실행');
+    form.submit();
+    
+    return true;
+}
+
+// jQuery 준비
+$(document).ready(function() {
+    debugLog('페이지 로드 완료 - jQuery 버전: ' + $.fn.jquery);
+    
+    // 디버그 콘솔 단축키
+    $(document).keydown(function(e) {
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            toggleDebugConsole();
+        }
+    });
+    
+    // 폼 요소 가져오기
+    const $form = $('#courseForm');
+    const $submitBtn = $('#submitBtn');
+    
+    debugLog('폼 초기화 시작');
+    
+    // 기존 이벤트 핸들러 모두 제거
+    $form.off();
+    $form.find('input, textarea').off();
+    $submitBtn.off();
+    
+    // 폼 제출 완전 차단
+    $form.on('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        debugLog('폼 submit 이벤트 차단됨', 'warn');
+        return false;
+    });
+    
+    // 폼의 모든 버튼에서 엔터키 차단
+    $form.on('keypress', function(e) {
+        if (e.keyCode === 13 && e.target.type !== 'textarea') {
+            e.preventDefault();
+            debugLog('폼 레벨 Enter 키 차단');
+            return false;
+        }
+    });
+    
+    // 각 입력 필드에 대한 이벤트 설정
+    $form.find('input[type="text"], textarea').each(function() {
+        const $field = $(this);
+        const fieldName = $field.attr('name');
+        
+        // 모든 키 이벤트에서 엔터 차단
+        $field.on('keypress keydown keyup', function(e) {
+            if (e.keyCode === 13 || e.which === 13 || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                debugLog(`${fieldName} 필드에서 Enter 키 차단`);
+                
+                // textarea가 아닌 경우 다음 필드로 이동
+                if (this.tagName !== 'TEXTAREA') {
+                    const $allFields = $form.find('input[type="text"], textarea');
+                    const currentIndex = $allFields.index(this);
+                    if (currentIndex < $allFields.length - 1) {
+                        $allFields.eq(currentIndex + 1).focus();
+                    }
+                }
+                
+                return false;
+            }
+        });
+        
+        // input 이벤트 모니터링
+        $field.on('input', function(e) {
+            debugLog(`Input: ${fieldName} = "${e.target.value.substring(0, 20)}..."`);
+        });
+        
+        // focus/blur 이벤트 모니터링
+        $field.on('focus', function() {
+            debugLog(`Focus: ${fieldName}`);
+        });
+        
+        $field.on('blur', function() {
+            debugLog(`Blur: ${fieldName}`);
+        });
+    });
+    
+    // 제출 버튼 클릭 이벤트
+    $submitBtn.on('click', function(e) {
+        e.preventDefault();
+        debugLog('제출 버튼 클릭됨');
+        submitCourseForm();
+    });
+    
+    // 첫 번째 필드에 포커스
+    setTimeout(function() {
+        $('#subject_name').focus();
+        debugLog('과목명 필드에 포커스 설정');
+    }, 100);
+    
+    // AJAX 요청 모니터링
+    $(document).ajaxSend(function(event, jqxhr, settings) {
+        debugLog('AJAX 요청: ' + settings.url, 'warn');
+    });
+    
+    // 모든 폼 요소의 기본 동작 차단
+    $('form').not('#courseForm').on('submit', function(e) {
+        debugLog('다른 폼의 제출 시도 감지', 'warn');
+    });
+    
+    debugLog('폼 초기화 완료');
+});
+
+// 페이지 언로드 방지
+window.addEventListener('beforeunload', function(e) {
+    if (!window.courseFormSubmitting) {
+        const subjectName = document.getElementById('subject_name').value.trim();
+        const target = document.getElementById('target').value.trim();
+        
+        if (subjectName || target) {
+            e.preventDefault();
+            e.returnValue = '작성 중인 내용이 있습니다.';
+            debugLog('페이지 이탈 시도 감지', 'warn');
+        }
+    }
+});
+
+// 전역 에러 핸들링
+window.addEventListener('error', function(e) {
+    debugLog('전역 에러: ' + e.message, 'error');
+});
+
+// 초기화 완료 로그
+debugLog('스크립트 로드 완료');
+</script>
+{% endblock %}

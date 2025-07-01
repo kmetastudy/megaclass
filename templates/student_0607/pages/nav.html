@@ -1,0 +1,64 @@
+<div class="mini-sidebar" id="miniSidebar">
+    <div class="p-4 border-b border-gray-800">
+        <button onclick="toggleMiniSidebar()" class="w-8 h-8 flex items-center justify-center text-white hover:bg-gray-700 rounded-lg transition">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+    
+    <!-- 아이콘 메뉴 (기본 표시) -->
+    <div class="icon-menu py-4">
+        <a href="{% url 'student:dashboard' %}" class="block px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition" title="대시보드">
+            <i class="fas fa-home text-lg"></i>
+        </a>
+        <a href="{% url 'student:course_list' %}" class="block px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition" title="내 코스">
+            <i class="fas fa-book-open text-lg"></i>
+        </a>
+        <a href="{% url 'student:progress' %}" class="block px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition" title="학습 진도">
+            <i class="fas fa-chart-line text-lg"></i>
+        </a>
+        <a href="{% url 'student:my_answers' %}" class="block px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 transition" title="내 답안">
+            <i class="fas fa-file-alt text-lg"></i>
+        </a>
+    </div>
+    
+    <!-- 확장 메뉴 (확장 시 표시) -->
+    <div class="expanded-menu px-4 w-full flex flex-col justify-start items-center">
+        <div class="text-white mb-6 mt-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold">
+                    {{ user.last_name|first }}{{ user.first_name|first }}
+                </div>
+                <div>
+                    <h3 class="font-medium">{{ user.get_full_name }}</h3>
+                    <p class="text-xs text-gray-400">{{ user.student.school_class.name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <nav class="space-y-1">
+            <a href="{% url 'student:dashboard' %}" class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <i class="fas fa-home w-5"></i>
+                <span>대시보드</span>
+            </a>
+            <a href="{% url 'student:course_list' %}" class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <i class="fas fa-book-open w-5"></i>
+                <span>내 코스</span>
+            </a>
+            <a href="{% url 'student:progress' %}" class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <i class="fas fa-chart-line w-5"></i>
+                <span>학습 진도</span>
+            </a>
+            <a href="{% url 'student:my_answers' %}" class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <i class="fas fa-file-alt w-5"></i>
+                <span>내 답안</span>
+            </a>
+        </nav>
+        
+        <div class="absolute bottom-4 left-4 right-4">
+            <a href="{% url 'accounts:logout' %}" class="flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span>로그아웃</span>
+            </a>
+        </div>
+    </div>
+</div>

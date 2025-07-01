@@ -1,0 +1,395 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}앞구르기 수행평가 - 교사 대시보드{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    /* 차트 컨테이너 고정 높이 설정 */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+    }
+    
+    .modal-chart-container {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- 페이지 헤더 및 네비게이션 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <nav class="flex items-center text-sm mb-4">
+                <a href="{% url 'teacher:dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-home"></i>
+                </a>
+                <span class="mx-2 text-gray-400">/</span>
+                <span class="text-gray-700 font-medium">앞구르기 수행평가</span>
+            </nav>
+            
+            <h1 class="text-3xl font-bold text-gray-800">앞구르기 수행평가 대시보드</h1>
+            <p class="text-gray-600 mt-2">{{ request.user.get_full_name }} 선생님</p>
+        </div>
+
+        <!-- 앱 링크 섹션 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="{% url 'teacher:app_home' %}" class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-running text-3xl mb-2"></i>
+                        <h3 class="text-xl font-semibold">체육 앱 센터</h3>
+                        <p class="text-blue-100 text-sm mt-1">전체 체육 활동 관리</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-2xl opacity-50"></i>
+                </div>
+            </a>
+            
+            <a href="#" class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-heartbeat text-3xl mb-2"></i>
+                        <h3 class="text-xl font-semibold">건강 기록장</h3>
+                        <p class="text-green-100 text-sm mt-1">학생 건강 관리</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-2xl opacity-50"></i>
+                </div>
+            </a>
+            
+            <a href="#" class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white hover:shadow-lg transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-chart-line text-3xl mb-2"></i>
+                        <h3 class="text-xl font-semibold">체력 측정</h3>
+                        <p class="text-purple-100 text-sm mt-1">PAPS 기록 관리</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-2xl opacity-50"></i>
+                </div>
+            </a>
+        </div>
+
+        <!-- 담당 학급 및 학생 현황 -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">
+                    <i class="fas fa-users mr-2 text-blue-500"></i>담당 학급 현황
+                </h2>
+                <span class="text-sm text-gray-500">총 {{ teacher_classes.count }}개 학급</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% for class in teacher_classes %}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-semibold text-lg">{{ class.name }}</h3>
+                            <p class="text-sm text-gray-600">{{ class.grade }}학년 {{ class.class_number }}반</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                            {{ class.student_set.count }}명
+                        </span>
+                    </div>
+                    
+                    <!-- 진행 상황 표시 -->
+                    <div class="mb-3">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>평가 진행률</span>
+                            <span>{{ class.evaluation_rate }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: {{ class.evaluation_rate }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <a href="{% url 'rolling:teacher_class' class.id %}" 
+                           class="flex-1 text-center bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 transition">
+                            <i class="fas fa-list-check mr-1"></i>평가 관리
+                        </a>
+                        <button onclick="showClassStats({{ class.id }})" 
+                                class="flex-1 text-center bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 transition">
+                            <i class="fas fa-chart-bar mr-1"></i>통계
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-3 text-center py-8 text-gray-500">
+                    <i class="fas fa-users-slash text-4xl mb-2"></i>
+                    <p>담당 학급이 없습니다.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 통계 섹션 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 성공률 차트 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-chart-line mr-2 text-green-500"></i>회차별 성공률
+                </h3>
+                <div class="chart-container">
+                    <canvas id="successChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- AI 피드백 분석 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-brain mr-2 text-purple-500"></i>AI 피드백 분석
+                </h3>
+                <div id="feedbackAnalysis" class="space-y-4">
+                    <button id="loadAnalysis" class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-lg hover:shadow-md transition">
+                        <i class="fas fa-sync-alt mr-2"></i>분석 결과 불러오기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 학급 통계 모달 -->
+<div id="classStatsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold">학급 상세 통계</h3>
+                <button onclick="closeClassStats()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="classStatsContent">
+                <!-- 동적으로 로드됨 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 차트가 이미 존재하는 경우를 위한 변수
+let successChart = null;
+let classChart = null;
+
+// 페이지 로드 시 차트 초기화
+$(document).ready(function() {
+    // 성공률 차트 초기화
+    const successStats = {{ success_stats|safe }};
+    const ctx = document.getElementById('successChart').getContext('2d');
+    
+    successChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: successStats.map(s => s.attempt + '회차'),
+            datasets: [{
+                label: '성공률',
+                data: successStats.map(s => s.success_rate),
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointBackgroundColor: 'rgb(34, 197, 94)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        stepSize: 20
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+});
+
+// 학급 통계 모달
+function showClassStats(classId) {
+    $('#classStatsModal').removeClass('hidden');
+    $('#classStatsContent').html('<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-3xl text-gray-400"></i></div>');
+    
+    $.ajax({
+        url: `/rolling/api/class-stats/${classId}/`,
+        success: function(data) {
+            let html = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded">
+                            <p class="text-sm text-gray-600">전체 학생</p>
+                            <p class="text-2xl font-bold text-blue-600">${data.total_students}명</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded">
+                            <p class="text-sm text-gray-600">평가 완료</p>
+                            <p class="text-2xl font-bold text-green-600">${data.evaluated}명</p>
+                        </div>
+                    </div>
+                    <div class="modal-chart-container">
+                        <canvas id="classChart"></canvas>
+                    </div>
+                </div>
+            `;
+            $('#classStatsContent').html(html);
+            
+            // 기존 차트가 있다면 제거
+            if (classChart) {
+                classChart.destroy();
+            }
+            
+            // 학급별 차트 생성
+            const modalCtx = document.getElementById('classChart').getContext('2d');
+            classChart = new Chart(modalCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['A등급', 'B등급', 'C등급', 'D등급', '미평가'],
+                    datasets: [{
+                        data: [data.grade_a, data.grade_b, data.grade_c, data.grade_d, data.not_evaluated],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#9ca3af'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    label += context.parsed + '명';
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        },
+        error: function() {
+            $('#classStatsContent').html('<div class="text-center py-8 text-red-500">데이터를 불러오는데 실패했습니다.</div>');
+        }
+    });
+}
+
+function closeClassStats() {
+    $('#classStatsModal').addClass('hidden');
+    // 모달 닫을 때 차트 제거
+    if (classChart) {
+        classChart.destroy();
+        classChart = null;
+    }
+}
+
+// AI 분석 로드
+$('#loadAnalysis').click(function() {
+    const $btn = $(this);
+    $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>분석 중...');
+    
+    $.ajax({
+        url: '{% url "rolling:feedback_analysis" %}',
+        success: function(data) {
+            let html = '<div class="space-y-6">';
+            
+            // 성공 요인
+            html += `
+                <div>
+                    <h4 class="font-medium text-green-700 mb-3">
+                        <i class="fas fa-check-circle mr-1"></i>성공 주요 요인
+                    </h4>
+                    <div class="space-y-2">
+            `;
+            
+            for (const [category, percentage] of Object.entries(data.success_factors)) {
+                html += `
+                    <div class="flex items-center">
+                        <span class="w-32 text-sm">${category}</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-3 mr-2">
+                            <div class="bg-green-500 h-3 rounded-full transition-all duration-500" 
+                                 style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="text-sm font-medium">${percentage}%</span>
+                    </div>
+                `;
+            }
+            
+            html += '</div></div>';
+            
+            // 실패 원인
+            html += `
+                <div>
+                    <h4 class="font-medium text-red-700 mb-3">
+                        <i class="fas fa-exclamation-circle mr-1"></i>개선 필요 사항
+                    </h4>
+                    <div class="space-y-2">
+            `;
+            
+            for (const [category, percentage] of Object.entries(data.fail_factors)) {
+                html += `
+                    <div class="flex items-center">
+                        <span class="w-32 text-sm">${category}</span>
+                        <div class="flex-1 bg-gray-200 rounded-full h-3 mr-2">
+                            <div class="bg-red-500 h-3 rounded-full transition-all duration-500" 
+                                 style="width: ${percentage}%"></div>
+                        </div>
+                        <span class="text-sm font-medium">${percentage}%</span>
+                    </div>
+                `;
+            }
+            
+            html += '</div></div></div>';
+            $('#feedbackAnalysis').html(html);
+        },
+        error: function() {
+            $('#feedbackAnalysis').html('<div class="text-center py-4 text-red-500">분석 결과를 불러오는데 실패했습니다.</div>');
+        },
+        complete: function() {
+            $btn.prop('disabled', false).html('<i class="fas fa-sync-alt mr-2"></i>분석 결과 불러오기');
+        }
+    });
+});
+</script>
+{% endblock %}

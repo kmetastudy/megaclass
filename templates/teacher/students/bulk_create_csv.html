@@ -1,0 +1,53 @@
+{% extends 'teacher/base.html' %}
+
+{% block title %}CSV로 학생 일괄 등록{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">CSV로 학생 일괄 등록</h2>
+        <p class="text-gray-600">CSV 파일을 업로드하여 학생들을 일괄 등록합니다.</p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="space-y-6">
+                <div>
+                    <label for="class_id" class="block text-sm font-medium text-gray-700 mb-2">대상 학급</label>
+                    <select name="class_id" id="class_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">학생들을 등록할 학급을 선택하세요</option>
+                        {% for class in classes %}
+                        <option value="{{ class.id }}">{{ class.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="student_file" class="block text-sm font-medium text-gray-700 mb-2">학생 명단 CSV 파일</label>
+                    <input type="file" name="student_file" id="student_file" required accept=".csv"
+                           class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                </div>
+            </div>
+            
+            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 class="text-sm font-semibold text-gray-700 mb-2">CSV 파일 형식 안내</h4>
+                <p class="text-xs text-gray-600 mb-2">
+                    파일은 <strong>'이름,학번,초기비밀번호'</strong> 순서의 열로 구성되어야 합니다. (헤더 행은 포함하지 않아도 됩니다.)
+                </p>
+                <a href="{% url 'teacher:download_sample_csv' %}" class="inline-flex items-center text-sm font-medium text-blue-600 hover:underline">
+                    <i class="fas fa-download mr-1"></i> 샘플 CSV 파일 다운로드
+                </a>
+            </div>
+
+            <div class="flex space-x-4 mt-8">
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-upload mr-2"></i>업로드 및 등록
+                </button>
+                <a href="{% url 'teacher:student_list' %}" class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>목록으로
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+<!-- teacher/templates/teacher/courses/subchapters/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ chapter.chapter_title }} - 소단원 관리{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li><a href="{% url 'teacher:course_detail' course.id %}" class="text-blue-600 hover:text-blue-800">{{ course.subject_name }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li><a href="{% url 'teacher:chapter_list' course.id %}" class="text-blue-600 hover:text-blue-800">대단원 관리</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li class="text-gray-500">{{ chapter.chapter_title }}</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">소단원 관리</h1>
+                <p class="text-gray-600">{{ chapter.chapter_order }}. {{ chapter.chapter_title }}</p>
+            </div>
+            <a href="{% url 'teacher:subchapter_create' chapter.id %}" 
+               class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-plus mr-2"></i>새 소단원 추가
+            </a>
+        </div>
+    </div>
+
+    <!-- 소단원 목록 -->
+    {% if subchapters %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for subchapter in subchapters %}
+        <div class="bg-white rounded-xl shadow-md border-l-4 border-green-500 overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <div class="bg-green-100 text-green-800 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                            {{ subchapter.sub_chapter_order }}
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">{{ subchapter.sub_chapter_title }}</h3>
+                            <p class="text-gray-500 text-sm">소단원 {{ subchapter.sub_chapter_order }}</p>
+                        </div>
+                    </div>
+                    
+                    <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                        {{ subchapter.chasi_count }}개 차시
+                    </span>
+                </div>
+                
+                <!-- 진행률 -->
+                <div class="mb-4">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        {% if subchapter.chasi_count > 0 %}
+                        <div class="bg-green-600 h-2 rounded-full" style="width: {% widthratio subchapter.chasi_count 5 100 %}%"></div>
+                        {% else %}
+                        <div class="bg-gray-300 h-2 rounded-full" style="width: 5%"></div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 액션 버튼 -->
+                <div class="flex space-x-2">
+                    <a href="{% url 'teacher:chasi_list' subchapter.id %}" 
+                       class="flex-1 bg-green-600 text-white text-center py-2 px-3 rounded-lg hover:bg-green-700 transition duration-200 text-sm">
+                        <i class="fas fa-clock mr-1"></i>차시 관리
+                    </a>
+                    <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+                       class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                        <i class="fas fa-plus mr-1"></i>차시 추가
+                    </a>
+                    <a href="{% url 'teacher:subchapter_edit' subchapter.id %}" 
+                       class="bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-700 transition duration-200 text-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 빈 상태 -->
+    <div class="text-center py-16">
+        <i class="fas fa-bookmark text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">소단원이 없습니다</h3>
+        <p class="text-gray-500 mb-6">{{ chapter.chapter_title }}에 첫 번째 소단원을 추가해보세요</p>
+        <a href="{% url 'teacher:subchapter_create' chapter.id %}" 
+           class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>첫 번째 소단원 만들기
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}로그인 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                학습 관리 시스템
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                학번 또는 교직원 번호로 로그인하세요
+            </p>
+        </div>
+        
+        <form class="mt-8 space-y-6" method="POST">
+            {% csrf_token %}
+            
+            <!-- 에러 메시지 표시 -->
+            {% if messages %}
+            <div class="rounded-md bg-red-50 p-4">
+                {% for message in messages %}
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium text-red-800">{{ message }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="rounded-md shadow-sm -space-y-px">
+                <!-- 학교 선택 (학생용) -->
+                <div class="mb-4" id="schoolSelectDiv" style="display: none;">
+                    <label for="school_code" class="block text-sm font-medium text-gray-700 mb-2">
+                        학교 선택
+                    </label>
+                    <select id="school_code" name="school_code" 
+                            class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm">
+                        <option value="">학교를 선택하세요</option>
+                        {% for school in schools %}
+                        <option value="{{ school.code }}">{{ school.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- 사용자명 입력 -->
+                <div>
+                    <label for="username" class="sr-only">학번 또는 사번</label>
+                    <input id="username" name="username" type="text" required
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                           placeholder="학번 또는 사번">
+                    <p class="mt-1 text-xs text-gray-500">학생: 학번만 입력 (예: 25010101)</p>
+                </div>
+                
+                <!-- 비밀번호 입력 -->
+                <div>
+                    <label for="password" class="sr-only">비밀번호</label>
+                    <input id="password" name="password" type="password" required
+                           class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                           placeholder="비밀번호">
+                </div>
+            </div>
+            
+            <div>
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-lock text-blue-500 group-hover:text-blue-400"></i>
+                    </span>
+                    로그인
+                </button>
+            </div>
+        </form>
+        
+        <div class="text-center text-sm text-gray-600">
+            <p>학생은 학번만, 교사는 사번을 입력하세요.</p>
+            <p class="mt-2">비밀번호를 잊으셨나요? 담당 선생님께 문의하세요.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// 사용자명 입력 시 학교 선택 표시/숨김
+document.getElementById('username').addEventListener('input', function(e) {
+    const value = e.target.value;
+    const schoolSelectDiv = document.getElementById('schoolSelectDiv');
+    
+    // 첫 글자가 숫자면 학생으로 판단하여 학교 선택 표시
+    if (value && value[0] >= '0' && value[0] <= '9') {
+        schoolSelectDiv.style.display = 'block';
+    } else {
+        schoolSelectDiv.style.display = 'none';
+        document.getElementById('school_code').value = '';
+    }
+});
+</script>
+{% endblock %}

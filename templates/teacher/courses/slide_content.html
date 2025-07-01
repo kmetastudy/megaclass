@@ -1,0 +1,314 @@
+<!-- teacher/templates/teacher/courses/slide_content.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ content.title }} - {{ chasi.chasi_title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 콘텐츠 스타일 */
+    .content-viewer {
+        min-height: 400px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 문제 스타일 */
+    .question {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .question h4 {
+        color: #333;
+        margin-bottom: 1rem;
+    }
+    
+    /* 보기 스타일 */
+    .question ol {
+        margin-left: 1.5rem;
+    }
+    
+    .question ol li {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+    }
+    
+    /* 답변 입력 스타일 */
+    .answer-input {
+        margin-top: 1rem;
+    }
+    
+    .answer-input input[type="text"],
+    .answer-input textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e1e8ed;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .answer-input input[type="text"]:focus,
+    .answer-input textarea:focus {
+        outline: none;
+        border-color: #9333ea;
+    }
+    
+    /* 정답 확인 버튼 */
+    .check-answer-btn {
+        background-color: #10b981;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .check-answer-btn:hover {
+        background-color: #059669;
+        transform: translateY(-1px);
+    }
+    
+    /* 정답 표시 */
+    .answer-reveal {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: #d1fae5;
+        border: 1px solid #6ee7b7;
+        border-radius: 6px;
+    }
+    
+    .answer-reveal.show {
+        display: block;
+    }
+    
+    /* 네비게이션 버튼 */
+    .nav-button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .nav-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* 콘텐츠 타입별 스타일 */
+    .content-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background-color: #ede9fe;
+        color: #6b21a8;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- 헤더 -->
+    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <nav class="flex items-center space-x-2 text-purple-200 text-sm mb-2">
+                    <a href="{% url 'teacher:course_detail' chasi.subject.id %}" class="hover:text-white">
+                        {{ chasi.subject.subject_name }}
+                    </a>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                    <a href="{% url 'teacher:chasi_list' chasi.sub_chapter.id %}" class="hover:text-white">
+                        {{ chasi.sub_chapter.sub_chapter_title }}
+                    </a>
+                    <i class="fas fa-chevron-right text-xs"></i>
+                    <span>{{ chasi.chasi_title }}</span>
+                </nav>
+                <h1 class="text-2xl font-bold">슬라이드 {{ slide.slide_number }}</h1>
+                {% if slide.slide_title %}
+                <p class="text-purple-100 mt-1">{{ slide.slide_title }}</p>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                <div class="content-type-badge bg-white/20 text-white">
+                    <i class="{{ slide.content_type.icon|default:'fas fa-file' }}"></i>
+                    {{ slide.content_type.type_name }}
+                </div>
+                <p class="text-sm text-purple-200 mt-2">
+                    <i class="fas fa-clock mr-1"></i>예상 시간: {{ slide.estimated_time }}분
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 콘텐츠 영역 -->
+        <div class="lg:col-span-2">
+            <div class="content-viewer p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">{{ content.title }}</h2>
+                
+                <!-- 콘텐츠 내용 -->
+                <div class="prose max-w-none content-body">
+                    {{ content.page|safe }}
+                </div>
+                
+                <!-- 정답 확인 (문제형 콘텐츠의 경우) -->
+                {% if content.answer %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <button type="button" onclick="toggleAnswer()" class="check-answer-btn">
+                        <i class="fas fa-key mr-2"></i>정답 확인
+                    </button>
+                    
+                    <div id="answerReveal" class="answer-reveal">
+                        <h4 class="font-semibold text-green-800 mb-2">
+                            <i class="fas fa-check-circle mr-1"></i>정답
+                        </h4>
+                        <p class="text-green-700">{{ content.answer }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- 평가 기준 (있는 경우) -->
+                {% if content.tags %}
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">
+                        <i class="fas fa-clipboard-check mr-1"></i>평가 기준
+                    </h4>
+                    <div class="text-sm text-blue-700">
+                        {% for key, value in content.tags.items %}
+                        <p><strong>{{ key }}:</strong> {{ value }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- 네비게이션 -->
+            <div class="flex justify-between items-center mt-6">
+                {% if slide.slide_number > 1 %}
+                <button onclick="navigateSlide('prev')" class="nav-button bg-gray-600 text-white hover:bg-gray-700">
+                    <i class="fas fa-chevron-left"></i>
+                    이전 슬라이드
+                </button>
+                {% else %}
+                <div></div>
+                {% endif %}
+                
+                <button onclick="navigateSlide('next')" class="nav-button bg-purple-600 text-white hover:bg-purple-700">
+                    다음 슬라이드
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 교사 메모 -->
+            {% if slide.instructor_notes %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                <h3 class="text-lg font-semibold text-yellow-800 mb-3">
+                    <i class="fas fa-sticky-note mr-2"></i>교사 메모
+                </h3>
+                <p class="text-yellow-700 text-sm">{{ slide.instructor_notes }}</p>
+            </div>
+            {% endif %}
+            
+            <!-- 슬라이드 정보 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>슬라이드 정보
+                </h3>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <span class="text-gray-500">생성일:</span>
+                        <span class="text-gray-800 ml-2">{{ slide.created_at|date:"Y.m.d H:i" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">조회수:</span>
+                        <span class="text-gray-800 ml-2">{{ content.view_count|default:0 }}회</span>
+                    </div>
+                    {% if content.meta_data %}
+                    <div>
+                        <span class="text-gray-500">난이도:</span>
+                        <span class="text-gray-800 ml-2">{{ content.meta_data.difficulty|default:"보통" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 빠른 액션 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-bolt mr-2"></i>빠른 액션
+                </h3>
+                <div class="space-y-3">
+                    <a href="{% url 'teacher:chasi_slide_edit' slide.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-edit text-blue-600 mr-3"></i>
+                        <span class="text-gray-800">슬라이드 수정</span>
+                    </a>
+                    
+                    <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-list text-purple-600 mr-3"></i>
+                        <span class="text-gray-800">슬라이드 목록</span>
+                    </a>
+                    
+                    <a href="{% url 'teacher:chasi_preview' chasi.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-play text-green-600 mr-3"></i>
+                        <span class="text-gray-800">차시 전체 보기</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 정답 토글
+function toggleAnswer() {
+    const answerReveal = document.getElementById('answerReveal');
+    answerReveal.classList.toggle('show');
+}
+
+// 슬라이드 네비게이션
+function navigateSlide(direction) {
+    // 현재 슬라이드 번호
+    const currentSlideNumber = {{ slide.slide_number }};
+    const chasiId = {{ chasi.id }};
+    
+    // TODO: 실제 구현 시 다음/이전 슬라이드 ID를 서버에서 가져와야 함
+    if (direction === 'next') {
+        // 다음 슬라이드로 이동
+        alert('다음 슬라이드 기능은 구현 중입니다.');
+    } else if (direction === 'prev') {
+        // 이전 슬라이드로 이동
+        alert('이전 슬라이드 기능은 구현 중입니다.');
+    }
+}
+
+// 키보드 네비게이션
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+        navigateSlide('prev');
+    } else if (e.key === 'ArrowRight') {
+        navigateSlide('next');
+    }
+});
+</script>
+{% endblock %}

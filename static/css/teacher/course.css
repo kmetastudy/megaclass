@@ -1,0 +1,1000 @@
+/* /static/css/teacher/course.css */
+
+/* ===================================
+   전체 레이아웃
+   =================================== */
+   body {
+    background-color: #f0f2f5;
+}
+
+.main-container {
+    display: flex;
+    height: calc(100vh - 80px);
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 100%;
+}
+
+/* ===================================
+   트리 패널 스타일
+   =================================== */
+.tree-panel {
+    width: 320px;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: width 0.3s ease;
+    position: relative;
+    border: 1px solid #e9ecef;
+}
+
+.tree-panel.collapsed {
+    width: 60px;
+}
+
+.tree-header,
+.content-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.content-header {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.tree-header-title {
+    display: inline-block;
+    transition: opacity 0.3s ease;
+}
+
+.tree-panel.collapsed .tree-header-title {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.tree-header-icon {
+    display: none;
+    font-size: 1.25rem;
+}
+
+.tree-panel.collapsed .tree-header-icon {
+    display: inline-block;
+}
+
+.tree-content {
+    padding: 0.5rem;
+    height: calc(100% - 60px);
+    overflow: auto;
+    background: #ffffff;
+}
+
+/* 트리 스크롤바 */
+.tree-content::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+.tree-content::-webkit-scrollbar-track {
+    background: #f1f3f4;
+}
+
+.tree-content::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 2px;
+}
+
+.tree-content::-webkit-scrollbar-thumb:hover {
+    background: #bdc1c6;
+}
+
+/* ===================================
+   메인 콘텐츠 패널
+   =================================== */
+.content-panel {
+    flex: 1;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-body {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+/* ===================================
+   트리뷰 커스텀 스타일
+   =================================== */
+#courseTree {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 0.875rem;
+}
+
+/* 루트 노드의 확장 아이콘 숨기기 */
+.jstree-anchor[aria-level="1"] > .jstree-icon.jstree-ocl {
+    display: none;
+}
+
+/* jstree 아이콘 재정의 */
+.jstree-default .jstree-icon.jstree-ocl {
+    background: none !important;
+    width: auto;
+    height: auto;
+    line-height: normal;
+    text-align: left;
+}
+
+.jstree-default .jstree-ocl:before {
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 1rem;
+    color: #6B7280;
+    vertical-align: middle;
+    margin-right: 5px;
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.jstree-default .jstree-closed > .jstree-ocl:before {
+    content: "\f054";
+    transform: rotate(0deg);
+}
+
+.jstree-default .jstree-open > .jstree-ocl:before {
+    content: "\f078";
+    transform: rotate(0deg);
+}
+
+.jstree-anchor {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+    line-height: 1.4;
+}
+
+/* 트리 연결선 */
+.jstree-default .jstree-node {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 18px;
+    position: relative;
+}
+
+.jstree-default .jstree-node:not(.jstree-last):after {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    border-left: 1px solid #BDBDBD;
+}
+
+.jstree-default .jstree-node:before {
+    content: '';
+    position: absolute;
+    left: -22px; 
+    top: 50%;
+    width: 10px;
+    height: 1px;
+    border-top: 1px solid #BDBDBD;
+}
+
+.jstree-default > ul > .jstree-node:before,
+.jstree-default > ul > .jstree-node:after {
+    display: none;
+}
+
+.jstree-default .jstree-anchor:hover {
+    background: #e8f0fe;
+}
+
+.jstree-default .jstree-clicked {
+    background: #D3E3FD;
+    color: #1967D2;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.2);
+}
+
+/* 노드 타입별 스타일 */
+.node-chapter .jstree-anchor {
+    font-weight: 600;
+    color: #1a73e8;
+}
+
+.node-subchapter .jstree-anchor {
+    color: #188038;
+}
+
+.node-chasi .jstree-anchor {
+    color: #7c3aed;
+}
+
+/* 하위 항목 개수 배지 */
+.tree-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1565c0;
+    background: #e3f2fd;
+    height: 1.25rem;
+    min-width: 1.25rem;
+    border-radius: 50%;
+    padding: 0 0.25rem;
+    margin-left: 0.5rem;
+    line-height: 1;
+}
+
+.jstree-clicked .tree-count-badge {
+    background: #FFFFFF;
+    color: #1967D2;
+}
+
+/* ===================================
+   카드 스타일
+   =================================== */
+.stat-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    transition: all 0.3s;
+    border: 1px solid #e1e4e8;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+}
+
+.content-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e1e4e8;
+    transition: all 0.2s;
+}
+
+.content-card:hover {
+    border-color: #1a73e8;
+    box-shadow: 0 4px 12px rgba(26,115,232,0.15);
+}
+
+.new-item-card {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.new-item-card:hover {
+    border-color: #1a73e8;
+    background: #f0f7ff;
+}
+
+/* ===================================
+   버튼 스타일
+   =================================== */
+.btn-modern {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #1a73e8;
+    color: white;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+}
+
+.btn-primary:hover {
+    background: #1557b0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26,115,232,0.4);
+}
+
+.btn-secondary {
+    background: #f8f9fa;
+    color: #5f6368;
+    border: 1px solid #dadce0;
+}
+
+.btn-secondary:hover {
+    background: #f1f3f4;
+    border-color: #1a73e8;
+    color: #1a73e8;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+/* ===================================
+   폼 스타일
+   =================================== */
+.form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+}
+
+.accordion-form {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border: 2px dashed #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.accordion-form.active {
+    border-color: #1a73e8;
+    box-shadow: 0 4px 12px rgba(26,115,232,0.15);
+}
+
+/* ===================================
+   슬라이드 관련 스타일
+   =================================== */
+.content-item {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.content-item:hover {
+    background-color: #f9fafb;
+}
+
+.content-item.selected,
+.content-item.bg-purple-50 {
+    background-color: #f3e8ff;
+    border-color: #9333ea;
+}
+
+.slide-card {
+    transition: all 0.3s;
+    cursor: move;
+}
+
+.slide-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.slide-card.dragging {
+    opacity: 0.9;
+    cursor: grabbing;
+}
+
+.drag-handle {
+    cursor: grab;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Sortable.js 스타일 */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #f3f4f6;
+}
+
+.sortable-chosen {
+    transform: scale(1.02);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+}
+
+.sortable-drag {
+    cursor: grabbing !important;
+    opacity: 0.9;
+}
+
+.slide-number {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ===================================
+   로딩 및 메시지
+   =================================== */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #f3f4f6;
+    border-top-color: #1a73e8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 메시지 알림 */
+.alert-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.alert-success {
+    background: #d4edda;
+    border-left: 4px solid #28a745;
+    color: #155724;
+}
+
+.alert-error {
+    background: #f8d7da;
+    border-left: 4px solid #dc3545;
+    color: #721c24;
+}
+
+/* ===================================
+   스크롤바
+   =================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f3f4;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #bdc1c6;
+}
+
+/* ===================================
+   반응형
+   =================================== */
+@media (max-width: 1024px) {
+    .tree-panel {
+        width: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+    
+    .tree-panel {
+        width: 100%;
+        height: 200px;
+    }
+    
+    .tree-panel.collapsed {
+        height: 60px;
+    }
+}
+
+
+/* ===================================
+   콘텐츠 패널 스타일
+   =================================== */
+   .contents-panel {
+    width: 400px;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: width 0.3s ease, margin-right 0.3s ease;
+    position: relative;
+    border: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+}
+
+.contents-panel.collapsed {
+    width: 0;
+    margin-right: -1rem;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.contents-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+}
+
+.contents-header-title {
+    display: inline-block;
+    transition: opacity 0.3s ease;
+}
+
+.contents-header-icon {
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+}
+
+/* 탭 스타일 */
+.contents-tabs {
+    display: flex;
+    background: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 0.75rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+
+.tab-button:hover {
+    background: #dee2e6;
+}
+
+.tab-button.active {
+    background: white;
+    color: #1a73e8;
+    border-bottom: 2px solid #1a73e8;
+}
+
+.tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 검색 필터 */
+.contents-filters {
+    padding: 1rem;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* 콘텐츠 목록 */
+.contents-list {
+    padding: 0.5rem;
+    overflow-y: auto;
+    height: calc(100vh - 380px);
+}
+
+.content-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    transition: all 0.2s;
+}
+
+.content-item:hover {
+    border-color: #1a73e8;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.15);
+}
+
+.content-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+/* 드래그 오버 효과 */
+.slide-drop-zone {
+    border: 2px dashed #1a73e8;
+    background: #e8f0fe;
+    min-height: 80px;
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a73e8;
+    font-weight: 500;
+}
+
+/* 레이아웃 조정 */
+.main-container.contents-open .tree-panel {
+    width: 60px;
+}
+
+.main-container.contents-open .tree-panel .tree-header-title {
+    display: none;
+}
+
+.main-container.contents-open .content-panel {
+    flex: 1;
+}
+
+.main-container.contents-open .contents-panel {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+/* static/css/teacher/course.css 에 추가할 스타일 */
+
+/* 메시지 스타일 */
+.message {
+    background-color: #4299e1;
+    color: white;
+    animation: slideIn 0.3s ease-out;
+}
+
+.message-success {
+    background-color: #48bb78;
+}
+
+.message-error {
+    background-color: #f56565;
+}
+
+.message-warning {
+    background-color: #ed8936;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 콘텐츠 검색 아이템 스타일 */
+.content-search-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.content-search-item:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.content-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.content-item-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+}
+
+.content-type-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge-blue {
+    background-color: #e6f4ff;
+    color: #1890ff;
+}
+
+.badge-green {
+    background-color: #f0f9ff;
+    color: #10b981;
+}
+
+.badge-purple {
+    background-color: #f3e8ff;
+    color: #8b5cf6;
+}
+
+.badge-orange {
+    background-color: #fff7ed;
+    color: #f97316;
+}
+
+.badge-gray {
+    background-color: #f7fafc;
+    color: #718096;
+}
+
+.content-item-meta {
+    font-size: 14px;
+    color: #718096;
+    margin-bottom: 8px;
+}
+
+.content-item-meta span {
+    margin-right: 16px;
+}
+
+.content-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon {
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    background: white;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background-color: #f7fafc;
+    border-color: #cbd5e0;
+    color: #2d3748;
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #4299e1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Sortable 스타일 */
+.sortable-ghost {
+    opacity: 0.4;
+}
+
+.sortable-chosen {
+    cursor: grabbing !important;
+}
+
+.sortable-drag {
+    cursor: grabbing !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* 콘텐츠 패널 기본 스타일 */
+.content-panel {
+    background: #f8fafc;
+    overflow-y: auto;
+}
+
+.content-header {
+    background: white;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.content-body {
+    padding: 24px;
+}
+
+/* 콘텐츠 라이브러리 패널 스타일 */
+.contents-panel {
+    background: white;
+    border-left: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.contents-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.contents-header-icon {
+    color: #4299e1;
+    margin-right: 8px;
+}
+
+.contents-tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #718096;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    color: #4a5568;
+    background-color: #f7fafc;
+}
+
+.tab-button.active {
+    color: #4299e1;
+    border-bottom-color: #4299e1;
+}
+
+.tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.contents-filters {
+    padding: 16px;
+    background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.contents-list {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: calc(100vh - 400px);
+}
+
+/* 폼 요소 스타일 */
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* 버튼 스타일 */
+.btn-modern {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: #4299e1;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary {
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.btn-secondary:hover {
+    background-color: #cbd5e0;
+    transform: translateY(-1px);
+}
+
+/* 트리 패널 스타일 */
+.tree-panel {
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tree-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tree-header-icon {
+    color: #4299e1;
+    margin-right: 8px;
+}
+
+.tree-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}

@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학생 평가 - {{ student.user.get_full_name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">학생 평가</h1>
+                <p class="text-gray-600 mt-2">{{ student.user.get_full_name }} ({{ student.school_class }})</p>
+            </div>
+            
+            <!-- 시도 기록 요약 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">수행평가 기록</h2>
+                <div class="space-y-3">
+                    {% for attempt in attempts %}
+                    <div class="border rounded-lg p-4 {% if attempt.is_success %}bg-green-50 border-green-200{% else %}bg-red-50 border-red-200{% endif %}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium">{{ attempt.attempt_number }}회차</p>
+                                <p class="text-sm text-gray-600">{{ attempt.created_at|date:"Y년 m월 d일 H:i" }}</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-sm font-medium {% if attempt.is_success %}bg-green-200 text-green-800{% else %}bg-red-200 text-red-800{% endif %}">
+                                {% if attempt.is_success %}성공{% else %}실패{% endif %}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-gray-700">{{ attempt.feedback }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500">시도 기록이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- 평가 폼 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">종합 평가</h2>
+                
+                {% if existing_evaluation %}
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                    <p class="text-blue-700">이미 평가가 완료되었습니다.</p>
+                    <p class="text-sm text-blue-600 mt-1">평가일: {{ existing_evaluation.evaluated_at|date:"Y년 m월 d일 H:i" }}</p>
+                </div>
+                {% endif %}
+                
+                <form id="evaluation-form">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">등급</label>
+                        <select id="grade" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" {% if existing_evaluation %}disabled{% endif %}>
+                            <option value="">선택하세요</option>
+                            <option value="A" {% if existing_evaluation.grade == 'A' %}selected{% endif %}>🏆 최우수</option>
+                            <option value="B" {% if existing_evaluation.grade == 'B' %}selected{% endif %}>🥇 우수</option>
+                            <option value="C" {% if existing_evaluation.grade == 'C' %}selected{% endif %}>🥈 보통</option>
+                            <option value="D" {% if existing_evaluation.grade == 'D' %}selected{% endif %}>🥉 노력 필요</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">종합 피드백</label>
+                        <textarea id="overall_feedback" rows="6" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" {% if existing_evaluation %}disabled{% endif %}>{% if existing_evaluation %}{{ existing_evaluation.overall_feedback }}{% endif %}</textarea>
+                    </div>
+                    
+                    {% if not existing_evaluation %}
+                    <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition">
+                        평가 저장
+                    </button>
+                    {% else %}
+                    <button type="button" id="edit-btn" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition">
+                        수정하기
+                    </button>
+                    <button type="submit" id="update-btn" class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 transition hidden">
+                        수정 완료
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <a href="{% url 'rolling:teacher_class' student.school_class.id %}" class="text-blue-600 hover:text-blue-800">← 학급 목록으로 돌아가기</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // CSRF 토큰 설정
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            const csrftoken = getCookie('csrftoken');
+            
+            {% if existing_evaluation %}
+            // 수정 버튼 클릭
+            $('#edit-btn').click(function() {
+                $('#grade').prop('disabled', false);
+                $('#overall_feedback').prop('disabled', false);
+                $(this).addClass('hidden');
+                $('#update-btn').removeClass('hidden');
+            });
+            {% endif %}
+            
+            // 폼 제출
+            $('#evaluation-form').submit(function(e) {
+                e.preventDefault();
+                
+                const grade = $('#grade').val();
+                const feedback = $('#overall_feedback').val();
+                
+                if (!grade || !feedback.trim()) {
+                    alert('등급과 피드백을 모두 입력해주세요.');
+                    return;
+                }
+                
+                $.ajax({
+                    url: '{% url "rolling:save_evaluation" student.id %}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        grade: grade,
+                        overall_feedback: feedback
+                    }),
+                    success: function(response) {
+                        alert('평가가 저장되었습니다!');
+                        location.reload();
+                    },
+                    error: function() {
+                        alert('평가 저장 중 오류가 발생했습니다.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

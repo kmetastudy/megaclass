@@ -1,0 +1,401 @@
+
+    /* 패널 너비 조정을 위한 추가 스타일 */
+    .main-container {
+        display: flex;
+        height: calc(100vh - 80px);
+        position: relative;
+        padding:0;
+        margin-top:10px;
+    }
+    
+    /* // 메시지 표시 함수 (전역) */
+    /* window.showMessage = function(message, type = 'info') { */
+    
+    .tree-panel {
+        width: 420px;
+        min-width: 350px;
+        max-width: 500px;
+        transition: width 0.3s ease;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .tree-panel.collapsed {
+        width: 50px;
+        min-width: 50px;
+        overflow: visible; /* 토글 버튼이 보이도록 */
+    }
+    
+    /* 트리 헤더 수정 */
+    .tree-header {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+        border-bottom: 1px solid #e9ecef;
+        background: #f8f9fa;
+        position: relative;
+        z-index: 10;
+    }
+    
+    .tree-header-content {
+        display: flex;
+        align-items: center;
+        transition: opacity 0.3s ease;
+    }
+    
+    .tree-panel.collapsed .tree-header-content {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .tree-toggle-btn {
+        background: none;
+        border: none;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        color: #6b7280;
+        cursor: pointer;
+        position: relative;
+        z-index: 20;
+    }
+    
+    .tree-toggle-btn:hover {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    /* collapsed 상태에서도 토글 버튼 보이기 */
+    .tree-panel.collapsed .tree-toggle-btn {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* 트리 스타일 수정 */
+    .tree-view {
+        font-family: inherit;
+        padding: 8px;
+        overflow-y: auto;
+        flex: 1;
+        align-items: flex-start; /* 상단 정렬 */
+    }
+    
+    .tree-item {
+        position: relative;
+        padding-left: 4px;
+        margin: 6px 0; /* 간격 증가 */
+        transition: all 0.3s ease; /* 애니메이션 추가 */
+    }
+    
+    .tree-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 15px;
+        height: 1px;
+        background-color: #d1d5db;
+    }
+    
+    .tree-item.collapsed > .tree-children {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        transform: translateY(-10px);
+    }
+    
+    .tree-children {
+        margin-left: 24px; /* 간격 증가 */
+        border-left: 1px solid #e5e7eb;
+        padding-left: 8px; /* 패딩 증가 */
+        margin-top: 8px; /* 상단 마진 추가 */
+        max-height: 1000px;
+        opacity: 1;
+        transition: all 0.3s ease;
+        transform: translateY(0);
+    }
+    
+    .tree-toggle {
+        cursor: pointer;
+        user-select: none;
+        margin-right: 8px;
+        color: #6b7280;
+        transition: transform 0.3s ease; /* 애니메이션 시간 증가 */
+        font-size: 12px;
+    }
+    
+    .tree-toggle.collapsed {
+        transform: rotate(-90deg);
+    }
+    
+    .tree-content {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px; /* 패딩 증가 */
+        border-radius: 8px; /* 둥근 모서리 증가 */
+        transition: all 0.3s ease; /* 애니메이션 시간 증가 */
+        margin: 2px 4px;
+        cursor: pointer;
+    }
+    
+    .tree-content:hover {
+        background-color: #f3f4f6;
+        transform: translateX(4px); /* 호버 시 살짝 이동 */
+    }
+    
+    .tree-content.selected {
+        background-color: #ede9fe;
+        border: 1px solid #a78bfa;
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(167, 139, 250, 0.3);
+    }
+    
+    .tree-icon {
+        margin-right: 10px; /* 간격 증가 */
+        font-size: 16px;
+        transition: transform 0.2s ease;
+    }
+    
+    .tree-content:hover .tree-icon {
+        transform: scale(1.1);
+    }
+    
+    .tree-text {
+        flex: 1;
+        font-size: 14px;
+    }
+    
+    .tree-badge {
+        display: inline-block;
+        padding: 3px 8px; /* 패딩 증가 */
+        margin-left: 10px; /* 마진 증가 */
+        background-color: #f3f4f6;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 12px; /* 둥근 모서리 증가 */
+        transition: all 0.2s ease;
+    }
+    
+    .tree-content:hover .tree-badge {
+        background-color: #e5e7eb;
+        transform: scale(1.05);
+    }
+    
+    .tree-panel.collapsed .tree-view {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    /* contentPanel과 contentsPanel이 동일한 너비를 갖도록 설정 */
+    .content-panel {
+        flex: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .contents-panel {
+        width: 0;
+        min-width: 0;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    /* contentsPanel이 열렸을 때 두 패널이 동일한 너비를 갖도록 */
+    .main-container.contents-open .content-panel {
+        width: calc(50% - 150px); /* 트리 패널 너비의 절반을 뺀 값 */
+    }
+    
+    .main-container.contents-open .contents-panel {
+        width: calc(50% - 150px); /* 트리 패널 너비의 절반을 뺀 값 */
+        min-width: 400px;
+    }
+    
+    /* 드롭 영역 스타일 */
+    .drop-zone {
+        min-height: 400px;
+        border: 2px dashed #cbd5e0;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        text-align: center;
+        transition: all 0.3s ease;
+        background-color: #f7fafc;
+    }
+    
+    .drop-zone.drag-over {
+        border-color: #4299e1;
+        background-color: #ebf8ff;
+        transform: scale(1.02);
+    }
+    
+    .drop-zone-icon {
+        font-size: 4rem;
+        color: #a0aec0;
+        margin-bottom: 20px;
+    }
+    
+    .drop-zone-text {
+        color: #4a5568;
+        font-size: 1.125rem;
+        margin-bottom: 10px;
+    }
+    
+    .drop-zone-hint {
+        color: #718096;
+        font-size: 0.875rem;
+    }
+    
+    /* 드롭된 콘텐츠 아이템 스타일 */
+    .dropped-content-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+        cursor: move;
+    }
+    
+    .dropped-content-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .dropped-content-info {
+        flex: 1;
+    }
+    
+    .dropped-content-title {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 4px;
+    }
+    
+    .dropped-content-meta {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+    
+    .dropped-content-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .dropped-content-actions button {
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-remove {
+        background-color: #feb2b2;
+        color: #c53030;
+    }
+    
+    .btn-remove:hover {
+        background-color: #fc8181;
+    }
+    
+    /* 콘텐츠 아이템 드래그 가능 표시 */
+    .content-item {
+        cursor: grab;
+        transition: all 0.2s ease;
+    }
+    
+    .content-item:active {
+        cursor: grabbing;
+    }
+    
+    .content-item.dragging {
+        opacity: 0.5;
+    }
+
+
+    /* 콘텐츠 아이템 선택 스타일 */
+.content-item-wrapper {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.content-item-wrapper:hover {
+    background-color: #f9fafb;
+}
+
+.content-item-wrapper.selected {
+    background-color: #eff6ff;
+    border: 2px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.content-item-wrapper.selected .content-search-item {
+    padding: 14px; /* 테두리로 인한 크기 조정 */
+}
+
+/* 선택 버튼 스타일 */
+.btn-icon.active {
+    color: #3b82f6;
+    background-color: #dbeafe;
+}
+
+/* 선택 카운트 표시 영역 */
+#selectedCountDisplay {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    border-radius: 6px;
+}
+
+/* 다중 선택 시 액션 버튼 */
+.bulk-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+.bulk-actions button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* 선택된 콘텐츠 아이템 스타일 */
+.content-item.bg-purple-50 {
+    background-color: #f3e8ff;
+    border-left: 4px solid #9333ea;
+}
+
+.btn-icon.active {
+    color: #9333ea;
+}
+
+/* 타인 콘텐츠 배지 */
+.bg-gray-500 {
+    background-color: #6b7280;
+}

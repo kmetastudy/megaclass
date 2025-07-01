@@ -1,0 +1,673 @@
+<!-- teacher/templates/teacher/courses/chasis/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ subchapter.sub_chapter_title }} - 차시 목록{% endblock %}
+
+{% block extra_css %}
+<style>
+    .slide-section {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    
+    .slide-section.expanded {
+        max-height: 2000px;
+        transition: max-height 0.5s ease-in;
+    }
+    
+    .content-item {
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .content-item:hover {
+        background-color: #f3f4f6;
+    }
+    
+    .content-item.selected {
+        background-color: #ddd6fe;
+        border-color: #a78bfa;
+    }
+    
+    .slide-card {
+        transition: all 0.3s;
+        cursor: move;
+    }
+    
+    .slide-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f4f6;
+        border-radius: 50%;
+        border-top-color: #a78bfa;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Sortable.js 스타일 */
+    .sortable-ghost {
+        opacity: 0.4;
+        background-color: #f3f4f6;
+    }
+    
+    .sortable-chosen {
+        transform: scale(1.02);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    
+    .sortable-drag {
+        cursor: grabbing !important;
+        opacity: 0.9;
+    }
+    
+    .drag-handle {
+        cursor: grab;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    
+    .drag-handle:hover {
+        opacity: 1;
+    }
+    
+    .slide-card.dragging {
+        cursor: grabbing;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:course_detail' course.id %}" class="text-blue-600 hover:text-blue-800">{{ course.subject_name }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:chapter_list' course.id %}" class="text-blue-600 hover:text-blue-800">{{ chapter.chapter_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:subchapter_list' chapter.id %}" class="text-blue-600 hover:text-blue-800">{{ subchapter.sub_chapter_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li class="text-gray-500">차시 목록</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">차시 목록</h1>
+                <p class="text-gray-600">{{ subchapter.sub_chapter_title }}의 차시들</p>
+            </div>
+            <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+               class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-plus mr-2"></i>새 차시 추가
+            </a>
+        </div>
+        
+        {% if subchapter.description %}
+        <div class="bg-gray-50 rounded-lg p-4">
+            <p class="text-gray-700">{{ subchapter.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 차시 목록 -->
+    {% if chasis %}
+    <div class="space-y-6">
+        {% for chasi in chasis %}
+        <div class="bg-white rounded-xl shadow-md overflow-hidden" id="chasi-{{ chasi.id }}">
+            <!-- 차시 헤더 -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center">
+                            <h3 class="text-lg font-semibold text-gray-800">
+                                {{ chasi.chasi_order }}차시
+                            </h3>
+                            <span class="ml-3 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                                <span id="slide-count-{{ chasi.id }}">{{ chasi.slide_count|default:0 }}</span> 슬라이드
+                            </span>
+                        </div>
+                        <h4 class="text-xl font-bold text-gray-900 mt-1">{{ chasi.chasi_title }}</h4>
+                        
+                        {% if chasi.description %}
+                        <p class="text-gray-600 text-sm mt-2">{{ chasi.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        
+                        {% if chasi.learning_objectives %}
+                        <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+                            <h5 class="text-sm font-medium text-blue-800 mb-1">학습목표</h5>
+                            <p class="text-blue-700 text-sm">{{ chasi.learning_objectives|truncatewords:15 }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ml-4 flex flex-col space-y-2">
+                        <button onclick="toggleSlideSection({{ chasi.id }})" 
+                                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition duration-200 text-sm">
+                            <i class="fas fa-chevron-down mr-1" id="toggle-icon-{{ chasi.id }}"></i>슬라이드 관리
+                        </button>
+                        <a href="{% url 'teacher:chasi_edit' chasi.id %}" 
+                           class="bg-blue-600 text-white text-center px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                            <i class="fas fa-edit mr-1"></i>차시 수정
+                        </a>
+                        <a href="{% url 'teacher:chasi_preview' chasi.id %}" 
+                           class="bg-gray-600 text-white text-center px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200 text-sm">
+                            <i class="fas fa-eye mr-1"></i>미리보기
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="flex items-center text-gray-500 text-xs mt-4">
+                    <i class="fas fa-calendar mr-1"></i>
+                    {{ chasi.created_at|date:"Y.m.d" }}
+                    {% if chasi.is_published %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-globe mr-1 text-green-600"></i>
+                    <span class="text-green-600">공개</span>
+                    {% else %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-lock mr-1 text-gray-600"></i>
+                    <span class="text-gray-600">비공개</span>
+                    {% endif %}
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-clock mr-1"></i>
+                    {{ chasi.duration_minutes }}분
+                </div>
+            </div>
+            
+            <!-- 슬라이드 섹션 (숨김/보임) -->
+            <div class="slide-section" id="slide-section-{{ chasi.id }}">
+                <div class="p-6 bg-gray-50">
+                    <!-- 슬라이드 추가 폼 -->
+                    <div class="mb-6">
+                        <h5 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-plus-circle mr-2"></i>새 슬라이드 추가
+                        </h5>
+                        
+                        <form id="slide-form-{{ chasi.id }}" class="space-y-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="chasi_id" value="{{ chasi.id }}">
+                            
+                            <!-- 콘텐츠 선택 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 선택</label>
+                                <div class="border border-gray-300 rounded-lg max-h-48 overflow-y-auto bg-white">
+                                    <div id="content-list-{{ chasi.id }}">
+                                        <!-- AJAX로 로드됨 -->
+                                        <div class="p-4 text-center text-gray-500">
+                                            <i class="fas fa-spinner fa-spin mr-2"></i>콘텐츠 로딩 중...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 슬라이드 정보 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">슬라이드 제목</label>
+                                    <input type="text" name="slide_title" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                           placeholder="슬라이드 제목 (선택사항)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">예상 시간(분)</label>
+                                    <input type="number" name="estimated_time" value="5" min="1" max="60"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">교사 메모</label>
+                                <textarea name="instructor_notes" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                          placeholder="수업 진행 시 참고사항"></textarea>
+                            </div>
+                            
+                            <div class="flex items-center justify-between">
+                                <button type="button" onclick="addSlide({{ chasi.id }})" 
+                                        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400"
+                                        id="add-slide-btn-{{ chasi.id }}" disabled>
+                                    <i class="fas fa-plus mr-2"></i>슬라이드 추가
+                                </button>
+                                <a href="{% url 'teacher:contents_create' %}?from_chasi={{ chasi.id }}" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm">
+                                    새 콘텐츠 만들기 →
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- 기존 슬라이드 목록 -->
+                    <div>
+                        <h5 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-images mr-2"></i>슬라이드 목록
+                            <span class="text-sm text-gray-500 ml-2">(드래그하여 순서 변경)</span>
+                        </h5>
+                        <div id="slides-{{ chasi.id }}" class="space-y-3" data-chasi-id="{{ chasi.id }}">
+                            <!-- AJAX로 로드됨 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 빈 상태 -->
+    <div class="text-center py-16">
+        <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
+        <h3 class="text-xl font-medium text-gray-600 mb-2">차시가 없습니다</h3>
+        <p class="text-gray-500 mb-6">{{ subchapter.sub_chapter_title }}의 첫 번째 차시를 추가해보세요</p>
+        <a href="{% url 'teacher:chasi_create' subchapter.id %}" 
+           class="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>첫 번째 차시 추가
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 메시지 알림 -->
+<div id="message-container" class="fixed top-4 right-4 z-50"></div>
+
+<!-- Sortable.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Sortable 인스턴스 저장
+const sortableInstances = {};
+
+// 슬라이드 섹션 토글
+function toggleSlideSection(chasiId) {
+    const section = document.getElementById(`slide-section-${chasiId}`);
+    const icon = document.getElementById(`toggle-icon-${chasiId}`);
+    
+    if (section.classList.contains('expanded')) {
+        section.classList.remove('expanded');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+    } else {
+        section.classList.add('expanded');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+        
+        // 처음 열 때 콘텐츠와 슬라이드 로드
+        if (!section.dataset.loaded) {
+            loadContents(chasiId);
+            loadSlides(chasiId);
+            section.dataset.loaded = 'true';
+        }
+    }
+}
+
+// 콘텐츠 목록 로드
+function loadContents(chasiId) {
+    fetch(`/teacher/api/contents/list/?chasi_id=${chasiId}`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById(`content-list-${chasiId}`);
+            
+            if (data.contents && data.contents.length > 0) {
+                container.innerHTML = data.contents.map(content => `
+                    <div class="content-item p-3 border-b border-gray-200 last:border-b-0" 
+                         onclick="selectContent(${chasiId}, ${content.id}, '${content.title.replace(/'/g, "\\'")}')">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <h6 class="font-medium text-gray-800">${content.title}</h6>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                        ${content.content_type}
+                                    </span>
+                                    <span class="text-gray-500 text-xs">${content.created_at}</span>
+                                </div>
+                            </div>
+                            <input type="radio" name="content_id_${chasiId}" value="${content.id}" 
+                                   class="h-4 w-4 text-purple-600">
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="p-4 text-center text-gray-500">
+                        <p>사용 가능한 콘텐츠가 없습니다.</p>
+                        <a href="/teacher/contents/create/?from_chasi=${chasiId}" 
+                           class="text-blue-600 hover:text-blue-800 text-sm">
+                            새 콘텐츠 만들기 →
+                        </a>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('콘텐츠 로드 중 오류가 발생했습니다.', 'error');
+        });
+}
+
+// 슬라이드 목록 로드
+function loadSlides(chasiId) {
+    fetch(`/teacher/api/chasis/${chasiId}/slides/`)
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById(`slides-${chasiId}`);
+            
+            if (data.slides && data.slides.length > 0) {
+                container.innerHTML = data.slides.map(slide => `
+                    <div class="slide-card bg-white rounded-lg border border-gray-200 p-4" 
+                         id="slide-${slide.id}" 
+                         data-slide-id="${slide.id}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <div class="drag-handle mr-3 text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-grip-vertical"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs font-medium slide-number">
+                                            슬라이드 ${slide.slide_number}
+                                        </span>
+                                        <h6 class="ml-3 font-medium text-gray-800">${slide.content_title}</h6>
+                                    </div>
+                                    ${slide.slide_title ? `<p class="text-sm text-gray-600 mb-2">${slide.slide_title}</p>` : ''}
+                                    <div class="flex items-center space-x-3 text-xs text-gray-500">
+                                        <span><i class="fas fa-tag mr-1"></i>${slide.content_type}</span>
+                                        <span><i class="fas fa-clock mr-1"></i>${slide.estimated_time}분</span>
+                                    </div>
+                                    ${slide.instructor_notes ? `
+                                        <div class="mt-2 p-2 bg-yellow-50 rounded text-xs text-yellow-700">
+                                            <i class="fas fa-sticky-note mr-1"></i>${slide.instructor_notes}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="ml-4 flex items-center space-x-2">
+                                <a href="/teacher/slides/${slide.id}/edit/" 
+                                   class="text-blue-600 hover:text-blue-800 p-2">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="deleteSlide(${slide.id}, ${chasiId})" 
+                                        class="text-red-600 hover:text-red-800 p-2">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Sortable 초기화
+                initializeSortable(chasiId);
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-images text-3xl mb-2"></i>
+                        <p>아직 슬라이드가 없습니다.</p>
+                    </div>
+                `;
+            }
+            
+            // 슬라이드 개수 업데이트
+            document.getElementById(`slide-count-${chasiId}`).textContent = data.slides ? data.slides.length : 0;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('슬라이드 로드 중 오류가 발생했습니다.', 'error');
+        });
+}
+
+// Sortable 초기화
+function initializeSortable(chasiId) {
+    const container = document.getElementById(`slides-${chasiId}`);
+    
+    // 이미 초기화되어 있으면 파괴하고 재생성
+    if (sortableInstances[chasiId]) {
+        sortableInstances[chasiId].destroy();
+    }
+    
+    sortableInstances[chasiId] = new Sortable(container, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        
+        onStart: function(evt) {
+            evt.item.classList.add('dragging');
+        },
+        
+        onEnd: function(evt) {
+            evt.item.classList.remove('dragging');
+            
+            // 새로운 순서 계산
+            const slides = container.querySelectorAll('.slide-card');
+            const slideOrders = [];
+            
+            slides.forEach((slide, index) => {
+                const slideId = slide.dataset.slideId;
+                slideOrders.push({
+                    slide_id: parseInt(slideId),
+                    order: index + 1
+                });
+                
+                // 슬라이드 번호 즉시 업데이트
+                const numberEl = slide.querySelector('.slide-number');
+                if (numberEl) {
+                    numberEl.textContent = `슬라이드 ${index + 1}`;
+                }
+            });
+            
+            // 서버로 순서 변경 요청
+            updateSlideOrder(chasiId, slideOrders);
+        }
+    });
+}
+
+// 슬라이드 순서 업데이트
+function updateSlideOrder(chasiId, slideOrders) {
+    fetch(`/teacher/api/chasis/${chasiId}/slides/reorder/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            slide_orders: slideOrders
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('슬라이드 순서가 변경되었습니다.', 'success');
+        } else {
+            showMessage('순서 변경 중 오류가 발생했습니다.', 'error');
+            // 에러 시 다시 로드
+            loadSlides(chasiId);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('순서 변경 중 오류가 발생했습니다.', 'error');
+        loadSlides(chasiId);
+    });
+}
+
+// 콘텐츠 선택
+function selectContent(chasiId, contentId, title) {
+    const radio = document.querySelector(`input[name="content_id_${chasiId}"][value="${contentId}"]`);
+    if (radio) {
+        radio.checked = true;
+        document.getElementById(`add-slide-btn-${chasiId}`).disabled = false;
+        
+        // 선택 효과
+        document.querySelectorAll(`#content-list-${chasiId} .content-item`).forEach(item => {
+            item.classList.remove('selected');
+        });
+        radio.closest('.content-item').classList.add('selected');
+    }
+}
+
+// 슬라이드 추가
+function addSlide(chasiId) {
+    const form = document.getElementById(`slide-form-${chasiId}`);
+    const formData = new FormData(form);
+    const selectedContent = document.querySelector(`input[name="content_id_${chasiId}"]:checked`);
+    
+    if (!selectedContent) {
+        showMessage('콘텐츠를 선택해주세요.', 'error');
+        return;
+    }
+    
+    formData.append('content_id', selectedContent.value);
+    
+    // 버튼 비활성화
+    const btn = document.getElementById(`add-slide-btn-${chasiId}`);
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>추가 중...';
+    
+    fetch(`/teacher/api/chasis/${chasiId}/slides/add/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('슬라이드가 추가되었습니다.', 'success');
+            
+            // 폼 초기화
+            form.reset();
+            document.querySelectorAll(`input[name="content_id_${chasiId}"]`).forEach(radio => {
+                radio.checked = false;
+            });
+            document.querySelectorAll(`#content-list-${chasiId} .content-item`).forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 슬라이드 목록 다시 로드
+            loadSlides(chasiId);
+        } else {
+            showMessage(data.error || '슬라이드 추가 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('슬라이드 추가 중 오류가 발생했습니다.', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus mr-2"></i>슬라이드 추가';
+    });
+}
+
+// 슬라이드 삭제
+function deleteSlide(slideId, chasiId) {
+    if (!confirm('정말 이 슬라이드를 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    fetch(`/teacher/api/slides/${slideId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ chasi_id: chasiId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('슬라이드가 삭제되었습니다.', 'success');
+            
+            // 슬라이드 요소 제거 애니메이션
+            const slideElement = document.getElementById(`slide-${slideId}`);
+            if (slideElement) {
+                slideElement.style.opacity = '0';
+                slideElement.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    loadSlides(chasiId); // 슬라이드 목록 다시 로드
+                }, 300);
+            }
+        } else {
+            showMessage(data.error || '삭제 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('삭제 중 오류가 발생했습니다.', 'error');
+    });
+}
+
+// 메시지 표시
+function showMessage(message, type) {
+    const container = document.getElementById('message-container');
+    const messageDiv = document.createElement('div');
+    
+    messageDiv.className = `mb-2 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+        type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
+        'bg-red-100 text-red-800 border border-red-200'
+    }`;
+    
+    messageDiv.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    container.appendChild(messageDiv);
+    
+    // 애니메이션으로 표시
+    setTimeout(() => {
+        messageDiv.style.opacity = '1';
+    }, 10);
+    
+    // 3초 후 제거
+    setTimeout(() => {
+        messageDiv.style.opacity = '0';
+        setTimeout(() => {
+            messageDiv.remove();
+        }, 300);
+    }, 3000);
+}
+
+// 페이지 로드 시 이미 열려있는 섹션 처리
+document.addEventListener('DOMContentLoaded', function() {
+    // URL 파라미터 확인 (특정 차시를 자동으로 열기 위해)
+    const urlParams = new URLSearchParams(window.location.search);
+    const openChasiId = urlParams.get('open_chasi');
+    
+    if (openChasiId) {
+        toggleSlideSection(parseInt(openChasiId));
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+<!-- teacher/templates/teacher/courses/chasis/slide_add.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}슬라이드 추가 - {{ chasi.chasi_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" class="text-blue-600 hover:text-blue-800">{{ chasi.chasi_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li class="text-gray-500">슬라이드 추가</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">슬라이드 추가</h1>
+        <p class="text-gray-600">{{ chasi.chasi_title }}에 새로운 슬라이드를 추가합니다</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 메인 폼 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <form method="post" id="slideForm">
+                    {% csrf_token %}
+                    
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-plus mr-2"></i>콘텐츠 선택
+                    </h3>
+                    
+                    <!-- 콘텐츠 타입 필터 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 타입으로 필터</label>
+                        <select id="contentTypeFilter" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">모든 타입</option>
+                            {% for content_type in content_types %}
+                            <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 콘텐츠 목록 -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">사용할 콘텐츠 선택 *</label>
+                        <div class="border border-gray-300 rounded-lg max-h-96 overflow-y-auto">
+                            {% for content in available_contents %}
+                            <div class="content-item border-b border-gray-200 last:border-b-0 p-4 hover:bg-gray-50 cursor-pointer"
+                                 data-content-type="{{ content.content_type.id }}"
+                                 onclick="selectContent({{ content.id }}, '{{ content.title|escapejs }}', '{{ content.content_type.type_name|escapejs }}')">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-gray-800">{{ content.title }}</h4>
+                                        <div class="flex items-center space-x-2 mt-1">
+                                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                                {{ content.content_type.type_name }}
+                                            </span>
+                                            <span class="text-gray-500 text-xs">{{ content.created_at|date:"Y.m.d" }}</span>
+                                        </div>
+                                        <p class="text-gray-600 text-sm mt-2 line-clamp-2">
+                                            {{ content.page|striptags|truncatewords:20 }}
+                                        </p>
+                                    </div>
+                                    <div class="ml-4">
+                                        <input type="radio" name="content_id" value="{{ content.id }}" 
+                                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="p-8 text-center">
+                                <i class="fas fa-file-alt text-4xl text-gray-300 mb-4"></i>
+                                <p class="text-gray-500">사용 가능한 콘텐츠가 없습니다</p>
+                                <a href="{% url 'teacher:contents_create' %}" onclick="alert('콘텐츠 제작 기능은 CP 앱에서 제공됩니다.')" 
+                                   class="text-blue-600 hover:text-blue-800 text-sm">
+                                    새 콘텐츠 만들기 →
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- 선택된 콘텐츠 표시 -->
+                    <div id="selectedContent" class="hidden mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 class="font-medium text-blue-800 mb-2">선택된 콘텐츠</h4>
+                        <div id="selectedContentInfo"></div>
+                    </div>
+                    
+                    <!-- 버튼 -->
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="submit" 
+                                class="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200 font-medium disabled:bg-gray-400"
+                                disabled>
+                            <i class="fas fa-plus mr-2"></i>슬라이드 추가
+                        </button>
+                        <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                           class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                            <i class="fas fa-arrow-left mr-2"></i>돌아가기
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 차시 정보 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>차시 정보
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">차시명</p>
+                        <p class="font-medium text-gray-800">{{ chasi.chasi_title }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">차시 순서</p>
+                        <p class="font-medium text-gray-800">{{ chasi.chasi_order }}차시</p>
+                    </div>
+                    {% if chasi.description %}
+                    <div>
+                        <p class="text-sm text-gray-500">설명</p>
+                        <p class="text-gray-700 text-sm">{{ chasi.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 콘텐츠 타입 안내 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-lightbulb mr-2"></i>콘텐츠 타입 안내
+                </h3>
+                <div class="space-y-3">
+                    {% for content_type in content_types %}
+                    <div class="flex items-center">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-3">
+                            {{ content_type.type_name }}
+                        </span>
+                        <span class="text-gray-600 text-sm">{{ content_type.description|default:"설명 없음" }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- 빠른 액션 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-bolt mr-2"></i>빠른 액션
+                </h3>
+                <div class="space-y-3">
+                    <a href="{% url 'teacher:contents_create' %}"  
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-plus text-green-600 mr-3"></i>
+                        <span class="text-gray-800">새 콘텐츠 만들기</span>
+                    </a>
+                    
+                    <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                       class="w-full flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
+                        <i class="fas fa-list text-blue-600 mr-3"></i>
+                        <span class="text-gray-800">슬라이드 목록</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const contentTypeFilter = document.getElementById('contentTypeFilter');
+    const contentItems = document.querySelectorAll('.content-item');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    // 콘텐츠 타입 필터
+    contentTypeFilter.addEventListener('change', function() {
+        const selectedType = this.value;
+        
+        contentItems.forEach(item => {
+            if (!selectedType || item.dataset.contentType === selectedType) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+    
+    // 콘텐츠 선택 상태 확인
+    document.querySelectorAll('input[name="content_id"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            submitButton.disabled = false;
+        });
+    });
+});
+
+function selectContent(contentId, title, typeName) {
+    // 라디오 버튼 선택
+    const radio = document.querySelector(`input[value="${contentId}"]`);
+    if (radio) {
+        radio.checked = true;
+        
+        // 선택된 콘텐츠 정보 표시
+        const selectedContent = document.getElementById('selectedContent');
+        const selectedContentInfo = document.getElementById('selectedContentInfo');
+        
+        selectedContentInfo.innerHTML = `
+            <div class="flex items-center">
+                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-3">${typeName}</span>
+                <span class="font-medium text-blue-800">${title}</span>
+            </div>
+        `;
+        
+        selectedContent.classList.remove('hidden');
+        
+        // 제출 버튼 활성화
+        document.querySelector('button[type="submit"]').disabled = false;
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,279 @@
+{% extends 'student/base.html' %}
+
+{% block title %}{{ slide.content.title }} - 학습 관리 시스템{% endblock %}
+{% block page_title %}슬라이드 학습{% endblock %}
+
+{% block extra_head %}
+<style>
+    .content-container {
+        min-height: 500px;
+    }
+    .note-editor {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+    .prose h1 { font-size: 2em; font-weight: bold; margin: 1em 0 0.5em; }
+    .prose h2 { font-size: 1.5em; font-weight: bold; margin: 1em 0 0.5em; }
+    .prose h3 { font-size: 1.2em; font-weight: bold; margin: 1em 0 0.5em; }
+    .prose p { margin: 0.5em 0; line-height: 1.6; }
+    .prose ul, .prose ol { margin: 0.5em 0 0.5em 2em; }
+    .prose li { margin: 0.25em 0; }
+    .prose code { background-color: #f3f4f6; padding: 0.2em 0.4em; border-radius: 3px; }
+    .prose pre { background-color: #1f2937; color: #f3f4f6; padding: 1em; border-radius: 5px; overflow-x: auto; }
+    .prose blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; color: #6b7280; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- 네비게이션 경로 -->
+    <div class="mb-6">
+        <nav class="flex items-center text-sm text-gray-600">
+            <a href="{% url 'student:course_list' %}" class="hover:text-blue-600">내 코스</a>
+            <i class="fas fa-chevron-right mx-2 text-xs"></i>
+            <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+               class="hover:text-blue-600">{{ slide.chasi.sub_chapter.chapter.subject.subject_name }}</a>
+            <i class="fas fa-chevron-right mx-2 text-xs"></i>
+            <span>{{ slide.chasi.chasi_title }}</span>
+        </nav>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- 메인 콘텐츠 영역 (3/4 너비) -->
+        <div class="lg:col-span-3">
+            <!-- 슬라이드 헤더 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">{{ slide.content.title }}</h2>
+                        <p class="text-sm text-gray-600 mt-1">
+                            {{ slide.chasi.sub_chapter.chapter.chapter_title }} > 
+                            {{ slide.chasi.sub_chapter.sub_chapter_title }} > 
+                            {{ slide.chasi.chasi_title }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 bg-{{ slide.content_type.color|default:'blue' }}-100 
+                                     text-{{ slide.content_type.color|default:'blue' }}-800 rounded-full text-sm">
+                            <i class="fas fa-{{ slide.content_type.icon|default:'file' }} mr-1"></i>
+                            {{ slide.content_type.type_name }}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            슬라이드 {{ slide.slide_number }}/{{ slide.chasi.teacher_slides.count }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- 학습 정보 -->
+                <div class="flex items-center gap-4 text-sm text-gray-600">
+                    <span><i class="far fa-clock mr-1"></i>예상 시간: {{ slide.estimated_time|default:"15" }}분</span>
+                    <span><i class="fas fa-eye mr-1"></i>조회수: {{ progress.view_count|default:0 }}회</span>
+                    {% if progress.started_at %}
+                    <span><i class="fas fa-play-circle mr-1"></i>시작: {{ progress.started_at|date:"m/d H:i" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 슬라이드 내용 -->
+          
+                <!-- 슬라이드 내용 (간단한 버전) -->
+<div class="bg-white rounded-xl shadow-md p-8 content-container">
+    <!-- 1. Content의 page를 충실히 표시 -->
+    <div class="prose max-w-none mb-8">
+        {{ slide.content.page|safe }}
+    </div>
+    
+    <!-- 2. 답안 제출 섹션 -->
+    {% if slide.content.answer %}
+        <!-- 이미 제출한 답안이 있는 경우 결과만 간단히 표시 -->
+        {% if existing_answer %}
+        <div class="border-t pt-6">
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                <p class="font-medium text-gray-700 mb-2">제출 완료</p>
+                <p class="text-sm text-gray-600">
+                    답안: {{ existing_answer.answer }}
+                    {% if existing_answer.is_correct is not None %}
+                        | {% if existing_answer.is_correct %}정답{% else %}오답{% endif %}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <!-- 답안 제출 폼 (단순화) -->
+        <div class="border-t pt-6">
+            <form method="post" id="answerForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="submit_answer">
+                
+                <!-- 단일 답안 입력 필드 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        답안 입력
+                    </label>
+                    <textarea name="answer" 
+                              rows="3" 
+                              class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="답안을 입력하세요..." 
+                              required></textarea>
+                </div>
+                
+                <!-- 제출 버튼 -->
+                <button type="submit" 
+                        class="bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-paper-plane mr-2"></i>제출
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    {% else %}
+    <!-- 문제가 없는 경우 학습 완료 버튼 -->
+    <div class="border-t pt-6">
+        {% if not progress.is_completed %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="complete">
+            <button type="submit" 
+                    class="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition duration-200">
+                <i class="fas fa-check mr-2"></i>학습 완료
+            </button>
+        </form>
+        {% else %}
+        <p class="text-green-600 font-medium">
+            <i class="fas fa-check-circle mr-2"></i>학습 완료됨
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+            
+            <!-- 이전/다음 네비게이션 -->
+            <div class="mt-6 flex justify-between">
+                {% if prev_slide %}
+                <a href="{% url 'student:slide_view' prev_slide.id %}" 
+                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+                    <i class="fas fa-chevron-left mr-2"></i>이전 슬라이드
+                </a>
+                {% else %}
+                <div></div>
+                {% endif %}
+                
+                {% if next_slide %}
+                <a href="{% url 'student:slide_view' next_slide.id %}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                    다음 슬라이드<i class="fas fa-chevron-right ml-2"></i>
+                </a>
+                {% else %}
+                <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+                   class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                    코스로 돌아가기<i class="fas fa-check ml-2"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 사이드바 (1/4 너비) -->
+        <div class="lg:col-span-1">
+            <!-- 노트 영역 -->
+            <div class="bg-white rounded-xl shadow-md p-6 note-editor mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>내 노트
+                </h3>
+                
+                <form id="noteForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_note">
+                    <textarea name="note_content" rows="12" 
+                              class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm"
+                              placeholder="학습하면서 중요한 내용이나 궁금한 점을 메모하세요...">{{ note.content|default:'' }}</textarea>
+                    
+                    <div class="mt-3 flex items-center justify-between">
+                        <button type="button" onclick="saveNote()" 
+                                class="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-200 text-sm">
+                            <i class="fas fa-save mr-1"></i>저장
+                        </button>
+                        <span id="saveStatus" class="text-sm text-gray-500"></span>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 학습 팁 -->
+            <div class="bg-blue-50 rounded-xl p-4">
+                <h4 class="font-medium text-blue-800 mb-2">
+                    <i class="fas fa-lightbulb mr-1"></i>학습 팁
+                </h4>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li>• 중요한 내용은 노트에 정리하세요</li>
+                    <li>• 이해가 안 되면 다시 읽어보세요</li>
+                    <li>• 문제는 신중히 풀어보세요</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let autoSaveTimer;
+
+function saveNote() {
+    const form = document.getElementById('noteForm');
+    const formData = new FormData(form);
+    const saveStatus = document.getElementById('saveStatus');
+    
+    saveStatus.textContent = '저장 중...';
+    saveStatus.className = 'text-sm text-gray-500';
+    
+    fetch('{% url "student:save_note_ajax" slide.id %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            saveStatus.textContent = '저장됨';
+            saveStatus.className = 'text-sm text-green-600';
+            setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 2000);
+        } else {
+            saveStatus.textContent = '저장 실패';
+            saveStatus.className = 'text-sm text-red-600';
+        }
+    })
+    .catch(error => {
+        saveStatus.textContent = '저장 실패';
+        saveStatus.className = 'text-sm text-red-600';
+    });
+}
+
+// 자동 저장 설정
+document.querySelector('textarea[name="note_content"]').addEventListener('input', function() {
+    clearTimeout(autoSaveTimer);
+    document.getElementById('saveStatus').textContent = '작성 중...';
+    document.getElementById('saveStatus').className = 'text-sm text-gray-400';
+    
+    autoSaveTimer = setTimeout(() => {
+        saveNote();
+    }, 2000); // 2초 후 자동 저장
+});
+
+// 페이지 이동 전 저장 확인
+window.addEventListener('beforeunload', function(e) {
+    const noteContent = document.querySelector('textarea[name="note_content"]').value;
+    const originalContent = '{{ note.content|default:""|escapejs }}';
+    
+    if (noteContent !== originalContent && noteContent.trim() !== '') {
+        saveNote();
+    }
+});
+
+// 답안 다시 풀기
+function showAnswerForm() {
+    document.getElementById('retryForm').classList.remove('hidden');
+}
+</script>
+{% endblock %}

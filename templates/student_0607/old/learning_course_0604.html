@@ -1,0 +1,173 @@
+<!-- 코스 학습 템플릿 (student/templates/student/learning_course.html)
+html -->
+
+{% extends 'student/base.html' %}
+
+{% block title %}{{ course.subject_name }} - 학습 관리 시스템{% endblock %}
+{% block page_title %}코스 학습{% endblock %}
+
+{% block content %}
+<!-- 코스 헤더 -->
+<div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ course.subject_name }}</h2>
+            <p class="text-gray-600 mb-2">{{ course.description }}</p>
+            <div class="flex items-center text-sm text-gray-500">
+                <i class="fas fa-user-tie mr-2"></i>
+                <span class="mr-4">담당교사: {{ course.teacher.user.get_full_name }}</span>
+                <i class="fas fa-bullseye mr-2"></i>
+                <span>대상: {{ course.target }}</span>
+            </div>
+        </div>
+        <div class="text-center">
+            <div class="text-3xl font-bold text-blue-600">
+                {{ overall_progress }}%
+            </div>
+            <p class="text-sm text-gray-600">전체 진도율</p>
+            <p class="text-xs text-gray-500 mt-1">
+                {{ completed_slides }}/{{ total_slides }}
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 학습 내용 -->
+<div class="bg-white rounded-xl shadow-md">
+    {% for chapter in chapters %}
+    <div class="border-b last:border-b-0">
+        <!-- 대단원 헤더 -->
+        <div class="bg-gray-50 px-6 py-4 cursor-pointer hover:bg-gray-100 transition duration-200" 
+             onclick="toggleChapter('chapter-{{ chapter.id }}')">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right mr-3 text-gray-600 transition-transform duration-200" 
+                       id="chevron-chapter-{{ chapter.id }}"></i>
+                    <h3 class="text-lg font-bold text-gray-800">
+                        {{ chapter.chapter_order }}. {{ chapter.chapter_title }}
+                    </h3>
+                </div>
+                <span class="text-sm text-gray-600">
+                    {{ chapter.subchapters.count }}개 소단원
+                </span>
+            </div>
+        </div>
+        
+        <!-- 대단원 내용 -->
+        <div id="chapter-{{ chapter.id }}" class="hidden">
+            {% for subchapter in chapter.subchapters.all %}
+            <!-- 소단원 내용 -->
+            <div class="border-t">
+                {% for chasi in subchapter.chasis.all %}
+                <div class="px-10 py-4">
+                    <h5 class="font-medium text-gray-600 mb-3">
+                        <i class="fas fa-book-reader text-blue-500 mr-2"></i>
+                        {{ chasi.chasi_title }}
+                    </h5>
+                    
+                    <!-- 슬라이드 목록 -->
+                    <div class="ml-6 space-y-2">
+                        {% for slide in chasi.teacher_slides.all %}
+                        {% with progress=progress_data|default_if_none:slide.id %}
+                        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition duration-200 border">
+                            <div class="flex items-center flex-1">
+                                <!-- 진도 상태 아이콘 -->
+                                <div class="mr-3">
+                                    {% if progress and progress.is_completed %}
+                                    <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                                    {% elif progress and progress.started_at %}
+                                    <i class="fas fa-play-circle text-yellow-500 text-lg"></i>
+                                    {% else %}
+                                    <i class="far fa-circle text-gray-400 text-lg"></i>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- 슬라이드 정보 -->
+                                <div class="flex-1">
+                                    <h6 class="font-medium text-gray-800">
+                                        슬라이드 {{ slide.slide_number }}
+                                        {% if slide.slide_title %}
+                                        - {{ slide.slide_title }}
+                                        {% endif %}
+                                    </h6>
+                                    <div class="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                        <span class="flex items-center">
+                                            <i class="fas fa-tag mr-1"></i>
+                                            {{ slide.content_type.type_name }}
+                                        </span>
+                                        {% if slide.content.answer %}
+                                        <span class="flex items-center text-blue-600">
+                                            <i class="fas fa-question-circle mr-1"></i>
+                                            문제 포함
+                                        </span>
+                                        {% endif %}
+                                        {% if progress %}
+                                        <span class="flex items-center">
+                                            <i class="fas fa-eye mr-1"></i>
+                                            {{ progress.view_count|default:0 }}회 조회
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 액션 버튼 -->
+                            <a href="{% url 'student:slide_view' slide.id %}" 
+                               class="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                                {% if progress and progress.is_completed %}
+                                <i class="fas fa-redo mr-1"></i>다시 보기
+                                {% elif progress and progress.started_at %}
+                                <i class="fas fa-play mr-1"></i>이어하기
+                                {% else %}
+                                <i class="fas fa-play mr-1"></i>시작하기
+                                {% endif %}
+                            </a>
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleChapter(chapterId) {
+    const chapter = document.getElementById(chapterId);
+    const chevron = document.getElementById('chevron-' + chapterId);
+    
+    chapter.classList.toggle('hidden');
+    chevron.classList.toggle('rotate-90');
+}
+
+function toggleSubChapter(subChapterId) {
+    const subChapter = document.getElementById(subChapterId);
+    const chevron = document.getElementById('chevron-' + subChapterId);
+    
+    subChapter.classList.toggle('hidden');
+    chevron.classList.toggle('rotate-90');
+}
+
+// 첫 번째 대단원과 소단원 자동 열기
+document.addEventListener('DOMContentLoaded', function() {
+    const firstChapter = document.querySelector('[id^="chapter-"]');
+    const firstSubChapter = document.querySelector('[id^="subchapter-"]');
+    
+    if (firstChapter) {
+        firstChapter.classList.remove('hidden');
+        document.getElementById('chevron-' + firstChapter.id).classList.add('rotate-90');
+    }
+    
+    if (firstSubChapter) {
+        firstSubChapter.classList.remove('hidden');
+        document.getElementById('chevron-' + firstSubChapter.id).classList.add('rotate-90');
+    }
+});
+</script>
+{% endblock %}

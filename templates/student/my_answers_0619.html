@@ -1,0 +1,344 @@
+{% extends 'student/base.html' %}
+
+{% block title %}내 답안 - 학습 관리 시스템{% endblock %}
+{% block page_title %}내 답안{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 mb-2">내 답안</h1>
+    <p class="text-lg text-slate-600">제출한 모든 답안을 확인하고 복습하세요.</p>
+</div>
+
+<!-- 통계 카드 -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- 총 답안 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                <i class="fas fa-file-alt text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full">전체</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ total_answers }}</h3>
+        <p class="text-sm text-slate-500">총 답안</p>
+    </div>
+
+    <!-- 정답 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+                <i class="fas fa-check-circle text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-green-600 bg-green-50 px-3 py-1 rounded-full">정답</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ correct_answers }}</h3>
+        <p class="text-sm text-slate-500">정답 수</p>
+    </div>
+
+    <!-- 오답 -->
+    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                <i class="fas fa-times-circle text-white text-lg"></i>
+            </div>
+            <span class="text-sm font-medium text-red-600 bg-red-50 px-3 py-1 rounded-full">오답</span>
+        </div>
+        <h3 class="text-3xl font-bold text-slate-900 mb-1">{{ incorrect_answers }}</h3>
+        <p class="text-sm text-slate-500">오답 수</p>
+    </div>
+
+    <!-- 정답률 -->
+    <div class="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+            <i class="fas fa-percentage text-3xl text-white/80"></i>
+            <span class="text-2xl font-bold">정답률</span>
+        </div>
+        <div class="mb-2">
+            <span class="text-4xl font-bold">{{ correct_rate }}%</span>
+        </div>
+        <p class="text-sm text-white/80">평균 정답률</p>
+    </div>
+</div>
+
+<!-- 필터 및 검색 -->
+<div class="bg-white rounded-2xl p-6 border border-slate-200 mb-6">
+    <form method="get" id="filterForm" class="flex flex-col lg:flex-row gap-4 items-center justify-between">
+        <!-- 검색 바 -->
+        <div class="w-full lg:w-96">
+            <div class="relative">
+                <input type="text" 
+                       name="search"
+                       value="{{ request.GET.search }}"
+                       placeholder="문제 제목으로 검색" 
+                       class="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all">
+                <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+            </div>
+        </div>
+        
+        <!-- 필터 옵션 -->
+        <div class="flex flex-wrap gap-3">
+            <!-- 코스 선택 -->
+            <select name="course" id="courseSelect"
+                    class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="">모든 코스</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}" {% if selected_course_id == course.id|stringformat:"s" %}selected{% endif %}>
+                    {{ course.subject_name }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <!-- 차시 선택 (코스 선택 시에만 표시) -->
+            <select name="chasi" id="chasiSelect"
+                    class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700 {% if not chasis %}hidden{% endif %}">
+                <option value="">모든 차시</option>
+                {% for chasi in chasis %}
+                <option value="{{ chasi.id }}" {% if selected_chasi_id == chasi.id|stringformat:"s" %}selected{% endif %}>
+                    {{ chasi.sub_chapter.chapter.chapter_order }}-{{ chasi.sub_chapter.sub_chapter_order }} {{ chasi.chasi_title }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <!-- 정답 여부 -->
+            <select name="correct" 
+                    class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium text-slate-700">
+                <option value="">정답 여부</option>
+                <option value="true" {% if request.GET.correct == 'true' %}selected{% endif %}>정답만</option>
+                <option value="false" {% if request.GET.correct == 'false' %}selected{% endif %}>오답만</option>
+            </select>
+            
+            <button type="submit" 
+                    class="px-6 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all text-sm font-medium flex items-center gap-2">
+                <i class="fas fa-filter"></i>
+                필터 적용
+            </button>
+            
+            {% if request.GET.course or request.GET.chasi or request.GET.correct or request.GET.search %}
+            <a href="{% url 'student:my_answers' %}" 
+               class="px-4 py-2.5 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 transition-all text-sm font-medium">
+                <i class="fas fa-times"></i>
+                초기화
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- 답안 목록 -->
+<div class="space-y-4">
+    {% for answer in answers %}
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden card-hover">
+        <!-- 답안 헤더 -->
+        <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+            <div class="flex flex-col lg:flex-row justify-between lg:items-center gap-3">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h3 class="text-lg font-semibold text-slate-900">
+                            {{ answer.slide.content.title|default:answer.slide.chasi.chasi_title }}
+                        </h3>
+                        {% if answer.is_correct %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                <i class="fas fa-check-circle mr-1"></i> 정답
+                            </span>
+                        {% elif answer.is_correct == False %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                <i class="fas fa-times-circle mr-1"></i> 오답
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                <i class="fas fa-clock mr-1"></i> 채점 대기
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 text-sm text-slate-600">
+                        <span>
+                            <i class="fas fa-book mr-1"></i>
+                            {{ answer.slide.chasi.sub_chapter.chapter.subject.subject_name }}
+                        </span>
+                        <span>
+                            <i class="fas fa-bookmark mr-1"></i>
+                            {{ answer.slide.chasi.chasi_title }}
+                        </span>
+                        <span>
+                            <i class="fas fa-layer-group mr-1"></i>
+                            {{ answer.slide.content_type.type_name }}
+                        </span>
+                        <span>
+                            <i class="far fa-calendar mr-1"></i>
+                            {{ answer.submitted_at|date:"Y.m.d H:i" }}
+                        </span>
+                    </div>
+                </div>
+                
+                {% if answer.score is not None %}
+                <div class="text-center">
+                    <p class="text-3xl font-bold 
+                              {% if answer.score >= 80 %}text-green-600
+                              {% elif answer.score >= 60 %}text-blue-600
+                              {% elif answer.score >= 40 %}text-yellow-600
+                              {% else %}text-red-600{% endif %}">
+                        {{ answer.score|floatformat:0 }}
+                    </p>
+                    <p class="text-sm text-slate-500">점</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 답안 내용 -->
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 내 답안 -->
+                <div>
+                    <h4 class="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-user-edit text-slate-400"></i>
+                        내 답안
+                    </h4>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p class="text-slate-900">
+                            {% if answer.answer.selected_answer %}
+                                {{ answer.answer.selected_answer }}
+                            {% elif answer.answer.submitted_text %}
+                                {{ answer.answer.submitted_text|truncatewords:30 }}
+                            {% elif answer.answer.submitted_answers %}
+                                {% for key, value in answer.answer.submitted_answers.items %}
+                                    <span class="inline-block bg-slate-200 px-2 py-1 rounded text-sm mr-2 mb-2">
+                                        {{ key }}번: {{ value }}
+                                    </span>
+                                {% endfor %}
+                            {% elif answer.answer.submitted_order %}
+                                <span class="text-sm text-slate-600">순서: {{ answer.answer.submitted_order }}</span>
+                            {% else %}
+                                {{ answer.answer }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 정답/피드백 -->
+                <div>
+                    {% if answer.is_correct == False and answer.answer.correct_answer %}
+                    <h4 class="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                        <i class="fas fa-check-circle text-green-500"></i>
+                        정답
+                    </h4>
+                    <div class="p-4 bg-green-50 rounded-xl border border-green-200">
+                        <p class="text-slate-900">{{ answer.answer.correct_answer }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if answer.feedback %}
+                    <h4 class="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2 {% if answer.is_correct == False and answer.answer.correct_answer %}mt-4{% endif %}">
+                        <i class="fas fa-comment-dots text-slate-400"></i>
+                        피드백
+                    </h4>
+                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                        <p class="text-slate-900">{{ answer.feedback|safe }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 답안 푸터 -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    {% if answer.is_correct == False %}
+                    <a href="{% url 'student:slide_view' answer.slide.id %}" 
+                       class="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1">
+                        <i class="fas fa-redo"></i>
+                        다시 풀기
+                    </a>
+                    {% endif %}
+                    <button class="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                            onclick="alert('해설 기능은 준비 중입니다.')">
+                        <i class="fas fa-book-reader"></i>
+                        해설 보기
+                    </button>
+                </div>
+                <a href="{% url 'student:slide_view' answer.slide.id %}" 
+                   class="text-sm text-slate-600 hover:text-slate-800 font-medium">
+                    문제로 이동 →
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-white rounded-2xl p-16 text-center border border-slate-200">
+        <i class="fas fa-file-alt text-6xl text-slate-300 mb-4"></i>
+        <h3 class="text-xl font-semibold text-slate-700 mb-2">제출한 답안이 없습니다</h3>
+        <p class="text-slate-500">코스를 학습하고 문제를 풀어보세요.</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 페이지네이션 -->
+{% if page_obj.has_other_pages %}
+<div class="mt-8 flex justify-center">
+    <nav class="flex gap-1">
+        <!-- 이전 페이지 -->
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in filter_params.items %}&{{ key }}={{ value }}{% endfor %}" 
+           class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">
+            <i class="fas fa-chevron-left"></i>
+        </a>
+        {% else %}
+        <span class="px-4 py-2 text-slate-400 cursor-not-allowed">
+            <i class="fas fa-chevron-left"></i>
+        </span>
+        {% endif %}
+        
+        <!-- 페이지 번호들 -->
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="px-4 py-2 bg-purple-600 text-white rounded-lg">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% for key, value in filter_params.items %}&{{ key }}={{ value }}{% endfor %}" 
+                   class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        
+        <!-- 다음 페이지 -->
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% for key, value in filter_params.items %}&{{ key }}={{ value }}{% endfor %}" 
+           class="px-4 py-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">
+            <i class="fas fa-chevron-right"></i>
+        </a>
+        {% else %}
+        <span class="px-4 py-2 text-slate-400 cursor-not-allowed">
+            <i class="fas fa-chevron-right"></i>
+        </span>
+        {% endif %}
+    </nav>
+</div>
+
+<!-- 페이지 정보 -->
+<div class="mt-4 text-center text-sm text-slate-600">
+    페이지 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} (총 {{ page_obj.paginator.count }}개)
+</div>
+{% endif %}
+
+<script>
+// 코스 선택 시 차시 목록 업데이트
+document.getElementById('courseSelect').addEventListener('change', function() {
+    const courseId = this.value;
+    const chasiSelect = document.getElementById('chasiSelect');
+    
+    if (courseId) {
+        // 코스가 선택되면 차시 선택 박스를 보이고, 폼을 자동 제출
+        chasiSelect.classList.remove('hidden');
+        // 차시 선택을 초기화
+        chasiSelect.value = '';
+        // 폼 제출하여 차시 목록 갱신
+        document.getElementById('filterForm').submit();
+    } else {
+        // 코스가 선택되지 않으면 차시 선택 박스를 숨김
+        chasiSelect.classList.add('hidden');
+        chasiSelect.value = '';
+    }
+});
+</script>
+
+{% endblock %}

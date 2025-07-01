@@ -1,0 +1,337 @@
+<!-- teacher/templates/teacher/students/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}학생 등록 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <div class="flex items-center mb-4">
+            <a href="{% url 'teacher:student_list' %}{% if selected_class_id %}?class_id={{ selected_class_id }}{% endif %}" 
+               class="mr-4 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left text-lg"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">새 학생 등록</h1>
+                <p class="text-gray-600">새로운 학생을 등록합니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오류 메시지 표시 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post" id="studentForm">
+            {% csrf_token %}
+            
+            <!-- 학급 및 학번 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-id-card mr-2"></i>학급 및 학번
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="class_id" class="block text-sm font-medium text-gray-700 mb-2">학급 *</label>
+                        <select name="class_id" id="class_id" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">학급 선택</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" 
+                                    {% if selected_class_id == class.id %}selected{% endif %}>
+                                {{ class.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="student_id" class="block text-sm font-medium text-gray-700 mb-2">학번 *</label>
+                        <div class="relative">
+                            <input type="text" name="student_id" id="student_id" required 
+                                   value="{{ suggested_student_id }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="학번을 입력하세요">
+                            <button type="button" id="generateIdBtn" 
+                                    class="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                                    title="학번 자동 생성">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">예: 2025001, 2025002 등</p>
+                    </div>
+                </div>
+                
+                <!-- 사용자명 미리보기 -->
+                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <label class="block text-sm font-medium text-blue-700 mb-1">생성될 사용자명 (로그인 ID)</label>
+                    <p id="usernamePreview" class="text-blue-800 font-mono">학급과 학번을 선택하면 자동으로 생성됩니다</p>
+                    <p class="text-xs text-blue-600 mt-1">형식: 학교코드_학번 (예: {{ school_code }}_2025001)</p>
+                </div>
+            </div>
+            
+            <!-- 개인 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-user mr-2"></i>개인 정보
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">성 *</label>
+                        <input type="text" name="last_name" id="last_name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="성을 입력하세요"
+                               value="{{ request.POST.last_name|default:'' }}">
+                    </div>
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                        <input type="text" name="first_name" id="first_name" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="이름을 입력하세요"
+                               value="{{ request.POST.first_name|default:'' }}">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-2">생년월일 *</label>
+                        <input type="date" name="birth_date" id="birth_date" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                               value="{{ request.POST.birth_date|default:'' }}">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">이메일 (선택)</label>
+                        <input type="email" name="email" id="email" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="이메일 주소를 입력하세요"
+                               value="{{ request.POST.email|default:'' }}">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 계정 정보 섹션 -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
+                    <i class="fas fa-lock mr-2"></i>계정 설정
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">초기 비밀번호 *</label>
+                        <div class="relative">
+                            <input type="password" name="password" id="password" required 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                                   placeholder="초기 비밀번호 (8자 이상)">
+                            <button type="button" id="togglePassword" 
+                                    class="absolute right-2 top-2 text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-eye" id="passwordIcon"></i>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">8자 이상의 안전한 비밀번호를 설정하세요</p>
+                    </div>
+                    <div>
+                        <label for="password_confirm" class="block text-sm font-medium text-gray-700 mb-2">비밀번호 확인 *</label>
+                        <input type="password" name="password_confirm" id="password_confirm" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                               placeholder="비밀번호를 다시 입력하세요">
+                    </div>
+                </div>
+                
+                <!-- 비밀번호 생성 도우미 -->
+                <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-700">빠른 비밀번호 생성:</span>
+                        <div class="space-x-2">
+                            <button type="button" onclick="generatePassword('birth')" 
+                                    class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
+                                생년월일 사용
+                            </button>
+                            <button type="button" onclick="generatePassword('student')" 
+                                    class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200">
+                                학번 사용
+                            </button>
+                            <button type="button" onclick="generatePassword('random')" 
+                                    class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200">
+                                랜덤 생성
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button type="submit" 
+                        class="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition duration-200 font-medium">
+                    <i class="fas fa-user-plus mr-2"></i>학생 등록
+                </button>
+                <a href="{% url 'teacher:student_list' %}{% if selected_class_id %}?class_id={{ selected_class_id }}{% endif %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>목록으로 돌아가기
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 안내사항 -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 class="text-sm font-semibold text-blue-800 mb-2">
+            <i class="fas fa-info-circle mr-2"></i>학생 등록 안내사항
+        </h4>
+        <ul class="text-sm text-blue-700 space-y-1">
+            <li>• 학번은 고유해야 하며, 동일한 학번은 등록할 수 없습니다</li>
+            <li>• 사용자명은 '학교코드_학번' 형태로 자동 생성됩니다</li>
+            <li>• 초기 비밀번호는 학생에게 안전하게 전달해주세요</li>
+            <li>• 등록 후 학생은 개인 정보를 수정할 수 있습니다</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const classSelect = document.getElementById('class_id');
+    const studentIdInput = document.getElementById('student_id');
+    const usernamePreview = document.getElementById('usernamePreview');
+    const generateIdBtn = document.getElementById('generateIdBtn');
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('password_confirm');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const passwordIcon = document.getElementById('passwordIcon');
+    
+    // 학교 코드
+    const schoolCode = '{{ school_code }}';
+    
+    // 사용자명 미리보기 업데이트
+    function updateUsernamePreview() {
+        const studentId = studentIdInput.value.trim();
+        if (studentId) {
+            usernamePreview.textContent = `${schoolCode}_${studentId}`;
+        } else {
+            usernamePreview.textContent = '학급과 학번을 선택하면 자동으로 생성됩니다';
+        }
+    }
+    
+    // 학번 자동 생성
+    function generateStudentId() {
+        const classId = classSelect.value;
+        if (classId && !studentIdInput.value) {
+            const year = new Date().getFullYear();
+            const classNum = classId.toString().padStart(2, '0');
+            const sequence = '001';
+            studentIdInput.value = `${year}${classNum}${sequence}`;
+            updateUsernamePreview();
+        }
+    }
+    
+    // 이벤트 리스너
+    classSelect.addEventListener('change', generateStudentId);
+    studentIdInput.addEventListener('input', updateUsernamePreview);
+    generateIdBtn.addEventListener('click', generateStudentId);
+    
+    // 비밀번호 보기/숨기기
+    togglePasswordBtn.addEventListener('click', function() {
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            passwordIcon.className = 'fas fa-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            passwordIcon.className = 'fas fa-eye';
+        }
+    });
+    
+    // 비밀번호 확인
+    function checkPasswordMatch() {
+        if (passwordInput.value && passwordConfirmInput.value) {
+            if (passwordInput.value === passwordConfirmInput.value) {
+                passwordConfirmInput.style.borderColor = '#10b981';
+            } else {
+                passwordConfirmInput.style.borderColor = '#ef4444';
+            }
+        }
+    }
+    
+    passwordInput.addEventListener('input', checkPasswordMatch);
+    passwordConfirmInput.addEventListener('input', checkPasswordMatch);
+    
+    // 폼 제출 검증
+    document.getElementById('studentForm').addEventListener('submit', function(e) {
+        if (passwordInput.value !== passwordConfirmInput.value) {
+            e.preventDefault();
+            alert('비밀번호가 일치하지 않습니다.');
+            passwordConfirmInput.focus();
+            return false;
+        }
+        
+        if (passwordInput.value.length < 8) {
+            e.preventDefault();
+            alert('비밀번호는 8자 이상이어야 합니다.');
+            passwordInput.focus();
+            return false;
+        }
+    });
+    
+    // 초기 설정
+    updateUsernamePreview();
+    
+    // 첫 번째 필드에 포커스
+    if (!classSelect.value) {
+        classSelect.focus();
+    } else {
+        studentIdInput.focus();
+    }
+});
+
+// 비밀번호 생성 함수들
+function generatePassword(type) {
+    const passwordInput = document.getElementById('password');
+    const passwordConfirmInput = document.getElementById('password_confirm');
+    const birthDateInput = document.getElementById('birth_date');
+    const studentIdInput = document.getElementById('student_id');
+    
+    let password = '';
+    
+    switch(type) {
+        case 'birth':
+            const birthDate = birthDateInput.value;
+            if (birthDate) {
+                password = birthDate.replace(/-/g, '');
+            } else {
+                alert('생년월일을 먼저 입력해주세요.');
+                return;
+            }
+            break;
+            
+        case 'student':
+            const studentId = studentIdInput.value;
+            if (studentId) {
+                password = `student${studentId}`;
+            } else {
+                alert('학번을 먼저 입력해주세요.');
+                return;
+            }
+            break;
+            
+        case 'random':
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            for (let i = 0; i < 8; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            break;
+    }
+    
+    if (password) {
+        passwordInput.value = password;
+        passwordConfirmInput.value = password;
+        passwordConfirmInput.style.borderColor = '#10b981';
+    }
+}
+</script>
+{% endblock %}

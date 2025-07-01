@@ -1,0 +1,306 @@
+<!-- teacher/templates/teacher/base.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}학습 관리 시스템{% endblock %}</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'], // 기본 sans 폰트를 Noto Sans KR로 지정
+                    },
+                    // 아동 친화적 색상 확장 (필요시)
+                    colors: {
+                        quiz: {
+                            'bg': '#FFF9E6', // 연한 크림색 배경 (body)
+                            'card-bg': '#FFFFFF',
+                            'title': '#FF7043', // 주황색 계열 제목
+                            'question': '#374151', // 질문 텍스트 (진회색)
+                            'option-border': '#81C784', // 연두색 테두리 (선택지)
+                            'option-bg': '#F1F8E9', // 매우 연한 연두색 (선택지 배경)
+                            'option-hover-border': '#FFB74D',
+                            'option-hover-bg': '#FFF3E0',
+                            'option-selected-border': '#FF8A65', // 선택 시 테두리 (주황)
+                            'option-selected-bg': '#FFE0B2', // 선택 시 배경 (살구)
+                            'button-bg': '#66BB6A', // 녹색 계열 버튼
+                            'button-text': '#FFFFFF',
+                            'button-hover-bg': '#57A05A',
+                            'feedback-correct-text': '#2E7D32',
+                            'feedback-correct-bg': '#C8E6C9',
+                            'feedback-incorrect-text': '#C62828',
+                            'feedback-incorrect-bg': '#FFCDD2',
+                            'feedback-info-text': '#FFA000',
+                            'feedback-info-bg': '#FFF3E0',
+                        }
+                    },
+                    // 텍스트 그림자 유틸리티 (커스텀 플러그인 없이 임의 값 사용)
+                    textShadow: {
+                        'DEFAULT': '2px 2px rgba(0,0,0,0.1)',
+                        'title': '2px 2px #FFD180', // 제목용 그림자
+                    },
+                }
+            },
+            // group-has-* 유틸리티를 사용하기 위해 실험적 기능 활성화 (v3 방식, v4에서는 JIT에 통합될 수 있음)
+            // Tailwind v4는 JIT가 기본이며, :has()는 CSS 표준 기능으로 점차 지원 확대
+            // Play CDN에서는 일부 최신 JIT 기능이 제한될 수 있으나, group-has 구문은 시도해볼 가치가 있음
+             variants: {
+                extend: {
+                    display: ['group-has'], // 예시: group-has-[:checked]:block
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet">
+    <style type="text/tailwindcss">
+        /* Tailwind CSS에서 직접 지원하지 않는 복잡한 패턴이나 효과를 위한 최소한의 CSS */
+        body {
+            /* 기본 배경색은 Tailwind config에서 quiz.bg로 설정 */
+            /* 패턴이 필요하다면 여기에 추가할 수 있지만, 최대한 Tailwind 유틸리티 bg-[url(...)] 또는 bg-gradient-to-r 등을 활용 */
+        }
+        /* 임의의 텍스트 그림자 클래스 생성 (config에서 처리하지 못할 경우) */
+        .text-shadow-title {
+            text-shadow: 2px 2px theme('colors.quiz.title-shadow', '#FFD180'); /* config에서 색상 참조 시도 */
+        }
+
+        /* Tailwind v4 JIT는 arbitrary properties를 잘 지원하므로, 아래와 같이 HTML 내에서 직접 사용 가능: */
+        /* class="[text-shadow:2px_2px_var(--tw-shadow-color)] shadow-yellow-300" */
+
+    </style>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    
+    <!-- 추가 스타일 -->
+    <style>
+        .sidebar-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .line-clamp-2 {
+            display: -webkit-box;           
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;           
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .input-char {
+            width: 3rem; /* 기본 너비 */
+            height: 3.5rem; /* 기본 높이 */
+            text-align: center;
+            font-size: 1.5rem; /* 기본 글자 크기 */
+            border: 2px solid #D1D5DB; /* 기본 테두리 색상 (회색) */
+            border-radius: 0.375rem; /* 둥근 모서리 (rounded-md) */
+            margin: 0 0.25rem; /* 입력칸 사이 간격 */
+            transition: all 0.3s ease-in-out; /* 부드러운 전환 효과 */
+            caret-color: #60A5FA; /* 파란색 캐럿 */
+            line-height: 3.5rem; /* 수직 정렬을 위해 높이와 동일하게 설정 */
+        }
+        .input-char:focus {
+            border-color: #60A5FA; /* 포커스 시 파란색 테두리 */
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3); /* 포커스 시 파란색 그림자 효과 */
+            outline: none; /* 기본 아웃라인 제거 */
+            transform: scale(1.05); /* 포커스 시 살짝 확대 */
+        }
+        .input-char::placeholder {
+            color: #9CA3AF; /* 회색 placeholder */
+            font-size: 1.25rem; /* placeholder 글자 크기 */
+            line-height: 3.5rem; /* placeholder 수직 정렬 */
+        }
+
+        .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 16px;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    .recent-item {
+        padding: 12px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .recent-item:last-child {
+        border-bottom: none;
+    }
+    .quick-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+    }
+    .quick-stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    .quick-stat-card h4 {
+        font-size: 1.5rem;
+        margin-bottom: 4px;
+    }
+    .quick-stat-card p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <!-- 네비게이션 -->
+    <nav class="bg-white shadow-md border-b border-gray-200 fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-2 sm:px-2 lg:px-2">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <!-- 로고 -->
+                    <div class="flex-shrink-0">
+                        <a href="{% url 'teacher:dashboard' %}" class="text-2xl font-bold text-blue-600">
+                            <i class="fas fa-graduation-cap mr-2"></i>LMS
+                        </a>
+                    </div>
+                    
+                    <!-- 메인 네비게이션 -->
+                    <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <a href="{% url 'teacher:dashboard' %}" 
+                           class="{% if 'dashboard' in request.resolver_match.url_name %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tachometer-alt mr-2"></i>대시보드
+                        </a>
+                        <a href="{% url 'teacher:course_dashboard' %}" 
+                           class="{% if 'course' in request.resolver_match.url_name %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-book mr-2"></i>코스 관리
+                        </a>
+                        {# ★★★ [수정] href에 올바른 URL 연결 ★★★ #}
+                        <a href="{% url 'teacher:contents_list' %}" 
+                           class="{% if 'contents_list' in request.resolver_match.url_name %}border-blue-500 text-gray-900{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300{% endif %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-folder mr-2"></i>컨텐츠 라이브러리
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 사용자 메뉴 -->
+                <div class="flex items-center">
+                    <div class="flex items-center space-x-4">
+                        <!-- 알림 -->
+                        <button class="p-2 text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell text-lg"></i>
+                        </button>
+                        
+                        <!-- 사용자 프로필 -->
+                        <div class="relative">
+                            <button class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" 
+                                    id="user-menu-button" onclick="toggleUserMenu()">
+                                <img class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold" 
+                                     src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-size='14' font-weight='bold'%3E{{ user.first_name|first|default:user.username|first|upper }}%3C/text%3E%3C/svg%3E" 
+                                     alt="{{ user.get_full_name }}">
+                                <span class="ml-2 text-gray-700">{{ user.get_full_name|default:user.username }}</span>
+                                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+                            </button>
+                            
+                            <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user mr-2"></i>프로필
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i>설정
+                                </a>
+                                <hr class="my-1">
+                                <a href="{% url 'accounts:logout' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="pt-16 min-h-screen">
+        <div class="w-full mx-auto py-6 px-2 sm:px-2 lg:px-2">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center">
+                <p class="text-gray-500 text-sm">© 2025 학습 관리 시스템. All rights reserved.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-gray-500">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-question-circle"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 사용자 메뉴 토글
+        function toggleUserMenu() {
+            const menu = document.getElementById('user-menu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // 메뉴 외부 클릭시 닫기
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('user-menu');
+            const button = document.getElementById('user-menu-button');
+            
+            if (!button.contains(event.target) && !menu.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+        
+       
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+    
+      
+        </body>
+        </html>
+    

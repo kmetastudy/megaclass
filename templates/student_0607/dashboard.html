@@ -1,0 +1,137 @@
+{% extends 'student/base.html' %}
+
+{% block title %}학생 대시보드{% endblock %}
+{% block page_title %}대시보드{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-800">안녕하세요, {{ user.get_full_name }}님!</h2>
+    <p class="text-slate-500 mt-1">오늘의 학습 목표를 확인하고 힘차게 시작해 보세요.</p>
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+    {% with icon_bg_gradient="from-slate-50 to-slate-100" %}
+    <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-indigo-400">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-500">할당된 코스</span>
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br {{ icon_bg_gradient }}">
+                <i class="fas fa-book text-indigo-500"></i>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-2">{{ stats.assigned_courses }}개</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-green-400">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-500">완료한 슬라이드</span>
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br {{ icon_bg_gradient }}">
+                <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-2">{{ stats.completed_slides }}개</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-amber-400">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-500">전체 진도율</span>
+             <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br {{ icon_bg_gradient }}">
+                <i class="fas fa-chart-pie text-amber-500"></i>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-2">{{ stats.progress_percent }}%</p>
+    </div>
+    <div class="bg-white p-5 rounded-xl shadow-sm border-t-4 border-rose-400">
+        <div class="flex items-center justify-between">
+            <span class="text-sm font-medium text-slate-500">기록된 활동</span>
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br {{ icon_bg_gradient }}">
+                <i class="fas fa-stopwatch text-rose-500"></i>
+            </div>
+        </div>
+        <p class="text-2xl font-bold text-slate-800 mt-2">{{ stats.total_records }}개</p>
+    </div>
+    {% endwith %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-semibold text-slate-800">내 코스</h3>
+            <a href="{% url 'student:course_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">모두 보기 &rarr;</a>
+        </div>
+        <div class="space-y-3">
+            {% for assignment in assigned_courses %}
+            <a href="{% url 'student:learning_course' assignment.course.id %}" class="block p-4 rounded-lg border bg-white hover:border-indigo-300 hover:bg-indigo-50 transition-all">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-slate-800 text-sm">{{ assignment.course.subject_name }}</h4>
+                        <p class="text-xs text-slate-500">{{ assignment.course.teacher.user.get_full_name }} 선생님</p>
+                    </div>
+                    <div class="text-slate-400">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </a>
+            {% empty %}
+            <div class="text-center text-slate-500 py-10">
+                <p class="text-sm">할당받은 코스가 없습니다.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="lg:col-span-1 space-y-6">
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <h3 class="text-base font-semibold text-slate-800 mb-4">최근 학습 활동</h3>
+            <div class="space-y-4">
+                {% for progress in recent_progress %}
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {% if progress.is_completed %}bg-green-100{% else %}bg-amber-100{% endif %}">
+                        <i class="{% if progress.is_completed %}fas fa-check text-green-600{% else %}fas fa-play text-amber-600{% endif %} text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-sm text-slate-700 truncate" title="{{ progress.slide.chasi.chasi_title }}">
+                            {{ progress.slide.chasi.chasi_title }}
+                        </p>
+                        <p class="text-xs text-slate-500">{{ progress.started_at|date:"m월 d일 H:i" }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-slate-500 py-4">
+                    <p class="text-sm">학습 활동이 없습니다.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-semibold text-slate-800">최근 신체기록</h3>
+                <a href="{% url 'student:my_records' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">모두 보기 &rarr;</a>
+            </div>
+            <div class="space-y-4">
+                {% for record in recent_records %}
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-rose-100">
+                        <i class="fas fa-running text-rose-600 text-xs"></i>
+                    </div>
+                    <div>
+                        {% with record_item=record.record|first %}
+                            {% if record_item %}
+                            <p class="font-medium text-sm text-slate-700 truncate" title="{{ record_item.종류 }}">
+                                {{ record_item.종류|default:"활동 기록" }}
+                            </p>
+                            {% else %}
+                            <p class="font-medium text-sm text-slate-700">활동 기록</p>
+                            {% endif %}
+                        {% endwith %}
+                        <p class="text-xs text-slate-500">{{ record.submitted_at|date:"m월 d일 H:i" }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center text-slate-500 py-4">
+                    <p class="text-sm">기록된 활동이 없습니다.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

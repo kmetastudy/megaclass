@@ -1,0 +1,116 @@
+<!-- student/templates/student/dashboard.html -->
+{% extends 'student/base.html' %}
+
+{% block title %}학생 대시보드 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">학생 대시보드</h2>
+    <p class="text-gray-600">안녕하세요, {{ user.get_full_name }}님! 오늘도 열심히 학습해보세요.</p>
+</div>
+
+<!-- 통계 카드들 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center">
+            <div class="p-3 bg-blue-100 rounded-full">
+                <i class="fas fa-book text-blue-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">할당받은 코스</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.assigned_courses }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center">
+            <div class="p-3 bg-green-100 rounded-full">
+                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">완료한 슬라이드</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.completed_slides }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center">
+            <div class="p-3 bg-yellow-100 rounded-full">
+                <i class="fas fa-tasks text-yellow-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">전체 슬라이드</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.total_slides }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center">
+            <div class="p-3 bg-purple-100 rounded-full">
+                <i class="fas fa-edit text-purple-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+                <h3 class="text-sm font-medium text-gray-500">제출한 답안</h3>
+                <p class="text-2xl font-bold text-gray-900">{{ stats.submitted_answers }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- 할당받은 코스들 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">내 코스</h3>
+            <a href="{% url 'student:course_list' %}" class="text-blue-600 hover:text-blue-800 text-sm">모두 보기 →</a>
+        </div>
+        <div class="space-y-3">
+            {% for assignment in assigned_courses %}
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-medium text-gray-800">{{ assignment.course.subject_name }}</h4>
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">{{ assignment.course.target }}</span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">{{ assignment.course.description|truncatechars:50 }}</p>
+                <a href="{% url 'student:learning_course' assignment.course.id %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                    학습하기 →
+                </a>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-4">
+                <i class="fas fa-book-open text-2xl mb-2"></i>
+                <p>할당받은 코스가 없습니다.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 최근 학습 활동 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">최근 학습 활동</h3>
+            <a href="{% url 'student:progress' %}" class="text-blue-600 hover:text-blue-800 text-sm">상세보기 →</a>
+        </div>
+        <div class="space-y-3">
+            {% for progress in recent_progress %}
+            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <div class="flex-1">
+                    <h4 class="font-medium text-gray-800">슬라이드 {{ progress.slide.slide_number }}</h4>
+                    <p class="text-sm text-gray-500">{{ progress.slide.chasi.chasi_title }}</p>
+                </div>
+                <span class="text-xs text-gray-400">{{ progress.started_at|date:"m/d H:i" }}</span>
+            </div>
+            {% empty %}
+            <div class="text-center text-gray-500 py-4">
+                <i class="fas fa-clock text-2xl mb-2"></i>
+                <p>아직 학습 활동이 없습니다.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

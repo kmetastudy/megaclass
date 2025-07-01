@@ -1,0 +1,107 @@
+
+<!-- cp/templates/cp/contents/list.html -->
+{% extends 'cp/base.html' %}
+
+{% block title %}컨텐츠 목록 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">컨텐츠 목록</h2>
+        <p class="text-gray-600">생성된 모든 컨텐츠를 확인하고 관리할 수 있습니다.</p>
+    </div>
+    <a href="{% url 'cp:content_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+        <i class="fas fa-plus mr-2"></i>새 컨텐츠
+    </a>
+</div>
+
+<!-- 검색 및 필터 -->
+<div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <form method="get" class="flex flex-wrap gap-4">
+        <div class="flex-1 min-w-64">
+            <input type="text" name="search" value="{{ search }}" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                   placeholder="제목으로 검색...">
+        </div>
+        <div>
+            <select name="type" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">모든 타입</option>
+                {% for content_type in content_types %}
+                <option value="{{ content_type.id }}" {% if content_type.id|stringformat:"s" == selected_type %}selected{% endif %}>
+                    {{ content_type.type_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+            <i class="fas fa-search mr-2"></i>검색
+        </button>
+    </form>
+</div>
+
+<!-- 컨텐츠 목록 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+    {% for content in contents %}
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">{{ content.title }}</h3>
+            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">{{ content.content_type.type_name }}</span>
+        </div>
+        
+        <div class="text-gray-600 text-sm mb-4">
+            <p>생성일: {{ content.created_at|date:"Y-m-d H:i" }}</p>
+            {% if content.updated_at != content.created_at %}
+            <p>수정일: {{ content.updated_at|date:"Y-m-d H:i" }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="flex space-x-2">
+            <a href="{% url 'cp:content_preview' content.id %}" class="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 text-center">
+                미리보기
+            </a>
+            <a href="{% url 'cp:content_edit' content.id %}" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 text-center">
+                편집
+            </a>
+            <a href="{% url 'cp:content_delete' content.id %}" class="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 text-center">
+                삭제
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center text-gray-500 py-12">
+        <i class="fas fa-file-alt text-4xl mb-4"></i>
+        <p class="text-lg mb-2">생성된 컨텐츠가 없습니다.</p>
+        {% if search or selected_type %}
+        <p class="text-sm mb-4">검색 조건을 변경해보세요.</p>
+        <a href="{% url 'cp:content_list' %}" class="text-blue-600 hover:text-blue-800">전체 목록 보기</a>
+        {% else %}
+        <p class="text-sm mb-4">첫 번째 컨텐츠를 만들어보세요.</p>
+        <a href="{% url 'cp:content_create' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>컨텐츠 만들기
+        </a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 페이지네이션 -->
+{% if page_obj.has_other_pages %}
+<div class="flex justify-center">
+    <nav class="flex space-x-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+           class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">이전</a>
+        {% endif %}
+        
+        <span class="px-3 py-2 bg-blue-600 text-white rounded-lg">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+           class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">다음</a>
+        {% endif %}
+    </nav>
+</div>
+{% endif %}
+{% endblock %}

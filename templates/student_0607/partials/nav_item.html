@@ -1,0 +1,6 @@
+<a href="{% url url_name %}" class="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium hover:bg-slate-700 transition-colors group"
+   :class="{'justify-center': sidebarCollapsed, '{% if active_check %}sidebar-link-active{% endif %}': !sidebarCollapsed && {% if active_check %}true{% else %}false{% endif %} }">
+    <i class="fas {{ icon }} w-5 text-center text-slate-400 group-hover:text-white transition-colors"
+       :class="sidebarCollapsed && '{% if active_check %}text-white{% endif %}'"></i>
+    <span class="nav-text whitespace-nowrap" x-show="!sidebarCollapsed">{{ text }}</span>
+</a>

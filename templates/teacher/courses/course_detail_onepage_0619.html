@@ -1,0 +1,224 @@
+<!-- teacher/templates/teacher/courses/course_detail_onepage.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.subject_name }} - 통합 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/teacher/course.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:course_detail' course.id %}" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">{{ course.target }} | 통합 관리 시스템</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleContentsPanel()" class="btn-modern btn-secondary">
+                <i class="fas fa-database"></i>
+                콘텐츠 라이브러리
+            </button>
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <a href="{% url 'teacher:contents_create' %}" target="_blank" class="btn-modern btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                콘텐츠 제작
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 컨테이너 -->
+<div class="main-container">
+    <!-- 트리 패널 -->
+    <div class="tree-panel" id="treePanel">
+        <div class="tree-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-sitemap tree-header-icon"></i>
+                    <span class="tree-header-title font-semibold text-gray-700">코스 구조</span>
+                </div>
+                <button onclick="toggleTreePanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-left" id="treePanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tree-content">
+            <div id="courseTree"></div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 패널 -->
+    <div class="content-panel" id="contentPanel">
+        <div class="content-header">
+            <h2 class="text-xl font-semibold text-gray-800" id="contentTitle">
+                <i class="fas fa-home mr-2"></i>코스 개요
+            </h2>
+        </div>
+        <div class="content-body" id="contentArea">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 라이브러리 패널 -->
+    <div class="contents-panel collapsed" id="contentsPanel">
+        <div class="contents-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-database contents-header-icon"></i>
+                    <span class="contents-header-title font-semibold text-gray-700">콘텐츠 라이브러리</span>
+                </div>
+                <button onclick="toggleContentsPanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-right" id="contentsPanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 탭 메뉴 -->
+        <div class="contents-tabs">
+            <button class="tab-button active" onclick="switchTab('search')">
+                <i class="fas fa-search mr-1"></i>검색
+            </button>
+            <button class="tab-button" onclick="switchTab('create')">
+                <i class="fas fa-plus mr-1"></i>생성
+            </button>
+        </div>
+
+        <!-- 검색 탭 -->
+        <div id="searchTab" class="tab-content active">
+            <!-- 검색 필터 -->
+            <div class="contents-filters">
+                <div class="mb-3">
+                    <input type="text" id="contentSearchInput" 
+                           class="form-input w-full" 
+                           placeholder="콘텐츠 검색...">
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <select id="contentTypeFilter" class="form-input">
+                        <option value="">모든 타입</option>
+                        <option value="multiple_choice">객관식</option>
+                        <option value="short_answer">단답형</option>
+                        <option value="essay">서술형</option>
+                        <option value="presentation">PPT</option>
+                    </select>
+                    <select id="chapterFilter" class="form-input">
+                        <option value="">모든 대단원</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <select id="subchapterFilter" class="form-input w-full">
+                        <option value="">모든 소단원</option>
+                    </select>
+                </div>
+                <button onclick="searchContents()" class="btn-modern btn-primary w-full">
+                    <i class="fas fa-search mr-2"></i>검색
+                </button>
+            </div>
+
+            <!-- 콘텐츠 목록 -->
+            <div class="contents-list" id="contentsList">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-search text-4xl mb-2"></i>
+                    <p>검색 조건을 입력하세요</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 생성 탭 -->
+        <div id="createTab" class="tab-content">
+            <div class="p-4">
+                <form id="quickContentForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                        <input type="text" name="title" class="form-input w-full" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 타입</label>
+                        <select name="content_type" class="form-input w-full" required>
+                            <option value="">선택하세요</option>
+                            {% for ct in content_types %}
+                            <option value="{{ ct.id }}">{{ ct.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                        <textarea name="page" rows="10" class="form-input w-full" required></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">정답 (선택)</label>
+                        <textarea name="answer" rows="3" class="form-input w-full"></textarea>
+                    </div>
+                    <button type="submit" class="btn-modern btn-primary w-full">
+                        <i class="fas fa-save mr-2"></i>콘텐츠 생성
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 컨테이너 -->
+<div id="messageContainer"></div>
+
+<!-- 전역 변수 설정 -->
+<script>
+    window.courseConfig = {
+        courseId: {{ course.id }},
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            courseStructure: "{% url 'teacher:api_course_structure' course.id %}",
+            courseDetail: "{% url 'teacher:api_course_detail' course.id %}",
+            chapterCreate: "{% url 'teacher:chapter_create' course.id %}",
+            chasiSlideManage: "{% url 'teacher:chasi_slide_manage' 0 %}",
+            contentsCreate: "{% url 'teacher:contents_create' %}",
+            contentsSearch: "/teacher/api/contents/search/"
+        },
+        stats: {
+            totalChapters: {{ stats.total_chapters|default:0 }},
+            totalSubchapters: {{ stats.total_subchapters|default:0 }},
+            totalChasis: {{ stats.total_chasis|default:0 }},
+            totalSlides: {{ stats.total_slides|default:0 }}
+        }
+    };
+    
+    window.currentNode = null;
+    window.currentActiveNodeId = null;
+    window.contentsPanelOpen = false;
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 외부 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<!-- 공통 유틸리티 -->
+<script src="{% static 'js/teacher/course/utils.js' %}"></script>
+
+<!-- 기능별 모듈 -->
+<script src="{% static 'js/teacher/course/chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/sub_chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/chasi.js' %}"></script>
+<script src="{% static 'js/teacher/course/sliders.js' %}"></script>
+<script src="{% static 'js/teacher/course/contents.js' %}"></script>
+<script src="{% static 'js/teacher/course/contents_panel.js' %}"></script>
+
+<!-- 메인 초기화 스크립트 -->
+<script src="{% static 'js/teacher/course/main.js' %}"></script>
+{% endblock %}

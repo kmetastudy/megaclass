@@ -1,0 +1,188 @@
+/* static/css/cp_agent_editor.css - CodeMirror 및 편집 관련 스타일 */
+
+/* ========== CodeMirror 에디터 ========== */
+.CodeMirror {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    height: auto;
+    background-color: #f9fafb;
+}
+
+.CodeMirror-focused {
+    background-color: #ffffff;
+}
+
+/* ========== 텍스트 편집 시스템 ========== */
+.editable-word {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin: 1px;
+    border: 1px solid transparent;
+}
+
+.editable-word:hover {
+    background-color: #dbeafe;
+    border-color: #93c5fd;
+}
+
+.editing-word {
+    background-color: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.edit-input {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    background-color: #fffbeb;
+    border: none;
+    outline: none !important;
+    border-radius: 0.25rem;
+    padding: 2px 6px;
+    box-shadow: 0 0 0 1px #ef4444;
+}
+
+.edit-input:focus {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 1px #ef4444;
+}
+
+.text-changed {
+    color: #ef4444 !important;
+    font-weight: 500;
+}
+
+/* ========== 이미지 편집 시스템 ========== */
+.editable-image {
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    border-radius: 4px;
+    position: relative;
+}
+
+.editable-image:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.editable-image[data-changed="true"] {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px #ef4444;
+}
+
+.editable-image::after {
+    content: "📸 클릭하여 변경";
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.editable-image:hover::after {
+    opacity: 1;
+}
+
+.image-upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px dashed #3b82f6;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+.editable-image:hover .image-upload-overlay {
+    display: flex;
+}
+
+/* ========== 이미지 로딩 ========== */
+.image-loading {
+    position: relative;
+    opacity: 0.6;
+}
+
+.image-loading::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* ========== 편집 도움말 ========== */
+.edit-help {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.edit-help i {
+    margin-right: 8px;
+}
+
+/* 아코디언 애니메이션 및 스타일 */
+.accordion-section .accordion-content {
+    transition: height 0.3s ease-in-out;
+    border-bottom: 1px solid transparent;
+}
+
+.accordion-section.expanded .accordion-content {
+    border-bottom-color: #e5e7eb;
+}
+
+.accordion-section .accordion-icon {
+    transition: transform 0.3s ease-in-out;
+}
+
+.accordion-section .accordion-header:hover {
+    background-color: #f3f4f6;
+}
+
+.html-main-area {
+    transition: height 0.3s ease-in-out;
+}
+
+.answer-area {
+    transition: height 0.3s ease-in-out;
+}
+
+/* 아코디언 헤더 아이콘 스타일링 */
+.accordion-header i.fas:not(.accordion-icon) {
+    opacity: 0.7;
+}
+
+.accordion-header:hover i.fas:not(.accordion-icon) {
+    opacity: 1;
+}
+
+/* 접힌 상태에서 구분선 제거 */
+.accordion-section:not(.expanded) + .accordion-section .accordion-header {
+    border-top: none;
+}

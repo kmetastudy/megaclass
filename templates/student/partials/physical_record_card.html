@@ -1,0 +1,89 @@
+<!-- templates/student/partials/physical_record_card.html -->
+<!-- 기록 헤더 -->
+<div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900">{{ record.original.slide.chasi.chasi_title }}</h3>
+            <p class="text-sm text-slate-600 mt-1">{{ record.original.slide.chasi.subject.subject_name }}</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <span class="text-sm text-slate-500">
+                <i class="far fa-calendar mr-1"></i>
+                {{ record.original.submitted_at|date:"Y년 m월 d일" }}
+            </span>
+            <span class="text-sm text-slate-500">
+                <i class="far fa-clock mr-1"></i>
+                {{ record.original.submitted_at|date:"H:i" }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- 기록 내용 -->
+<div class="p-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for attempt in record.processed_attempts %}
+        <div class="relative">
+            <div class="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br 
+                                {% if attempt.회차 == 1 %}from-blue-500 to-blue-600{% else %}from-purple-500 to-purple-600{% endif %}
+                                flex items-center justify-center">
+                        <span class="text-white font-bold">{{ attempt.회차 }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-slate-600">{{ attempt.회차 }}차 시기</p>
+                        <p class="text-lg font-bold text-slate-900">{{ attempt.기록_포맷 }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                        <i class="fas fa-running mr-1"></i>
+                        {{ attempt.종류 }}
+                    </span>
+                </div>
+            </div>
+            
+            <!-- 최고 기록 표시 -->
+            {% if forloop.first %}
+            <div class="absolute -top-2 -right-2">
+                <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-400 text-white rounded-full shadow-lg">
+                    <i class="fas fa-star text-sm"></i>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 기록 비교 -->
+    {% if record.has_multiple_attempts and record.improvement_percentage %}
+    <div class="mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-chart-bar text-indigo-600"></i>
+                <span class="text-sm font-medium text-slate-700">기록 향상도</span>
+            </div>
+            <span class="text-lg font-bold text-indigo-600">
+                {{ record.improvement_percentage }}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 기록 푸터 -->
+<div class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4 text-sm text-slate-600">
+            <span>
+                <i class="fas fa-user mr-1"></i>
+                기록자: {{ record.original.writer|default:"본인" }}
+            </span>
+            <span>
+                <i class="fas fa-star mr-1"></i>
+                점수: {{ record.original.score|default:"100" }}점
+            </span>
+        </div>
+    </div>
+</div>

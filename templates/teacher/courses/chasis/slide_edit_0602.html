@@ -1,0 +1,183 @@
+<!-- teacher/templates/teacher/courses/chasis/slide_edit.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}슬라이드 수정 - {{ slide.chasi.chasi_title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li><a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" class="text-blue-600 hover:text-blue-800">{{ chasi.chasi_title }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+            <li class="text-gray-500">슬라이드 {{ slide.slide_number }} 수정</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">슬라이드 수정</h1>
+        <p class="text-gray-600">{{ chasi.chasi_title }} - 슬라이드 {{ slide.slide_number }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 메인 폼 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label for="{{ form.slide_title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.slide_title.label }}
+                            </label>
+                            {{ form.slide_title }}
+                            {% if form.slide_title.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.slide_title.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.content.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.content.label }} *
+                            </label>
+                            {{ form.content }}
+                            {% if form.content.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                            {% endif %}
+                            
+                            <!-- 현재 콘텐츠 정보 -->
+                            <div class="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h5 class="font-medium text-blue-800 mb-2">현재 콘텐츠</h5>
+                                <p class="text-sm text-blue-700">{{ slide.content.title }}</p>
+                                <span class="inline-block mt-1 bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                    {{ slide.content_type.type_name }}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.instructor_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.instructor_notes.label }}
+                            </label>
+                            {{ form.instructor_notes }}
+                            {% if form.instructor_notes.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.instructor_notes.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.estimated_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ form.estimated_time.label }}
+                            </label>
+                            {{ form.estimated_time }}
+                            {% if form.estimated_time.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.estimated_time.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 버튼 -->
+                    <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                        <button type="submit" 
+                                class="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition duration-200 font-medium">
+                            <i class="fas fa-save mr-2"></i>변경사항 저장
+                        </button>
+                        <a href="{% url 'teacher:chasi_slide_manage' chasi.id %}" 
+                           class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                            <i class="fas fa-arrow-left mr-2"></i>취소
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 사이드바 -->
+        <div class="space-y-6">
+            <!-- 슬라이드 정보 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>슬라이드 정보
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">슬라이드 번호</p>
+                        <p class="font-medium text-gray-800">{{ slide.slide_number }}번</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">생성일</p>
+                        <p class="font-medium text-gray-800">{{ slide.created_at|date:"Y.m.d H:i" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">수정일</p>
+                        <p class="font-medium text-gray-800">{{ slide.updated_at|date:"Y.m.d H:i" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 콘텐츠 미리보기 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-eye mr-2"></i>콘텐츠 미리보기
+                </h3>
+                <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
+                    <div class="prose prose-sm max-w-none">
+                        {{ slide.content.page|safe|truncatewords_html:50 }}
+                    </div>
+                </div>
+                <button onclick="viewFullContent()" 
+                        class="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200 text-sm">
+                    <i class="fas fa-expand mr-1"></i>전체 보기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 전체 콘텐츠 보기 모달 -->
+<div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-800">{{ slide.content.title }}</h3>
+                <button onclick="closeContentModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <div class="prose max-w-none">
+                    {{ slide.content.page|safe }}
+                </div>
+                {% if slide.content.answer %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h4 class="font-semibold text-gray-700 mb-2">정답</h4>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        {{ slide.content.answer }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewFullContent() {
+    document.getElementById('contentModal').classList.remove('hidden');
+}
+
+function closeContentModal() {
+    document.getElementById('contentModal').classList.add('hidden');
+}
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeContentModal();
+    }
+});
+</script>
+{% endblock %}

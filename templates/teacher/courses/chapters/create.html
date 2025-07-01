@@ -1,0 +1,329 @@
+<!-- teacher/templates/teacher/courses/chapters/create.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}대단원 추가 - {{ course.subject_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* 입력 필드 스타일 */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    /* 로딩 상태 */
+    .loading-spinner {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+    }
+    
+    /* 폼 비활성화 상태 */
+    .form-disabled {
+        pointer-events: none;
+        opacity: 0.6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 로딩 스피너 -->
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="bg-white p-8 rounded-lg shadow-xl">
+        <div class="flex flex-col items-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p class="text-gray-700">대단원을 생성하는 중입니다...</p>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-2xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li><a href="{% url 'teacher:course_detail' course.id %}" class="text-blue-600 hover:text-blue-800">{{ course.subject_name }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li><a href="{% url 'teacher:chapter_list' course.id %}" class="text-blue-600 hover:text-blue-800">대단원 관리</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li class="text-gray-500">새 대단원</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">새 대단원 추가</h1>
+        <p class="text-gray-600">{{ course.subject_name }}에 새로운 대단원을 추가합니다</p>
+    </div>
+
+    <!-- 대단원 생성 폼 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <!-- 중요: onsubmit="return false" 추가 -->
+        <div id="chapterFormWrapper">
+            <form method="post" 
+                  id="chapterForm"
+                  action="{% url 'teacher:chapter_create' course.id %}"
+                  onsubmit="return false;"
+                  autocomplete="off">
+                {% csrf_token %}
+                
+                <!-- 숨겨진 필드로 상태 추적 -->
+                <input type="hidden" id="formState" value="initialized">
+                <input type="hidden" id="courseId" value="{{ course.id }}">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label for="chapter_title" class="block text-sm font-medium text-gray-700 mb-2">대단원명 *</label>
+                        <input type="text" 
+                               name="chapter_title" 
+                               id="chapter_title" 
+                               required 
+                               class="form-input"
+                               placeholder="예: 문학의 갈래와 성격"
+                               value="{{ request.POST.chapter_title|default:'' }}"
+                               autocomplete="off"
+                               autocorrect="off"
+                               autocapitalize="off"
+                               spellcheck="false">
+                    </div>
+                    
+                    <div>
+                        <label for="chapter_order" class="block text-sm font-medium text-gray-700 mb-2">대단원 순서 *</label>
+                        <input type="number" 
+                               name="chapter_order" 
+                               id="chapter_order" 
+                               required 
+                               min="1"
+                               value="{{ suggested_order|default:1 }}"
+                               class="form-input"
+                               placeholder="1"
+                               autocomplete="off">
+                        {% if suggested_order %}
+                        <p class="mt-1 text-sm text-gray-500">제안 순서: {{ suggested_order }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea name="description" 
+                                  id="description" 
+                                  rows="3"
+                                  class="form-input"
+                                  placeholder="대단원에 대한 설명을 입력하세요 (선택사항)"
+                                  autocomplete="off">{{ request.POST.description|default:'' }}</textarea>
+                    </div>
+                </div>
+                
+                <!-- 안내 메시지 -->
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">다음 단계</h4>
+                    <p class="text-sm text-blue-700">대단원 생성 후 소단원과 차시를 추가하여 완성하세요.</p>
+                </div>
+                
+                <!-- 버튼 - 중요: type="button" 명시 -->
+                <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                    <button type="button" 
+                            id="submitBtn"
+                            class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                        <i class="fas fa-plus mr-2"></i>대단원 추가
+                    </button>
+                    <a href="{% url 'teacher:chapter_list' course.id %}" 
+                       class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                        <i class="fas fa-arrow-left mr-2"></i>목록으로 돌아가기
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 즉시 실행 함수로 감싸서 전역 변수 오염 방지
+(function() {
+    'use strict';
+    
+    // 상태 관리
+    let isSubmitting = false;
+    let debugMode = true;
+    
+    // 디버그 로그
+    function debugLog(message) {
+        if (debugMode) {
+            console.log('[ChapterCreate]', new Date().toLocaleTimeString(), message);
+        }
+    }
+    
+    // 폼 제출 처리 함수
+    function handleFormSubmit() {
+        debugLog('handleFormSubmit 호출됨');
+        
+        if (isSubmitting) {
+            debugLog('이미 제출 중입니다.');
+            return;
+        }
+        
+        // 유효성 검사
+        const chapterTitle = document.getElementById('chapter_title').value.trim();
+        const chapterOrder = document.getElementById('chapter_order').value.trim();
+        
+        debugLog(`검증 - 대단원명: "${chapterTitle}", 순서: "${chapterOrder}"`);
+        
+        if (!chapterTitle) {
+            alert('대단원명을 입력해주세요.');
+            document.getElementById('chapter_title').focus();
+            return;
+        }
+        
+        if (!chapterOrder || parseInt(chapterOrder) < 1) {
+            alert('올바른 대단원 순서를 입력해주세요.');
+            document.getElementById('chapter_order').focus();
+            return;
+        }
+        
+        // 제출 상태 설정
+        isSubmitting = true;
+        debugLog('폼 제출 시작');
+        
+        // UI 업데이트
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('chapterFormWrapper').classList.add('form-disabled');
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
+        
+        // 폼 제출
+        const form = document.getElementById('chapterForm');
+        form.onsubmit = null; // onsubmit 핸들러 제거
+        
+        debugLog('실제 폼 제출 실행');
+        form.submit();
+    }
+    
+    // DOM 로드 완료 시 실행
+    document.addEventListener('DOMContentLoaded', function() {
+        debugLog('페이지 초기화 시작');
+        
+        // 폼 요소 가져오기
+        const form = document.getElementById('chapterForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const inputs = form.querySelectorAll('input[type="text"], input[type="number"], textarea');
+        
+        // 폼 제출 이벤트 차단
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            debugLog('폼 제출 이벤트 차단됨');
+            return false;
+        });
+        
+        // 폼의 모든 버튼에서 엔터키 차단
+        form.addEventListener('keypress', function(e) {
+            if (e.keyCode === 13 && e.target.type !== 'textarea') {
+                e.preventDefault();
+                debugLog('폼 레벨 Enter 키 차단');
+                return false;
+            }
+        });
+        
+        // 모든 입력 필드에서 Enter 키 차단
+        inputs.forEach(function(input) {
+            // 각 필드에 대한 이벤트 로깅
+            input.addEventListener('input', function(e) {
+                debugLog(`Input 이벤트: ${input.name} = "${e.target.value}"`);
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && input.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    debugLog(`Enter 키 차단됨: ${input.name}`);
+                    
+                    // 다음 입력 필드로 포커스 이동
+                    const allInputs = Array.from(inputs);
+                    const currentIndex = allInputs.indexOf(input);
+                    if (currentIndex < allInputs.length - 1) {
+                        allInputs[currentIndex + 1].focus();
+                    }
+                    
+                    return false;
+                }
+            });
+            
+            // keydown 이벤트에서도 차단
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && input.tagName !== 'TEXTAREA') {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+        
+        // 제출 버튼 클릭 이벤트
+        submitBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            debugLog('제출 버튼 클릭');
+            handleFormSubmit();
+        });
+        
+        // 첫 번째 필드에 포커스
+        setTimeout(function() {
+            document.getElementById('chapter_title').focus();
+            debugLog('대단원명 필드에 포커스 설정');
+        }, 100);
+        
+        debugLog('페이지 초기화 완료');
+    });
+    
+    // jQuery가 있는 경우 추가 보호
+    if (typeof $ !== 'undefined') {
+        $(document).ready(function() {
+            debugLog('jQuery 추가 보호 설정');
+            
+            // 모든 폼 이벤트 차단
+            $('#chapterForm').off('submit').on('submit', function(e) {
+                e.preventDefault();
+                debugLog('jQuery: 폼 제출 차단');
+                return false;
+            });
+            
+            // 문서 레벨에서 이벤트 차단
+            $(document).on('submit', '#chapterForm', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // Ajax 요청 모니터링
+            $(document).ajaxSend(function(event, jqxhr, settings) {
+                debugLog('Ajax 요청 감지: ' + settings.url);
+            });
+        });
+    }
+    
+    // 페이지 언로드 방지
+    window.addEventListener('beforeunload', function(e) {
+        if (!isSubmitting) {
+            const chapterTitle = document.getElementById('chapter_title').value.trim();
+            
+            if (chapterTitle) {
+                e.preventDefault();
+                e.returnValue = '작성 중인 내용이 있습니다.';
+                debugLog('페이지 이탈 시도 감지');
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

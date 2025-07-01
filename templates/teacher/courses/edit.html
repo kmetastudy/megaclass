@@ -1,0 +1,70 @@
+<!-- teacher/templates/teacher/courses/edit.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}{{ course.subject_name }} 수정 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- 브레드크럼 -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2">
+            <li><a href="{% url 'teacher:course_list' %}" class="text-blue-600 hover:text-blue-800">코스 목록</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li><a href="{% url 'teacher:course_detail' course.id %}" class="text-blue-600 hover:text-blue-800">{{ course.subject_name }}</a></li>
+            <li><i class="fas fa-chevron-right text-gray-400 text-sm"></i></li>
+            <li class="text-gray-500">코스 수정</li>
+        </ol>
+    </nav>
+
+    <!-- 헤더 -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">코스 수정</h1>
+        <p class="text-gray-600">{{ course.subject_name }}의 정보를 수정합니다</p>
+    </div>
+
+    <!-- 수정 폼 -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <form method="post" id="courseEditForm">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="{{ form.subject_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">{{ form.subject_name.label }} *</label>
+                    {{ form.subject_name }}
+                    {% if form.subject_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.subject_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.target.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">{{ form.target.label }} *</label>
+                    {{ form.target }}
+                    {% if form.target.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.target.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-8">
+                <button type="submit" 
+                        class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium">
+                    <i class="fas fa-save mr-2"></i>변경사항 저장
+                </button>
+                <a href="{% url 'teacher:course_detail' course.id %}" 
+                   class="flex-1 bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition duration-200 font-medium text-center">
+                    <i class="fas fa-arrow-left mr-2"></i>취소
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

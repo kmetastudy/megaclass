@@ -1,0 +1,104 @@
+<!-- 코스 목록 템플릿 (student/templates/student/course_list.html)
+html -->
+{% extends 'student/base.html' %}
+
+{% block title %}내 코스 - 학습 관리 시스템{% endblock %}
+{% block page_title %}내 코스{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">내 코스</h2>
+    <p class="text-gray-600">할당받은 모든 코스를 확인하고 학습을 시작하세요.</p>
+</div>
+
+<!-- 필터 및 정렬 -->
+<div class="bg-white rounded-xl shadow-md p-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <select class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option>모든 코스</option>
+                <option>진행 중</option>
+                <option>완료</option>
+                <option>미시작</option>
+            </select>
+            
+            <select class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option>최근 할당순</option>
+                <option>진도율순</option>
+                <option>이름순</option>
+            </select>
+        </div>
+        
+        <div class="flex items-center">
+            <span class="text-sm text-gray-600 mr-2">총 {{ course_data|length }}개 코스</span>
+        </div>
+    </div>
+</div>
+
+<!-- 코스 그리드 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for data in course_data %}
+    <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover">
+        <!-- 코스 헤더 이미지 (색상으로 대체) -->
+        <div class="h-32 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+            <i class="fas fa-book-open text-white text-4xl"></i>
+        </div>
+        
+        <div class="p-6">
+            <!-- 코스 정보 -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ data.assignment.course.subject_name }}</h3>
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                        {{ data.assignment.course.target }}
+                    </span>
+                </div>
+                
+                <p class="text-gray-600 text-sm mb-3">{{ data.assignment.course.description|truncatechars:100 }}</p>
+                
+                <div class="flex items-center text-xs text-gray-500">
+                    <i class="fas fa-user-tie mr-1"></i>
+                    <span class="mr-3">{{ data.assignment.course.teacher.user.get_full_name }}</span>
+                    <i class="fas fa-calendar mr-1"></i>
+                    <span>{{ data.assignment.assigned_date|date:"Y.m.d" }}</span>
+                </div>
+            </div>
+            
+            <!-- 진도 표시 -->
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>진도율</span>
+                    <span class="font-medium">{{ data.progress_percent|floatformat:0 }}%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-500" 
+                         style="width: {{ data.progress_percent }}%">
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{{ data.completed_slides }}개 완료</span>
+                    <span>총 {{ data.total_slides }}개</span>
+                </div>
+            </div>
+            
+            <!-- 액션 버튼 -->
+            <div class="flex gap-2">
+                <a href="{% url 'student:learning_course' data.assignment.course.id %}" 
+                   class="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                    <i class="fas fa-play mr-2"></i>학습하기
+                </a>
+                <button class="p-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50">
+                    <i class="fas fa-info-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-16">
+        <i class="fas fa-book-open text-6xl text-gray-300 mb-4"></i>
+        <p class="text-xl text-gray-500 mb-2">할당받은 코스가 없습니다.</p>
+        <p class="text-gray-400">담당 선생님께 코스 할당을 요청하세요.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

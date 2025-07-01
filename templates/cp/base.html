@@ -1,0 +1,31 @@
+<!-- cp/templates/cp/base.html -->
+{% extends 'base.html' %}
+
+{% block sidebar %}
+<!-- 공통 메뉴 -->
+<a href="{% url 'cp:dashboard' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 {% if request.resolver_match.url_name == 'dashboard' %}bg-blue-50 text-blue-600{% endif %}">
+    <i class="fas fa-home mr-3"></i>대시보드
+</a>
+
+<!-- 컨텐츠 제작 메뉴 -->
+<div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">컨텐츠 제작</div>
+
+<a href="{% url 'cp:editor' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 {% if request.resolver_match.url_name == 'editor' %}bg-blue-50 text-blue-600{% endif %}">
+    <i class="fas fa-edit mr-3"></i>컨텐츠 에디터
+</a>
+
+<a href="{% url 'cp:content_list' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 {% if 'content' in request.resolver_match.url_name %}bg-blue-50 text-blue-600{% endif %}">
+    <i class="fas fa-list mr-3"></i>컨텐츠 목록
+</a>
+
+<a href="{% url 'cp:content_type_list' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200 {% if 'content_type' in request.resolver_match.url_name %}bg-blue-50 text-blue-600{% endif %}">
+    <i class="fas fa-tags mr-3"></i>컨텐츠 타입
+</a>
+
+<!-- 교사 메뉴로 돌아가기 -->
+<div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">교사 메뉴</div>
+
+<a href="{% url 'teacher:dashboard' %}" class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200">
+    <i class="fas fa-chalkboard-teacher mr-3"></i>교사 대시보드
+</a>
+{% endblock %}

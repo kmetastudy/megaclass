@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습 관리 시스템</title>
+    
+    <!-- CSS 라이브러리 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- JavaScript 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    
+    <!-- 마크다운 에디터 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.js"></script>
+    
+    <style>
+        /* 커스텀 스타일 */
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .content-area { min-height: calc(100vh - 4rem); }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* 선택형 문제 스타일 */
+        .choice-item { 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        .choice-item:hover { background-color: #f3f4f6; }
+        .choice-item.selected { 
+            background-color: #dbeafe; 
+            border-color: #3b82f6;
+        }
+        
+        /* 마크다운 에디터 커스터마이징 */
+        .EasyMDEContainer { margin-bottom: 1rem; }
+        .CodeMirror { border: 1px solid #d1d5db; border-radius: 0.375rem; }
+        
+        /* 진행률 바 */
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+            transition: width 0.3s ease;
+        }
+        
+        /* 반응형 테이블 */
+        .table-responsive { overflow-x: auto; }
+        
+        /* 로딩 스피너 */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 모바일 대응 */
+        @media (max-width: 768px) {
+            .mobile-hidden { display: none !important; }
+            .mobile-full { width: 100% !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center h-full">
+            <div class="bg-white p-6 rounded-lg flex items-center space-x-3">
+                <div class="spinner"></div>
+                <span>로딩 중...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 헤더 -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- 로고 및 메뉴 버튼 -->
+                <div class="flex items-center space-x-4">
+                    <button id="sidebarToggle" class="md:hidden p-2 rounded-md hover:bg-gray-100">
+                        <i class="fas fa-bars text-gray-600"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-graduation-cap text-blue-600 mr-2"></i>
+                        학습 관리 시스템
+                    </h1>
+                </div>
+
+                <!-- 사용자 정보 -->
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <span id="currentUserName">사용자</span>
+                        <span id="currentUserType" class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs"></span>
+                    </div>
+                    <button id="logoutBtn" class="text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex">
+        <!-- 사이드바 -->
+        <aside id="sidebar" class="w-64 bg-white shadow-lg sidebar-transition transform -translate-x-full md:translate-x-0 fixed md:relative h-full z-40">
+            <nav class="mt-8">
+                <div class="px-4 space-y-2">
+                    <!-- 공통 메뉴 -->
+                    <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="dashboard">
+                        <i class="fas fa-home mr-3"></i>대시보드
+                    </button>
+
+                    <!-- 교사 전용 메뉴 -->
+                    <div id="teacherMenu" class="space-y-2 hidden">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">교사 메뉴</div>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="classes">
+                            <i class="fas fa-users mr-3"></i>학급 관리
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="courses">
+                            <i class="fas fa-book mr-3"></i>코스 관리
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="content-editor">
+                            <i class="fas fa-edit mr-3"></i>컨텐츠 편집
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="assignments">
+                            <i class="fas fa-tasks mr-3"></i>코스 할당
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="statistics">
+                            <i class="fas fa-chart-bar mr-3"></i>통계 및 분석
+                        </button>
+                    </div>
+
+                    <!-- 학생 전용 메뉴 -->
+                    <div id="studentMenu" class="space-y-2 hidden">
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">학생 메뉴</div>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="my-courses">
+                            <i class="fas fa-book-open mr-3"></i>내 코스
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="learning">
+                            <i class="fas fa-play-circle mr-3"></i>학습하기
+                        </button>
+                        
+                        <button class="nav-item w-full text-left px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition duration-200" data-section="my-progress">
+                            <i class="fas fa-chart-line mr-3"></i>학습 진도
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="flex-1 content-area p-6 md:ml-0">
+            
+            <!-- 대시보드 섹션 -->
+            <div id="dashboard-section" class="section">
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">대시보드</h2>
+                    <p class="text-gray-600">학습 관리 시스템에 오신 것을 환영합니다.</p>
+                </div>
+
+                <!-- 통계 카드들 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-blue-100 rounded-full">
+                                <i class="fas fa-book text-blue-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-sm font-medium text-gray-500">총 코스</h3>
+                                <p class="text-2xl font-bold text-gray-900" id="totalCourses">5</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-green-100 rounded-full">
+                                <i class="fas fa-users text-green-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-sm font-medium text-gray-500">총 학생</h3>
+                                <p class="text-2xl font-bold text-gray-900" id="totalStudents">32</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-yellow-100 rounded-full">
+                                <i class="fas fa-tasks text-yellow-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-sm font-medium text-gray-500">학급 수</h3>
+                                <p class="text-2xl font-bold text-gray-900" id="totalClasses">3</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-purple-100 rounded-full">
+                                <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-sm font-medium text-gray-500">제출 답안</h3>
+                                <p class="text-2xl font-bold text-gray-900" id="submittedAnswers">89</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 최근 활동 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">최근 활동</h3>
+                    <div id="recentActivities" class="space-y-3">
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                            <span class="text-sm">김철수 학생이 정보 과목 1단원을 완료했습니다.</span>
+                            <span class="text-xs text-gray-500 ml-auto">10분 전</span>
+                        </div>
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-sm">새로운 코스 '알고리즘의 이해'가 생성되었습니다.</span>
+                            <span class="text-xs text-gray-500 ml-auto">1시간 전</span>
+                        </div>
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                            <span class="text-sm">2학년 1반에 새로운 학생이 등록되었습니다.</span>
+                            <span class="text-xs text-gray-500 ml-auto">2시간 전</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학급 관리 섹션 (교사용) -->
+            <div id="classes-section" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">학급 관리</h2>
+                    <button id="createClassBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-plus mr-2"></i>학급 생성
+                    </button>
+                </div>
+
+                <!-- 학급 목록 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div id="classesList">
+                        <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">2학년 1반</h3>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">2학년</span>
+                            </div>
+                            <div class="text-gray-600 space-y-2">
+                                <p><i class="fas fa-users mr-2"></i>학생 수: 15명</p>
+                                <p><i class="fas fa-user-tie mr-2"></i>담당교사: 홍길동</p>
+                            </div>
+                            <div class="mt-4 flex space-x-2">
+                                <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700" onclick="viewClass(1)">
+                                    상세보기
+                                </button>
+                                <button class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700" onclick="manageStudents(1)">
+                                    학생관리
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 학생 목록 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">학생 목록</h3>
+                        <button id="addStudentBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-200">
+                            <i class="fas fa-user-plus mr-2"></i>학생 추가
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학번</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학급</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">가입일</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTable" class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3">
+                                                김
+                                            </div>
+                                            김철수
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2024001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2학년 1반</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2024-01-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="viewStudentPerformance(1)">성과보기</button>
+                                        <button class="text-red-600 hover:text-red-900" onclick="removeStudent(1)">삭제</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 코스 관리 섹션 (교사용) -->
+            <div id="courses-section" class="section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">코스 관리</h2>
+                    <button id="createCourseBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                        <i class="fas fa-plus mr-2"></i>코스 생성
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="coursesList">
+                        <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">정보 과목</h3>
+                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm">중학교 2학년</span>
+                            </div>
+                            <div class="text-gray-600 space-y-2 mb-4">
+                                <p class="text-sm">컴퓨터와 정보사회에 대해 학습합니다.</p>
+                                <p><i class="fas fa-layer-group mr-2"></i>대단원: 5개</p>
+                                <p><i class="fas fa-user-tie mr-2"></i>담당교사: 홍길동</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700" onclick="editCourse(1)">
+                                    편집
+                                </button>
+                                <button class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700" onclick="manageCourseStructure(1)">
+                                    구조관리
+                                </button>
+                                <button class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700" onclick="assignCourse(1)">
+                                    할당
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 컨텐츠 편집 섹션 (교사용) -->
+            <div id="content-editor-section" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">컨텐츠 편집</h2>
+                    <p class="text-gray-600">문제와 학습 자료를 만들고 편집할 수 있습니다.</p>
+                </div>
+
+                <!-- 컨텐츠 타입 선택 -->
+                <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">새 컨텐츠 만들기</h3>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                        <button class="content-type-btn p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition duration-200" data-type="choice">
+                            <i class="fas fa-list-ul text-2xl text-blue-600 mb-2"></i>
+                            <div class="text-sm font-medium">선택형</div>
+                        </button>
+                        
+                        <button class="content-type-btn p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition duration-200" data-type="short_essay">
+                            <i class="fas fa-pencil-alt text-2xl text-green-600 mb-2"></i>
+                            <div class="text-sm font-medium">단답형</div>
+                        </button>
+                        
+                        <button class="content-type-btn p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition duration-200" data-type="essay">
+                            <i class="fas fa-file-alt text-2xl text-purple-600 mb-2"></i>
+                            <div class="text-sm font-medium">서술형</div>
+                        </button>
+                        
+                        <button class="content-type-btn p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition duration-200" data-type="fill_blank">
+                            <i class="fas fa-fill text-2xl text-yellow-600 mb-2"></i>
+                            <div class="text-sm font-medium">빈칸채우기</div>
+                        </button>
+                        
+                        <button class="content-type-btn p-4 border-2 border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition duration-200" data-type="ordering">
+                            <i class="fas fa-sort-numeric-down text-2xl text-red-600 mb-2"></i>
+                            <div class="text-sm font-medium">순서정하기</div>
+                        </button>
+                    </div>
+
+                    <!-- 컨텐츠 편집 폼 -->
+                    <div id="contentEditForm" class="hidden">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                            <input type="text" id="contentTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="컨텐츠 제목을 입력하세요">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                            <textarea id="contentEditor" placeholder="마크다운 형식으로 내용을 입력하세요..."></textarea>
+                        </div>
+
+                        <!-- 선택형 문제 설정 -->
+                        <div id="choiceSettings" class="hidden mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">선택지 설정</label>
+                            <div id="choiceList" class="space-y-2">
+                                <!-- 동적으로 생성됨 -->
+                            </div>
+                            <button type="button" id="addChoiceBtn" class="mt-2 text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-plus mr-1"></i>선택지 추가
+                            </button>
+                        </div>
+
+                        <!-- 평가 기준 설정 -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">평가 기준 (루브릭)</label>
+                            <textarea id="rubricEditor" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="평가 기준을 입력하세요"></textarea>
+                        </div>
+
+                        <div class="flex space-x-4">
+                            <button type="button" id="saveContentBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
+                                <i class="fas fa-save mr-2"></i>저장
+                            </button>
+                            <button type="button" id="previewContentBtn" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition duration-200">
+                                <i class="fas fa-eye mr-2"></i>미리보기
+                            </button>
+                            <button type="button" id="cancelContentBtn" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition duration-200">
+                                <i class="fas fa-times mr-2"></i>취소
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 기존 컨텐츠 목록 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">기존 컨텐츠</h3>
+                    <div id="existingContents" class="space-y-4">
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-800">정보사회의 특징</h4>
+                                    <p class="text-sm text-gray-500">선택형 • 생성일: 2024-05-15</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm">편집</button>
+                                    <button class="text-red-600 hover:text-red-800 text-sm">삭제</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 내 코스 섹션 (학생용) -->
+            <div id="my-courses-section" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">내 코스</h2>
+                    <p class="text-gray-600">할당받은 코스 목록입니다.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div id="myCoursesList">
+                        <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-gray-800">정보 과목</h3>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">중학교 2학년</span>
+                            </div>
+                            <div class="text-gray-600 space-y-2 mb-4">
+                                <p class="text-sm">컴퓨터와 정보사회에 대해 학습합니다.</p>
+                                <p><i class="fas fa-layer-group mr-2"></i>대단원: 5개</p>
+                            </div>
+                            <div class="mb-4">
+                                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                    <span>진행률</span>
+                                    <span>65%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="progress-bar h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            <button class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200" onclick="startLearning(1)">
+                                학습 계속하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학습하기 섹션 (학생용) -->
+            <div id="learning-section" class="section hidden">
+                <div id="courseNavigation" class="mb-6">
+                    <div class="bg-white rounded-xl shadow-md p-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-800">정보 과목 - 1단원</h2>
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm text-gray-600">진행률: 65%</span>
+                                <div class="w-32 bg-gray-200 rounded-full h-2">
+                                    <div class="progress-bar h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- 코스 구조 사이드바 -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-xl shadow-md p-4 sticky top-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">코스 구조</h3>
+                            <div id="courseStructure" class="space-y-2">
+                                <div class="p-2 bg-blue-50 border-l-4 border-blue-500 rounded">
+                                    <div class="text-sm font-medium text-blue-800">1. 정보사회의 이해</div>
+                                    <div class="text-xs text-blue-600 mt-1">완료</div>
+                                </div>
+                                <div class="p-2 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                                    <div class="text-sm font-medium text-yellow-800">2. 컴퓨터의 구성</div>
+                                    <div class="text-xs text-yellow-600 mt-1">진행 중</div>
+                                </div>
+                                <div class="p-2 bg-gray-50 border-l-4 border-gray-300 rounded">
+                                    <div class="text-sm font-medium text-gray-600">3. 운영체제</div>
+                                    <div class="text-xs text-gray-500 mt-1">대기 중</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 학습 컨텐츠 영역 -->
+                    <div class="lg:col-span-3">
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <div id="learningContent">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">컴퓨터의 구성 요소</h3>
+                                <div class="prose max-w-none">
+                                    <p class="text-gray-600 mb-4">컴퓨터는 크게 하드웨어와 소프트웨어로 구성됩니다.</p>
+                                    
+                                    <h4 class="text-lg font-semibold mb-2">하드웨어의 구성</h4>
+                                    <ul class="list-disc ml-6 mb-4 text-gray-600">
+                                        <li>중앙처리장치(CPU): 컴퓨터의 두뇌 역할</li>
+                                        <li>기억장치: 주기억장치(RAM)과 보조기억장치(하드디스크 등)</li>
+                                        <li>입출력장치: 키보드, 마우스, 모니터, 프린터 등</li>
+                                    </ul>
+                                    
+                                    <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                                        <h4 class="font-semibold text-blue-800 mb-2">문제</h4>
+                                        <p class="text-blue-700 mb-3">다음 중 중앙처리장치(CPU)의 역할이 아닌 것은?</p>
+                                        <div class="space-y-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="question1" value="1" class="mr-2">
+                                                <span>연산 처리</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="question1" value="2" class="mr-2">
+                                                <span>제어 작업</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="question1" value="3" class="mr-2">
+                                                <span>데이터 저장</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="question1" value="4" class="mr-2">
+                                                <span>명령어 해석</span>
+                                            </label>
+                                        </div>
+                                        <button class="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                            답안 제출
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between mt-6">
+                                    <button class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700">
+                                        <i class="fas fa-arrow-left mr-2"></i>이전
+                                    </button>
+                                    <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                        다음<i class="fas fa-arrow-right ml-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학습 진도 섹션 (학생용) -->
+            <div id="my-progress-section" class="section hidden">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">학습 진도</h2>
+                    <p class="text-gray-600">내 학습 진행 상황을 확인할 수 있습니다.</p>
+                </div>
+
+                <div id="progressContent">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">전체 진행률</h3>
+                            <div class="text-center">
+                                <div class="text-4xl font-bold text-blue-600 mb-2">65%</div>
+                                <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                    <div class="progress-bar h-3 rounded-full" style="width: 65%"></div>
+                                </div>
+                                <p class="text-sm text-gray-600">5개 단원 중 3개 완료</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-md p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">이번 주 학습</h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-sm">완료한 슬라이드</span>
+                                    <span class="font-semibold">12개</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm">학습 시간</span>
+                                    <span class="font-semibold">3시간 20분</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm">정답률</span>
+                                    <span class="font-semibold text-green-600">85%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl shadow-md p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">단원별 진행 상황</h3>
+                        <div class="space-y-4">
+                            <div class="border-l-4 border-green-500 pl-4">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-medium">1. 정보사회의 이해</h4>
+                                    <span class="text-sm text-green-600 font-semibold">완료</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div class="bg-green-500 h-2 rounded-full" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-l-4 border-blue-500 pl-4">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-medium">2. 컴퓨터의 구성</h4>
+                                    <span class="text-sm text-blue-600 font-semibold">65%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div class="bg-blue-500 h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="border-l-4 border-gray-300 pl-4">
+                                <div class="flex justify-between items-center">
+                                    <h4 class="font-medium">3. 운영체제</h4>
+                                    <span class="text-sm text-gray-500 font-semibold">대기 중</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                                    <div class="bg-gray-300 h-2 rounded-full" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 모달들 -->
+    
+    <!-- 로그인 모달 -->
+    <div id="loginModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <div class="text-center mb-6">
+                    <i class="fas fa-graduation-cap text-4xl text-blue-600 mb-2"></i>
+                    <h2 class="text-2xl font-bold text-gray-800">로그인</h2>
+                    <p class="text-gray-600">학습 관리 시스템에 로그인하세요</p>
+                </div>
+
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">사용자명</label>
+                        <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="사용자명을 입력하세요">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                        <input type="password" id="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="비밀번호를 입력하세요">
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                        로그인
+                    </button>
+                </form>
+
+                <div class="mt-4 text-center text-sm text-gray-600">
+                    <p>테스트용으로 아무 값이나 입력하세요.</p>
+                    <div class="mt-2 space-x-4">
+                        <button onclick="quickLogin('teacher')" class="text-blue-600 hover:text-blue-800">교사로 로그인</button>
+                        <button onclick="quickLogin('student')" class="text-blue-600 hover:text-blue-800">학생으로 로그인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학급 생성 모달 -->
+    <div id="createClassModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">새 학급 생성</h3>
+                
+                <form id="createClassForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                        <select id="classGrade" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">학년 선택</option>
+                            <option value="1">1학년</option>
+                            <option value="2">2학년</option>
+                            <option value="3">3학년</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">반</label>
+                        <input type="number" id="classNumber" required min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="반 번호">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학급명</label>
+                        <input type="text" id="className" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 2학년 1반">
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">생성</button>
+                        <button type="button" id="cancelCreateClass" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 학생 추가 모달 -->
+    <div id="addStudentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">새 학생 추가</h3>
+                
+                <form id="addStudentForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학급</label>
+                        <select id="studentClass" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">학급 선택</option>
+                            <option value="1">2학년 1반</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">학번</label>
+                        <input type="text" id="studentId" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="학번">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">성</label>
+                        <input type="text" id="studentFirstName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="성">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">이름</label>
+                        <input type="text" id="studentLastName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="이름">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">사용자명</label>
+                        <input type="text" id="studentUsername" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="로그인용 사용자명">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                        <input type="password" id="studentPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="초기 비밀번호">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">생년월일</label>
+                        <input type="date" id="studentBirthDate" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition duration-200">추가</button>
+                        <button type="button" id="cancelAddStudent" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 코스 생성 모달 -->
+    <div id="createCourseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <h3 class="text-lg font-bold text-gray-800 mb-4">새 코스 생성</h3>
+                
+                <form id="createCourseForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">과목명</label>
+                        <input type="text" id="subjectName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 정보">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">대상</label>
+                        <input type="text" id="courseTarget" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="예: 중학교 2학년">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
+                        <textarea id="courseDescription" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="코스 설명을 입력하세요"></textarea>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">생성</button>
+                        <button type="button" id="cancelCreateCourse" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-200">취소</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentUser = null;
+        let currentCourse = null;
+        let currentSlide = null;
+        let markdownEditor = null;
+        let choiceCount = 0;
+
+        // 더미 데이터
+        const dummyData = {
+            users: {
+                teacher: { 
+                    id: 1, 
+                    name: '홍길동', 
+                    type: 'teacher',
+                    username: 'teacher'
+                },
+                student: { 
+                    id: 2, 
+                    name: '김철수', 
+                    type: 'student',
+                    username: 'student'
+                }
+            }
+        };
+
+        // 페이지 로드시 초기화
+        $(document).ready(function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // 이벤트 리스너 설정
+            setupEventListeners();
+            
+            // 로그인 모달 표시
+            showLoginModal();
+        }
+
+        function setupEventListeners() {
+            // 사이드바 토글
+            $('#sidebarToggle').click(function() {
+                $('#sidebar').toggleClass('-translate-x-full');
+            });
+
+            // 네비게이션 메뉴
+            $('.nav-item').click(function() {
+                const section = $(this).data('section');
+                showSection(section);
+                
+                // 모바일에서 메뉴 선택 후 사이드바 닫기
+                if (window.innerWidth < 768) {
+                    $('#sidebar').addClass('-translate-x-full');
+                }
+            });
+
+            // 로그인 폼
+            $('#loginForm').submit(handleLogin);
+
+            // 로그아웃
+            $('#logoutBtn').click(handleLogout);
+
+            // 모달 관련 이벤트
+            setupModalEvents();
+
+            // 컨텐츠 편집 관련 이벤트
+            setupContentEditorEvents();
+        }
+
+        function setupModalEvents() {
+            // 학급 생성
+            $('#createClassBtn').click(() => $('#createClassModal').removeClass('hidden'));
+            $('#cancelCreateClass').click(() => $('#createClassModal').addClass('hidden'));
+            $('#createClassForm').submit(handleCreateClass);
+
+            // 학생 추가
+            $('#addStudentBtn').click(() => {
+                $('#addStudentModal').removeClass('hidden');
+            });
+            $('#cancelAddStudent').click(() => $('#addStudentModal').addClass('hidden'));
+            $('#addStudentForm').submit(handleAddStudent);
+
+            // 코스 생성
+            $('#createCourseBtn').click(() => $('#createCourseModal').removeClass('hidden'));
+            $('#cancelCreateCourse').click(() => $('#createCourseModal').addClass('hidden'));
+            $('#createCourseForm').submit(handleCreateCourse);
+        }
+
+        function setupContentEditorEvents() {
+            // 컨텐츠 타입 선택
+            $('.content-type-btn').click(function() {
+                $('.content-type-btn').removeClass('border-blue-500 bg-blue-50');
+                $(this).addClass('border-blue-500 bg-blue-50');
+                
+                const contentType = $(this).data('type');
+                showContentEditor(contentType);
+            });
+
+            // 선택지 추가
+            $('#addChoiceBtn').click(addChoice);
+
+            // 컨텐츠 저장/미리보기/취소
+            $('#saveContentBtn').click(saveContent);
+            $('#previewContentBtn').click(previewContent);
+            $('#cancelContentBtn').click(cancelContent);
+        }
+
+        function showLoginModal() {
+            $('#loginModal').removeClass('hidden');
+            $('#username').focus();
+        }
+
+        function hideLoginModal() {
+            $('#loginModal').addClass('hidden');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = $('#username').val();
+            const password = $('#password').val();
+
+            // 더미 로그인 처리
+            if (username && password) {
+                // 기본적으로 교사로 로그인
+                currentUser = dummyData.users.teacher;
+                hideLoginModal();
+                showMainApp();
+                showNotification('로그인되었습니다.', 'success');
+            } else {
+                showNotification('사용자명과 비밀번호를 입력하세요.', 'error');
+            }
+        }
+
+        function quickLogin(userType) {
+            currentUser = dummyData.users[userType];
+            hideLoginModal();
+            showMainApp();
+            showNotification(`${userType === 'teacher' ? '교사' : '학생'}로 로그인되었습니다.`, 'success');
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            showLoginModal();
+            showNotification('로그아웃되었습니다.', 'success');
+        }
+
+        function showMainApp() {
+            if (!currentUser) return;
+
+            // 사용자 정보 표시
+            $('#currentUserName').text(currentUser.name);
+            $('#currentUserType').text(currentUser.type === 'teacher' ? '교사' : '학생');
+
+            // 메뉴 표시/숨김
+            if (currentUser.type === 'teacher') {
+                $('#teacherMenu').show();
+                $('#studentMenu').hide();
+            } else {
+                $('#teacherMenu').hide();
+                $('#studentMenu').show();
+            }
+
+            // 대시보드 로드
+            showSection('dashboard');
+        }
+
+        function showSection(sectionName) {
+            $('.section').addClass('hidden');
+            $(`#${sectionName}-section`).removeClass('hidden');
+
+            // 네비게이션 활성화 상태 업데이트
+            $('.nav-item').removeClass('bg-blue-50 text-blue-600');
+            $(`.nav-item[data-section="${sectionName}"]`).addClass('bg-blue-50 text-blue-600');
+        }
+
+        // === 컨텐츠 편집 관련 함수들 ===
+        function showContentEditor(contentType) {
+            $('#contentEditForm').removeClass('hidden');
+            
+            // 선택형 문제 설정 표시/숨김
+            if (contentType === 'choice') {
+                $('#choiceSettings').removeClass('hidden');
+                initializeChoices();
+            } else {
+                $('#choiceSettings').addClass('hidden');
+            }
+
+            // 마크다운 에디터 초기화 (안전하게)
+            try {
+                if (!markdownEditor && window.EasyMDE) {
+                    const editorElement = document.getElementById('contentEditor');
+                    if (editorElement) {
+                        markdownEditor = new EasyMDE({
+                            element: editorElement,
+                            placeholder: getPlaceholderByType(contentType),
+                            spellChecker: false,
+                            toolbar: ["bold", "italic", "strikethrough", "|", "heading-1", "heading-2", "heading-3", "|", 
+                                     "unordered-list", "ordered-list", "|", "link", "image", "|", "preview", "guide"],
+                            renderingConfig: {
+                                sanitizerFunction: function(renderedHTML) {
+                                    // XSS 방지를 위한 기본 사니타이제이션
+                                    return renderedHTML;
+                                }
+                            }
+                        });
+                    }
+                } else if (markdownEditor) {
+                    // 기존 에디터가 있으면 플레이스홀더만 업데이트
+                    markdownEditor.value(getPlaceholderByType(contentType));
+                }
+            } catch (error) {
+                console.error('마크다운 에디터 초기화 실패:', error);
+                // 에디터 초기화 실패 시 일반 textarea로 폴백
+                $('#contentEditor').show();
+                showNotification('고급 에디터를 로드할 수 없어 기본 에디터를 사용합니다.', 'warning');
+            }
+        }
+
+        function getPlaceholderByType(contentType) {
+            const placeholders = {
+                'choice': '## 문제\n\n다음 중 옳은 것은?\n\n1. 선택지 1\n2. 선택지 2\n3. 선택지 3\n4. 선택지 4',
+                'short_essay': '## 문제\n\n다음 용어를 설명하시오.\n\n**정보사회**',
+                'essay': '## 문제\n\n다음 주제에 대해 서술하시오. (200자 이상)\n\n**정보 윤리의 중요성과 실천 방안**',
+                'fill_blank': '## 문제\n\n다음 빈칸에 알맞은 말을 쓰시오.\n\n정보사회에서는 ____의 가치가 높아진다.',
+                'ordering': '## 문제\n\n다음 과정을 순서대로 나열하시오.\n\n- 문제 분석\n- 알고리즘 설계\n- 프로그램 작성\n- 테스트'
+            };
+            return placeholders[contentType] || '내용을 입력하세요...';
+        }
+
+        function initializeChoices() {
+            choiceCount = 0;
+            $('#choiceList').empty();
+            
+            // 기본 4개 선택지 생성
+            for (let i = 0; i < 4; i++) {
+                addChoice();
+            }
+        }
+
+        function addChoice() {
+            choiceCount++;
+            const choiceHtml = `
+                <div class="flex items-center space-x-2 choice-item-container">
+                    <input type="radio" name="correctAnswer" value="${choiceCount}" class="text-blue-600">
+                    <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="선택지 ${choiceCount}" data-choice="${choiceCount}">
+                    <button type="button" class="text-red-600 hover:text-red-800" onclick="removeChoice(${choiceCount})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            $('#choiceList').append(choiceHtml);
+        }
+
+        function removeChoice(choiceNum) {
+            $(`.choice-item-container:has(input[data-choice="${choiceNum}"])`).remove();
+        }
+
+        function saveContent() {
+            try {
+                const title = $('#contentTitle').val().trim();
+                const content = markdownEditor ? markdownEditor.value() : '';
+                const rubric = $('#rubricEditor').val().trim();
+                
+                if (!title) {
+                    showNotification('제목을 입력해주세요.', 'warning');
+                    $('#contentTitle').focus();
+                    return;
+                }
+                
+                if (!content.trim()) {
+                    showNotification('내용을 입력해주세요.', 'warning');
+                    return;
+                }
+                
+                // 여기서 실제로는 서버에 저장하겠지만, 데모용으로 로컬 저장
+                const contentData = {
+                    id: Date.now(),
+                    title: title,
+                    content: content,
+                    rubric: rubric,
+                    type: $('.content-type-btn.border-blue-500').data('type') || 'unknown',
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 로컬 스토리지에 저장 (실제로는 서버 API 호출)
+                try {
+                    const existingContents = JSON.parse(localStorage.getItem('lms_contents') || '[]');
+                    existingContents.push(contentData);
+                    localStorage.setItem('lms_contents', JSON.stringify(existingContents));
+                } catch (storageError) {
+                    console.warn('로컬 스토리지 저장 실패:', storageError);
+                    // 로컬 스토리지 실패 시에도 계속 진행
+                }
+                
+                // 기존 컨텐츠 목록 업데이트
+                updateExistingContentsList();
+                
+                // 폼 초기화
+                cancelContent();
+                
+                showNotification('컨텐츠가 성공적으로 저장되었습니다.', 'success');
+                
+            } catch (error) {
+                console.error('저장 중 오류:', error);
+                showNotification('저장 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        function updateExistingContentsList() {
+            try {
+                let contents = [];
+                try {
+                    contents = JSON.parse(localStorage.getItem('lms_contents') || '[]');
+                } catch (storageError) {
+                    console.warn('로컬 스토리지 읽기 실패:', storageError);
+                    contents = [];
+                }
+                
+                const container = $('#existingContents');
+                
+                if (contents.length === 0) {
+                    container.html(`
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-folder-open text-3xl mb-2"></i>
+                            <p>생성된 컨텐츠가 없습니다.</p>
+                        </div>
+                    `);
+                    return;
+                }
+                
+                container.empty();
+                contents.reverse().forEach(function(content) {
+                    const contentCard = `
+                        <div class="border border-gray-200 rounded-lg p-4" data-content-id="${content.id}">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-medium text-gray-800">${escapeHtml(content.title)}</h4>
+                                    <p class="text-sm text-gray-500">${getContentTypeLabel(content.type)} • ${new Date(content.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button onclick="editContent('${content.id}')" class="text-blue-600 hover:text-blue-800 text-sm">편집</button>
+                                    <button onclick="deleteContent('${content.id}')" class="text-red-600 hover:text-red-800 text-sm">삭제</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(contentCard);
+                });
+            } catch (error) {
+                console.error('컨텐츠 목록 업데이트 중 오류:', error);
+            }
+        }
+
+        function getContentTypeLabel(type) {
+            const labels = {
+                'choice': '선택형',
+                'short_essay': '단답형',
+                'essay': '서술형',
+                'fill_blank': '빈칸채우기',
+                'ordering': '순서정하기'
+            };
+            return labels[type] || '알 수 없음';
+        }
+
+        function previewContent() {
+            try {
+                // 입력값 검증 및 이스케이핑
+                const title = escapeHtml($('#contentTitle').val() || '제목 없음');
+                const content = markdownEditor ? markdownEditor.value() : '';
+                
+                if (!content.trim()) {
+                    showNotification('미리볼 내용이 없습니다.', 'warning');
+                    return;
+                }
+                
+                const html = convertMarkdownToHTML(content);
+                
+                // 팝업 창 열기 (팝업 차단 검사)
+                const previewWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                
+                if (!previewWindow || previewWindow.closed || typeof previewWindow.closed == 'undefined') {
+                    // 팝업이 차단된 경우 모달로 대체
+                    showPreviewModal(title, html);
+                    return;
+                }
+                
+                // 안전한 HTML 문서 생성
+                const previewHTML = createPreviewDocument(title, html);
+                
+                previewWindow.document.open();
+                previewWindow.document.write(previewHTML);
+                previewWindow.document.close();
+                
+                // 포커스 설정
+                previewWindow.focus();
+                
+            } catch (error) {
+                console.error('미리보기 생성 중 오류:', error);
+                showNotification('미리보기를 생성할 수 없습니다. 브라우저에서 팝업을 허용해주세요.', 'error');
+            }
+        }
+
+        // HTML 이스케이핑 함수
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 미리보기 문서 생성 함수
+        function createPreviewDocument(title, content) {
+            return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>컨텐츠 미리보기</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        .prose { max-width: none; }
+        .prose h1 { font-size: 1.875rem; font-weight: bold; margin-bottom: 1rem; }
+        .prose h2 { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.75rem; margin-top: 1.5rem; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; margin-top: 1rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.6; }
+        .prose ul, .prose ol { margin-bottom: 1rem; padding-left: 1.5rem; }
+        .prose li { margin-bottom: 0.25rem; }
+        .prose strong { font-weight: bold; }
+        .prose em { font-style: italic; }
+        .prose code { background-color: #f3f4f6; padding: 0.125rem 0.25rem; border-radius: 0.25rem; }
+        .choice-option { padding: 0.5rem; margin: 0.25rem 0; border: 1px solid #d1d5db; border-radius: 0.375rem; }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <div class="mb-6 pb-4 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-800">${title}</h1>
+            <p class="text-sm text-gray-500 mt-2">컨텐츠 미리보기</p>
+        </div>
+        <div class="prose max-w-none">
+            ${content}
+        </div>
+    </div>
+</body>
+</html>`;
+        }
+
+        // 팝업 차단 시 모달로 미리보기 표시
+        function showPreviewModal(title, content) {
+            const modalHtml = `
+                <div id="previewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50">
+                    <div class="flex items-center justify-center min-h-screen p-4">
+                        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+                            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                                <h2 class="text-xl font-bold text-gray-800">컨텐츠 미리보기</h2>
+                                <button onclick="closePreviewModal()" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            <div class="p-6 overflow-y-auto max-h-[70vh]">
+                                <h1 class="text-2xl font-bold text-gray-800 mb-4">${title}</h1>
+                                <div class="prose max-w-none">
+                                    ${content}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            $('body').append(modalHtml);
+        }
+
+        function cancelContent() {
+            $('#contentEditForm').addClass('hidden');
+            $('#contentTitle').val('');
+            $('#rubricEditor').val('');
+            
+            try {
+                if (markdownEditor && typeof markdownEditor.value === 'function') {
+                    markdownEditor.value('');
+                }
+            } catch (error) {
+                console.error('에디터 초기화 중 오류:', error);
+                // 일반 textarea 폴백
+                $('#contentEditor').val('');
+            }
+            
+            $('.content-type-btn').removeClass('border-blue-500 bg-blue-50');
+            $('#choiceSettings').addClass('hidden');
+        }
+
+        function convertMarkdownToHTML(markdown) {
+            if (!markdown) return '';
+            
+            try {
+                // HTML 이스케이핑 먼저 수행
+                let html = escapeHtml(markdown);
+                
+                // 마크다운 문법 변환 (순서 중요)
+                // 제목
+                html = html.replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mb-2 mt-4">$1</h3>');
+                html = html.replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mb-4 mt-6">$1</h2>');
+                html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4 mt-6">$1</h1>');
+                
+                // 강조 (순서 중요)
+                html = html.replace(/\*\*\*([^*]+)\*\*\*/gim, '<strong><em>$1</em></strong>');
+                html = html.replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>');
+                html = html.replace(/\*([^*]+)\*/gim, '<em>$1</em>');
+                
+                // 코드 블록
+                html = html.replace(/```([^`]+)```/gim, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto"><code>$1</code></pre>');
+                html = html.replace(/`([^`]+)`/gim, '<code class="bg-gray-100 px-2 py-1 rounded text-sm">$1</code>');
+                
+                // 링크
+                html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank">$1</a>');
+                
+                // 리스트
+                html = html.replace(/^\d+\.\s+(.*)$/gim, '<li class="mb-1">$1</li>');
+                html = html.replace(/^[-*+]\s+(.*)$/gim, '<li class="mb-1">$1</li>');
+                
+                // 수평선
+                html = html.replace(/^---$/gim, '<hr class="my-6 border-gray-300">');
+                
+                // 인용구
+                html = html.replace(/^>\s+(.*)$/gim, '<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-600">$1</blockquote>');
+                
+                // 줄바꿈
+                html = html.replace(/\n\n/gim, '</p><p class="mb-4">');
+                html = html.replace(/\n/gim, '<br>');
+
+                // 리스트 태그로 감싸기
+                if (html.includes('<li class="mb-1">')) {
+                    html = html.replace(/(<li class="mb-1">.*?<\/li>)/g, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+                }
+
+                // 문단 태그로 감싸기
+                if (html && !html.startsWith('<')) {
+                    html = '<p class="mb-4">' + html + '</p>';
+                }
+
+                return html;
+            } catch (error) {
+                console.error('마크다운 변환 중 오류:', error);
+                return '<p class="text-red-500">마크다운 변환 중 오류가 발생했습니다.</p>';
+            }
+        }
+
+        function handleCreateClass(e) {
+            e.preventDefault();
+            
+            $('#createClassModal').addClass('hidden');
+            $('#createClassForm')[0].reset();
+            showNotification('학급이 생성되었습니다.', 'success');
+        }
+
+        function handleAddStudent(e) {
+            e.preventDefault();
+            
+            $('#addStudentModal').addClass('hidden');
+            $('#addStudentForm')[0].reset();
+            showNotification('학생이 추가되었습니다.', 'success');
+        }
+
+        function handleCreateCourse(e) {
+            e.preventDefault();
+            
+            $('#createCourseModal').addClass('hidden');
+            $('#createCourseForm')[0].reset();
+            showNotification('코스가 생성되었습니다.', 'success');
+        }
+
+        // === 유틸리티 함수들 ===
+        function showLoading() {
+            $('#loadingOverlay').removeClass('hidden');
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').addClass('hidden');
+        }
+
+        function showNotification(message, type = 'info') {
+            const bgColor = {
+                'success': 'bg-green-500',
+                'error': 'bg-red-500',
+                'warning': 'bg-yellow-500',
+                'info': 'bg-blue-500'
+            }[type] || 'bg-blue-500';
+
+            const notification = $(`
+                <div class="fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas ${type === 'success' ? 'fa-check' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info'} mr-2"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `);
+            
+            $('body').append(notification);
+            
+            setTimeout(() => notification.removeClass('translate-x-full'), 100);
+            setTimeout(() => {
+                notification.addClass('translate-x-full');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // 전역 함수들 (onclick 이벤트용)
+        window.viewClass = function(classId) {
+            showNotification('학급 상세보기 기능입니다.', 'info');
+        };
+
+        window.manageStudents = function(classId) {
+            showNotification('학생 관리 기능입니다.', 'info');
+        };
+
+        window.viewStudentPerformance = function(studentId) {
+            showNotification('학생 성과보기 기능입니다.', 'info');
+        };
+
+        window.removeStudent = function(studentId) {
+            if (confirm('정말로 이 학생을 삭제하시겠습니까?')) {
+                showNotification('학생이 삭제되었습니다.', 'success');
+            }
+        };
+
+        window.editCourse = function(courseId) {
+            showNotification('코스 편집 기능입니다.', 'info');
+        };
+
+        window.manageCourseStructure = function(courseId) {
+            showNotification('코스 구조 관리 기능입니다.', 'info');
+        };
+
+        window.assignCourse = function(courseId) {
+            showNotification('코스 할당 기능입니다.', 'info');
+        };
+
+        window.startLearning = function(courseId) {
+            currentCourse = courseId;
+            showSection('learning');
+        };
+
+        // 전역 함수들 (onclick 이벤트용)
+        window.viewClass = function(classId) {
+            showNotification('학급 상세보기 기능입니다.', 'info');
+        };
+
+        window.manageStudents = function(classId) {
+            showNotification('학생 관리 기능입니다.', 'info');
+        };
+
+        window.viewStudentPerformance = function(studentId) {
+            showNotification('학생 성과보기 기능입니다.', 'info');
+        };
+
+        window.removeStudent = function(studentId) {
+            if (confirm('정말로 이 학생을 삭제하시겠습니까?')) {
+                showNotification('학생이 삭제되었습니다.', 'success');
+            }
+        };
+
+        window.editCourse = function(courseId) {
+            showNotification('코스 편집 기능입니다.', 'info');
+        };
+
+        window.manageCourseStructure = function(courseId) {
+            showNotification('코스 구조 관리 기능입니다.', 'info');
+        };
+
+        window.assignCourse = function(courseId) {
+            showNotification('코스 할당 기능입니다.', 'info');
+        };
+
+        window.startLearning = function(courseId) {
+            currentCourse = courseId;
+            showSection('learning');
+        };
+
+        window.quickLogin = quickLogin;
+        window.removeChoice = removeChoice;
+        
+        window.closePreviewModal = function() {
+            $('#previewModal').remove();
+        };
+        
+        window.editContent = function(contentId) {
+            try {
+                let contents = [];
+                try {
+                    contents = JSON.parse(localStorage.getItem('lms_contents') || '[]');
+                } catch (storageError) {
+                    console.warn('로컬 스토리지 읽기 실패:', storageError);
+                    showNotification('컨텐츠를 불러올 수 없습니다.', 'error');
+                    return;
+                }
+                
+                const content = contents.find(function(c) {
+                    return c.id.toString() === contentId.toString();
+                });
+                
+                if (!content) {
+                    showNotification('컨텐츠를 찾을 수 없습니다.', 'error');
+                    return;
+                }
+                
+                // 컨텐츠 타입 버튼 선택
+                $('.content-type-btn').removeClass('border-blue-500 bg-blue-50');
+                $('.content-type-btn[data-type="' + content.type + '"]').addClass('border-blue-500 bg-blue-50');
+                
+                // 폼 표시
+                showContentEditor(content.type);
+                
+                // 값 채우기
+                $('#contentTitle').val(content.title);
+                $('#rubricEditor').val(content.rubric || '');
+                
+                if (markdownEditor && typeof markdownEditor.value === 'function') {
+                    markdownEditor.value(content.content);
+                }
+                
+                showNotification('컨텐츠를 편집모드로 불러왔습니다.', 'info');
+                
+            } catch (error) {
+                console.error('컨텐츠 편집 중 오류:', error);
+                showNotification('컨텐츠를 불러올 수 없습니다.', 'error');
+            }
+        };
+        
+        window.deleteContent = function(contentId) {
+            if (confirm('정말로 이 컨텐츠를 삭제하시겠습니까?')) {
+                try {
+                    let contents = [];
+                    try {
+                        contents = JSON.parse(localStorage.getItem('lms_contents') || '[]');
+                    } catch (storageError) {
+                        console.warn('로컬 스토리지 읽기 실패:', storageError);
+                        showNotification('삭제할 수 없습니다.', 'error');
+                        return;
+                    }
+                    
+                    const filteredContents = contents.filter(function(c) {
+                        return c.id.toString() !== contentId.toString();
+                    });
+                    
+                    try {
+                        localStorage.setItem('lms_contents', JSON.stringify(filteredContents));
+                    } catch (storageError) {
+                        console.warn('로컬 스토리지 저장 실패:', storageError);
+                    }
+                    
+                    updateExistingContentsList();
+                    showNotification('컨텐츠가 삭제되었습니다.', 'success');
+                } catch (error) {
+                    console.error('컨텐츠 삭제 중 오류:', error);
+                    showNotification('삭제 중 오류가 발생했습니다.', 'error');
+                }
+            }
+        };
+
+        // 반응형 처리
+        $(window).resize(function() {
+            if (window.innerWidth >= 768) {
+                $('#sidebar').removeClass('-translate-x-full');
+            }
+        });
+    </script>
+</body>
+</html>

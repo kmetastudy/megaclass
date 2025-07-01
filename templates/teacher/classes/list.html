@@ -1,0 +1,63 @@
+<!-- teacher/templates/teacher/classes/list.html -->
+{% extends 'teacher/base.html' %}
+
+{% block title %}학급 관리 - 학습 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">학급 관리</h2>
+        <p class="text-gray-600">담당하고 있는 학급들을 관리할 수 있습니다.</p>
+    </div>
+    
+    
+      
+    <a href="{% url 'teacher:class_create' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+        <i class="fas fa-plus mr-2"></i>학급 생성
+    </a>
+   
+</div>
+
+<!-- 학급 목록 -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for class in classes %}
+    <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-800">{{ class.name }}</h3>
+            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">{{ class.grade }}학년</span>
+        </div>
+        <div class="text-gray-600 space-y-2 mb-4">
+            <p><i class="fas fa-users mr-2"></i>학생 수: {{ class.student_count }}명</p>
+            {# ★★★ [수정] class.teacher 대신 get_main_teacher 헬퍼 함수 사용 ★★★ #}
+            {% with main_teacher=class_item.get_main_teacher %}
+            <p><i class="fas fa-user-tie mr-2"></i>담임교사: 
+                {% if main_teacher %}
+                    {{ main_teacher.user.get_full_name }}
+                {% else %}
+                    <span class="text-gray-400">미지정</span>
+                {% endif %}
+            </p>
+            {% endwith %}
+            <p><i class="fas fa-calendar mr-2"></i>생성일: {{ class.created_at|date:"Y-m-d" }}</p>
+        </div>
+        <div class="flex space-x-2">
+            <a href="{% url 'teacher:class_detail' class.id %}" class="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 text-center">
+                상세보기
+            </a>
+            <a href="{% url 'teacher:student_create' %}?class_id={{ class.id }}" class="flex-1 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 text-center">
+                학생추가
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center text-gray-500 py-12">
+        <i class="fas fa-chalkboard-teacher text-4xl mb-4"></i>
+        <p class="text-lg mb-2">생성된 학급이 없습니다.</p>
+        <p class="text-sm mb-4">첫 번째 학급을 생성해보세요.</p>
+        <a href="{% url 'teacher:class_create' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-200">
+            <i class="fas fa-plus mr-2"></i>학급 생성하기
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!-- teacher/templates/teacher/courses/course_detail_onepage.html -->
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}{{ course.subject_name }} - 통합 관리{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/teacher/course.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- 헤더 -->
+<div class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'teacher:course_detail' course.id %}" class="text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ course.subject_name }}</h1>
+                <p class="text-gray-600">{{ course.target }} | 통합 관리 시스템</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <a href="{% url 'teacher:contents_create' %}" target="_blank" class="btn-modern btn-primary">
+                <i class="fas fa-plus-circle"></i>
+                콘텐츠 제작
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 컨테이너 -->
+<div class="main-container">
+    <!-- 트리 패널 -->
+    <div class="tree-panel" id="treePanel">
+        <div class="tree-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <i class="fas fa-sitemap tree-header-icon"></i>
+                    <span class="tree-header-title font-semibold text-gray-700">코스 구조</span>
+                </div>
+                <button onclick="toggleTreePanel()" class="text-gray-600 hover:bg-gray-200 p-2 rounded-lg transition">
+                    <i class="fas fa-chevron-left" id="treePanelToggle"></i>
+                </button>
+            </div>
+        </div>
+        <div class="tree-content">
+            <div id="courseTree"></div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 패널 -->
+    <div class="content-panel">
+        <div class="content-header">
+            <h2 class="text-xl font-semibold text-gray-800" id="contentTitle">
+                <i class="fas fa-home mr-2"></i>코스 개요
+            </h2>
+        </div>
+        <div class="content-body" id="contentArea">
+            <div class="loading-container">
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 컨테이너 (성공/에러 메시지용) -->
+<div id="messageContainer"></div>
+
+<!-- 전역 변수 설정 -->
+<script>
+    // 전역 변수 및 설정
+    window.courseConfig = {
+        courseId: {{ course.id }},
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            courseStructure: "{% url 'teacher:api_course_structure' course.id %}",
+            courseDetail: "{% url 'teacher:api_course_detail' course.id %}",
+            chapterCreate: "{% url 'teacher:chapter_create' course.id %}",
+            chasiSlideManage: "{% url 'teacher:chasi_slide_manage' 0 %}",
+            contentsCreate: "{% url 'teacher:contents_create' %}"
+        },
+        stats: {
+            totalChapters: {{ stats.total_chapters|default:0 }},
+            totalSubchapters: {{ stats.total_subchapters|default:0 }},
+            totalChasis: {{ stats.total_chasis|default:0 }},
+            totalSlides: {{ stats.total_slides|default:0 }}
+        }
+    };
+    
+    // 현재 선택된 노드 정보
+    window.currentNode = null;
+    window.currentActiveNodeId = null;
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 외부 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<!-- 공통 유틸리티 -->
+<script src="{% static 'js/teacher/course/utils.js' %}"></script>
+
+<!-- 기능별 모듈 -->
+<script src="{% static 'js/teacher/course/chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/sub_chapter.js' %}"></script>
+<script src="{% static 'js/teacher/course/chasi.js' %}"></script>
+<script src="{% static 'js/teacher/course/sliders.js' %}"></script>
+<script src="{% static 'js/teacher/course/contents.js' %}"></script>
+
+<!-- 메인 초기화 스크립트 -->
+<script src="{% static 'js/teacher/course/main.js' %}"></script>
+{% endblock %}
