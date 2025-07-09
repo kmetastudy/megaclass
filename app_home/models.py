@@ -12,6 +12,9 @@ class HealthHabitTracker(models.Model):
     # 6가지 약속
     promises = models.JSONField('약속 목록', default=dict)
     
+    # 약속 실천 방법 (학생이 작성하는 구체적인 실천 계획)
+    promise_details = models.JSONField('약속 실천 방법', default=dict, blank=True)
+    
     # 최종 소감
     final_reflection = models.TextField('최종 소감', blank=True)
     

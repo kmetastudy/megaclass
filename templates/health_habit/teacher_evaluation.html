@@ -24,6 +24,9 @@
                 <button onclick="toggleStatistics()" id="statsToggleBtn" class="bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition transform hover:scale-105">
                     📊 통계
                 </button>
+                <button onclick="exportToExcel()" id="excelExportBtn" class="bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-600 transition transform hover:scale-105">
+                    📄 Excel 다운로드
+                </button>
             </div>
         </div>
     </div>
@@ -431,6 +434,37 @@ function toggleStatistics() {
     }
 }
 
+// Excel 내보내기
+function exportToExcel() {
+    const classId = $('#classSelect').val();
+    const btn = $('#excelExportBtn');
+    
+    // 버튼 로딩 상태
+    btn.prop('disabled', true);
+    btn.html('📄 다운로드 중...');
+    
+    // URL 생성
+    let url = `/health_habit/api/teacher/export-excel/${slideId}/`;
+    if (classId) {
+        url += `?class_id=${classId}`;
+    }
+    
+    // 파일 다운로드 (임시 링크 생성)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // 버튼 원상태로 복원
+    setTimeout(() => {
+        btn.prop('disabled', false);
+        btn.html('📄 Excel 다운로드');
+        showToast('Excel 파일이 다운로드되었습니다! 📊');
+    }, 1000);
+}
+
 // 컴팩트한 학생 목록 표시
 function displayStudents(students) {
     const $grid = $('#studentGrid');
@@ -597,7 +631,13 @@ function displayStudentDetail(data) {
     data.promises.forEach(promise => {
         const $promiseCard = $(`
             <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 transform hover:shadow-lg transition">
-                <h5 class="font-bold text-lg mb-3">약속 ${promise.number}: ${promise.title}</h5>
+                <h5 class="font-bold text-lg mb-2">약속 ${promise.number}: ${promise.title}</h5>
+                ${promise.detail ? `
+                    <div class="bg-blue-50 rounded-lg p-3 mb-3 border-l-4 border-blue-400">
+                        <p class="text-sm text-blue-800 font-medium">💡 학생의 실천 방법:</p>
+                        <p class="text-blue-700 italic">"${promise.detail}"</p>
+                    </div>
+                ` : ''}
                 <div class="space-y-2">
                     ${promise.reflections.map(ref => {
                         const refText = ref.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');

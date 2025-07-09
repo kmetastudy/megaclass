@@ -9,6 +9,7 @@ urlpatterns = [
     path('student/<int:slide_id>/', views.student_health_habit_view, name='student_view'),
     path('api/tracker/<int:slide_id>/', views.get_tracker_data, name='get_tracker'),
     path('api/save-promises/', views.save_promises, name='save_promises'),
+    path('api/save-promise-details/', views.save_promise_details, name='save_promise_details'),
     path('api/save-reflection/', views.save_reflection, name='save_reflection'),
     path('api/reflection/<int:tracker_id>/<int:promise>/<int:week>/<int:day>/', views.get_reflection, name='get_reflection'),
     path('api/reflections/<int:tracker_id>/<int:promise_num>/', views.get_promise_reflections, name='get_reflections'),
@@ -21,4 +22,5 @@ urlpatterns = [
     path('api/teacher/student-detail/<int:tracker_id>/', views.get_student_detail_for_evaluation, name='student_detail'),
     path('api/teacher/evaluate-reflection/', views.evaluate_reflection, name='evaluate_reflection'),
     path('api/teacher/overall-evaluation/', views.save_overall_evaluation, name='overall_evaluation'),
+    path('api/teacher/export-excel/<int:slide_id>/', views.export_health_habit_excel, name='export_excel'),
 ]
