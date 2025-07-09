@@ -24,6 +24,9 @@
                 <button onclick="toggleStatistics()" id="statsToggleBtn" class="bg-green-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-green-600 transition transform hover:scale-105">
                     📊 통계
                 </button>
+                <button onclick="exportToExcel()" id="excelExportBtn" class="bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-600 transition transform hover:scale-105">
+                    📄 Excel 다운로드
+                </button>
             </div>
         </div>
     </div>
@@ -429,6 +432,37 @@ function toggleStatistics() {
         }, 500);
         btn.text('📊 통계');
     }
+}
+
+// Excel 내보내기
+function exportToExcel() {
+    const classId = $('#classSelect').val();
+    const btn = $('#excelExportBtn');
+    
+    // 버튼 로딩 상태
+    btn.prop('disabled', true);
+    btn.html('📄 다운로드 중...');
+    
+    // URL 생성
+    let url = `/health_habit/api/teacher/export-excel/${slideId}/`;
+    if (classId) {
+        url += `?class_id=${classId}`;
+    }
+    
+    // 파일 다운로드 (임시 링크 생성)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // 버튼 원상태로 복원
+    setTimeout(() => {
+        btn.prop('disabled', false);
+        btn.html('📄 Excel 다운로드');
+        showToast('Excel 파일이 다운로드되었습니다! 📊');
+    }, 1000);
 }
 
 // 컴팩트한 학생 목록 표시

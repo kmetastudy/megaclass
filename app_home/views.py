@@ -8,6 +8,9 @@ from django.db import models
 from django.db.models import Sum, Count, Q, Avg, F
 import json
 from datetime import datetime
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 from app_home.models import (
     HealthHabitTracker, DailyReflection, 
@@ -147,6 +150,40 @@ def save_promises(request):
             return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def export_health_habit_excel(request, slide_id):
+    """건강 습관 데이터 Excel 내보내기"""
+    if not hasattr(request.user, 'teacher'):
+        return JsonResponse({'error': '교사만 접근 가능합니다.'}, status=403)
+    
+    teacher = request.user.teacher
+    class_id = request.GET.get('class_id')
+    
+    # 교사가 담당하는 학급의 학생들만 조회
+    teacher_classes = teacher.classes.all()
+    
+    # 트래커 데이터 조회
+    trackers = HealthHabitTracker.objects.filter(
+        slide_id=slide_id,
+        student__school_class__in=teacher_classes
+    ).select_related(
+        'student__user', 
+        'student__school_class',
+        'overall_evaluation'
+    ).prefetch_related(
+        'reflections__evaluation'
+    )
+    
+    if class_id:
+        trackers = trackers.filter(student__school_class_id=class_id)
+    
+    # Excel 내보내기 클래스 사용
+    from .excel_export import HealthHabitExcelExporter
+    exporter = HealthHabitExcelExporter(trackers, class_id)
+    
+    return exporter.generate_http_response()
 
 
 @csrf_exempt

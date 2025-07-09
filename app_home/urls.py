@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/teacher/student-detail/<int:tracker_id>/', views.get_student_detail_for_evaluation, name='student_detail'),
     path('api/teacher/evaluate-reflection/', views.evaluate_reflection, name='evaluate_reflection'),
     path('api/teacher/overall-evaluation/', views.save_overall_evaluation, name='overall_evaluation'),
+    path('api/teacher/export-excel/<int:slide_id>/', views.export_health_habit_excel, name='export_excel'),
 ]
