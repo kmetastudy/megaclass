@@ -115,6 +115,7 @@ def get_tracker_data(request, slide_id):
             'data': {
                 'id': tracker.id,
                 'promises': tracker.promises,
+                'promise_details': tracker.promise_details,
                 'reflections': reflections,
                 'statistics': stats,
                 'is_submitted': tracker.is_submitted
@@ -141,6 +142,30 @@ def save_promises(request):
             )
             
             tracker.promises = promises
+            tracker.save()
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@csrf_exempt
+@login_required
+def save_promise_details(request):
+    """약속 실천 방법 저장"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            student = request.user.student
+            slide_id = data.get('slide_id')
+            promise_details = data.get('promise_details')
+            
+            tracker, _ = HealthHabitTracker.objects.get_or_create(
+                student=student,
+                slide_id=slide_id
+            )
+            
+            tracker.promise_details = promise_details
             tracker.save()
             
             return JsonResponse({'success': True})
@@ -566,9 +591,13 @@ def get_student_detail_for_evaluation(request, tracker_id):
         # 약속 제목 가져오기
         promise_title = tracker.promises.get(str(i), default_promises.get(str(i), f'약속 {i}'))
         
+        # 약속 실천 방법 가져오기
+        promise_detail = tracker.promise_details.get(str(i), '')
+        
         promises.append({
             'number': i,
             'title': promise_title,
+            'detail': promise_detail,
             'reflections': ref_list
         })
     

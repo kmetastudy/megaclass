@@ -9,6 +9,7 @@ urlpatterns = [
     path('student/<int:slide_id>/', views.student_health_habit_view, name='student_view'),
     path('api/tracker/<int:slide_id>/', views.get_tracker_data, name='get_tracker'),
     path('api/save-promises/', views.save_promises, name='save_promises'),
+    path('api/save-promise-details/', views.save_promise_details, name='save_promise_details'),
     path('api/save-reflection/', views.save_reflection, name='save_reflection'),
     path('api/reflection/<int:tracker_id>/<int:promise>/<int:week>/<int:day>/', views.get_reflection, name='get_reflection'),
     path('api/reflections/<int:tracker_id>/<int:promise_num>/', views.get_promise_reflections, name='get_reflections'),

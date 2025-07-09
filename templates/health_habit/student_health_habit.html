@@ -66,6 +66,22 @@
                     <p class="text-lg font-bold text-gray-800">{{ promise.title }}</p>
                 </div>
                 
+                <!-- 나만의 실천 방법 -->
+                <div class="mb-4">
+                    <h4 class="font-bold text-sm mb-2 text-blue-600">💡 나만의 실천 방법</h4>
+                    <textarea 
+                        class="promise-detail-input w-full p-3 border-2 border-blue-200 rounded-lg resize-none focus:border-blue-400 focus:outline-none"
+                        data-promise="{{ promise.number }}"
+                        placeholder="이 약속을 어떻게 실천할지 구체적으로 적어보세요! 예: 어깨를 펴고 걷기, 다리 꼬지 않기 등"
+                        rows="3"></textarea>
+                    <div class="text-right mt-1">
+                        <button class="save-detail-btn text-xs bg-blue-500 text-white px-3 py-1 rounded-full hover:bg-blue-600 transition" 
+                                data-promise="{{ promise.number }}">
+                            💾 저장
+                        </button>
+                    </div>
+                </div>
+                
                 <!-- 1주차 -->
                 <div class="mb-4">
                     <h4 class="font-bold text-lg mb-2 text-purple-600">🌟 1주차</h4>
@@ -237,6 +253,7 @@
 // 전역 변수
 let currentButton = null;
 let trackerId = null;
+let trackerData = null;
 const slideId = {{ slide_id }};
 
 // 고정된 약속 정의
@@ -262,6 +279,7 @@ function loadTrackerData() {
         success: function(response) {
             if (response.success && response.data) {
                 trackerId = response.data.id;
+                trackerData = response.data;
                 
                 // 트래커가 없으면 자동 생성
                 if (!trackerId) {
@@ -280,6 +298,9 @@ function loadTrackerData() {
                     
                     // 통계 업데이트
                     updateStatistics(response.data.statistics);
+                    
+                    // 약속 실천 방법 로드
+                    loadPromiseDetails();
                 }
             } else {
                 // 트래커가 없으면 생성
@@ -632,6 +653,79 @@ function submitFinal() {
         }
     });
 }
+
+// 약속 실천 방법 저장
+function savePromiseDetail(promiseNum) {
+    const textarea = $(`.promise-detail-input[data-promise="${promiseNum}"]`);
+    const detail = textarea.val().trim();
+    
+    if (!detail) {
+        alert('실천 방법을 입력해주세요! 📝');
+        return;
+    }
+    
+    // 현재 promise_details 가져오기
+    const currentDetails = trackerData.promise_details || {};
+    currentDetails[promiseNum] = detail;
+    
+    $.ajax({
+        url: '/health_habit/api/save-promise-details/',
+        type: 'POST',
+        data: JSON.stringify({
+            slide_id: slideId,
+            promise_details: currentDetails
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                // 성공 메시지 표시
+                const btn = $(`.save-detail-btn[data-promise="${promiseNum}"]`);
+                const originalText = btn.text();
+                btn.text('✅ 저장됨').addClass('bg-green-500').removeClass('bg-blue-500');
+                
+                // 데이터 업데이트
+                trackerData.promise_details = currentDetails;
+                
+                // 2초 후 원래 상태로 복원
+                setTimeout(() => {
+                    btn.text(originalText).removeClass('bg-green-500').addClass('bg-blue-500');
+                }, 2000);
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        }
+    });
+}
+
+// 약속 실천 방법 로드
+function loadPromiseDetails() {
+    if (!trackerData.promise_details) return;
+    
+    for (let i = 1; i <= 6; i++) {
+        const detail = trackerData.promise_details[i];
+        if (detail) {
+            $(`.promise-detail-input[data-promise="${i}"]`).val(detail);
+        }
+    }
+}
+
+// 저장 버튼 이벤트 리스너 추가
+$(document).on('click', '.save-detail-btn', function() {
+    const promiseNum = $(this).data('promise');
+    savePromiseDetail(promiseNum);
+});
+
+// 엔터키로 저장 기능
+$(document).on('keydown', '.promise-detail-input', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        const promiseNum = $(this).data('promise');
+        savePromiseDetail(promiseNum);
+    }
+});
 </script>
 
 <style>
