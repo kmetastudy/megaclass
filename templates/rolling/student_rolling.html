@@ -12,12 +12,35 @@
     <div class="container mx-auto px-4 py-8">
         <div class="max-w-4xl mx-auto">
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-800">앞구르기 수행평가</h1>
+                <div class="flex items-center gap-4 mb-2">
+                    <h1 class="text-3xl font-bold text-gray-800">앞구르기 수행평가</h1>
+                    {% if is_completed %}
+                        <span class="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
+                            ✅ 완료
+                        </span>
+                    {% elif has_success %}
+                        <span class="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                            🎯 성공
+                        </span>
+                    {% endif %}
+                </div>
                 <p class="text-gray-600 mt-2">{{ student.user.get_full_name }} ({{ student.school_class }})</p>
             </div>
             
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h2 class="text-xl font-semibold mb-4">수행평가 기록</h2>
+                
+                {% if is_completed %}
+                <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+                    <div class="flex items-center">
+                        <span class="text-2xl mr-2">🎉</span>
+                        <div>
+                            <p class="font-semibold text-green-800">앞구르기 완료!</p>
+                            <p class="text-green-700">성공적으로 앞구르기를 완료했습니다. 수고하셨습니다!</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 
                 {% if previous_feedback %}
                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">

@@ -4,13 +4,50 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count, Q, Sum, Avg, F
 from django.utils import timezone
+from django.db import transaction
 from accounts.models import Student, Teacher, Class
 from teacher.models import ChasiSlide
+from student.models import StudentProgress
 from .models import RollingAttempt, FeedbackCategory, RollingEvaluation
 import json
 from collections import Counter
 import re
 import csv
+
+def mark_rolling_completed(student, slide_id):
+    """앞구르기 성공 시 StudentProgress 완료 처리"""
+    try:
+        slide = get_object_or_404(ChasiSlide, id=slide_id)
+        
+        with transaction.atomic():
+            # StudentProgress 조회 또는 생성
+            progress, created = StudentProgress.objects.get_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'started_at': timezone.now(),
+                    'is_completed': False,
+                    'view_count': 0
+                }
+            )
+            
+            # 이미 완료된 경우 중복 처리 방지
+            if progress.is_completed:
+                return progress
+            
+            # 완료 처리
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            if not progress.started_at:
+                progress.started_at = timezone.now()
+            progress.save()
+            
+            return progress
+            
+    except Exception as e:
+        # 에러 로그 출력 (실제 환경에서는 logging 사용 권장)
+        print(f"앞구르기 완료 처리 실패: {e}")
+        return None
 
 # 학생용 뷰 (기존 유지)
 @login_required
@@ -30,6 +67,11 @@ def student_rolling_view(request, slide_id):
         if not last_attempt.is_success and last_attempt.attempt_number < 5:
             previous_feedback = last_attempt.feedback
     
+    # 완료 상태 확인
+    progress = StudentProgress.objects.filter(student=student, slide=slide).first()
+    is_completed = progress.is_completed if progress else False
+    has_success = attempts.filter(is_success=True).exists()
+    
     context = {
         'slide_id': slide_id,
         'slide': slide,
@@ -38,6 +80,8 @@ def student_rolling_view(request, slide_id):
         'previous_feedback': previous_feedback,
         'attempt_count': attempts.count(),
         'user': request.user,
+        'is_completed': is_completed,
+        'has_success': has_success,
     }
     return render(request, 'rolling/student_rolling.html', context)
 
@@ -61,6 +105,12 @@ def save_attempt(request, slide_id):
                     'feedback': data.get('feedback')
                 }
             )
+            
+            # 앞구르기 성공 시 StudentProgress 완료 처리
+            if data.get('is_success'):
+                progress = mark_rolling_completed(student, slide_id)
+                if progress:
+                    print(f"앞구르기 완료 처리 성공: {student.user.get_full_name()}")
             
             return JsonResponse({'success': True, 'created': created})
         except Exception as e:
