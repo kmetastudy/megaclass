@@ -388,10 +388,10 @@ function saveReflection() {
     const day = $btn.data('day');
     
     const reflectionText = $('#reflectionText').val().trim();
-    if (!reflectionText) {
+    {% comment %} if (!reflectionText) {
         alert('소감을 작성해주세요!');
         return;
-    }
+    } {% endcomment %}
     
     $.ajax({
         url: '/health_habit/api/save-reflection/',
