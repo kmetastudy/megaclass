@@ -13,15 +13,14 @@ def mul(value, arg):
 
 @register.filter
 def format_ms(value):
-    """밀리초를 MM:SS.ms 형식으로 변환"""
+    """밀리초를 SS.ms 형식으로 변환"""
     try:
         ms = float(value)
-        minutes = int(ms // 60000)
         seconds = int((ms % 60000) // 1000)
         hundredths = int((ms % 1000) // 10)
-        return f"{minutes:02d}:{seconds:02d}.{hundredths:02d}"
+        return f"{seconds:02d}.{hundredths:02d}"
     except (ValueError, TypeError):
-        return "00:00.00"
+        return "00.00"
 
 @register.filter
 def get_item(dictionary, key):
