@@ -1762,12 +1762,23 @@ def submit_physical_record(request):
             defaults={'started_at': timezone.now()}
         )
 
-        # 2. 시간(MM:SS.ms)을 밀리초(float)로 변환
+        # 2. 시간(SS.ms)을 밀리초(float)로 변환
         def convert_time_to_ms(time_str):
             try:
-                parts = time_str.replace('.', ':').split(':')
-                return float((int(parts[0]) * 60 + int(parts[1])) * 1000 + int(parts[2]) * 10)
-            except (ValueError, IndexError): return None
+                parts = time_str.split('.')
+                if len(parts) == 2:
+                    # 새로운 형식: "SS.ms" (예: "24.15")
+                    seconds = int(parts[0])
+                    hundredths = int(parts[1])
+                    return float(seconds * 1000 + hundredths * 10)
+                else:
+                    # 기존 형식도 지원 (MM:SS.ms)
+                    parts = time_str.replace('.', ':').split(':')
+                    if len(parts) == 3:
+                        return float((int(parts[0]) * 60 + int(parts[1])) * 1000 + int(parts[2]) * 10)
+            except (ValueError, IndexError): 
+                pass
+            return None
 
         attempt1_ms = convert_time_to_ms(attempt1_val)
         attempt2_ms = convert_time_to_ms(attempt2_val)

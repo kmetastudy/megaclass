@@ -1079,13 +1079,11 @@ let pr_targetInput = null;
 
     // --- 스톱워치 기능 함수 ---
     function pr_formatTime(time) {
-        let minutes = Math.floor((time % (1000 * 60 * 60)) / (1000 * 60));
         let seconds = Math.floor((time % (1000 * 60)) / 1000);
         let hundredths = Math.floor((time % 1000) / 10);
-        minutes = (minutes < 10) ? "0" + minutes : minutes;
         seconds = (seconds < 10) ? "0" + seconds : seconds;
         hundredths = (hundredths < 10) ? "0" + hundredths : hundredths;
-        return minutes + ":" + seconds + "." + hundredths;
+        return seconds + "." + hundredths;
     }
 
     function pr_startStopwatch() {
@@ -1116,7 +1114,7 @@ let pr_targetInput = null;
         clearInterval(pr_tInterval);
         pr_running = false;
         pr_difference = 0;
-        $('#pr_stopwatchDisplay').text("00:00.00");
+        $('#pr_stopwatchDisplay').text("00.00");
     }
 
     function pr_closeModal() {
