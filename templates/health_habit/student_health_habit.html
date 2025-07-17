@@ -3,6 +3,24 @@
 
 {% block content %}
 <div class="max-w-6xl mx-auto">
+    <!-- 제출 완료 상태 메시지 -->
+    {% if is_submitted %}
+    <div class="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-3xl p-6 mb-6 shadow-xl">
+        <h2 class="fun-font text-2xl text-center mb-2">
+            ✅ 건강한 생활 습관 2주 실천 기록 완료! ✅
+        </h2>
+        <p class="text-center">
+            축하합니다! 2주간의 건강 습관 실천 기록을 완료했습니다!<br>
+            이 페이지는 읽기 전용입니다. 수정은 더 이상 할 수 없습니다. 🎉
+        </p>
+        {% if final_reflection %}
+        <div class="mt-4 p-4 bg-white/20 rounded-2xl">
+            <h3 class="font-bold mb-2">📝 최종 소감</h3>
+            <p class="text-sm">{{ final_reflection }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
     <!-- 상단 안내 메시지 -->
     <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-3xl p-6 mb-6 shadow-xl">
         <h2 class="fun-font text-2xl text-center mb-2">
@@ -13,6 +31,7 @@
             꾸준히 실천하면 건강한 습관이 만들어져요! 💪
         </p>
     </div>
+    {% endif %}
 
     <!-- 진행 상황 표시 -->
     <div class="bg-white rounded-3xl p-6 mb-8 shadow-xl">
@@ -138,10 +157,16 @@
                class="bg-gray-500 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-600 transition">
                 ← 슬라이드로 돌아가기
             </a>
+            {% if not is_submitted %}
             <button onclick="showFinalReflectionModal()" 
                     class="bubble-button text-white px-8 py-4 rounded-full text-xl font-bold shadow-xl">
                 🎉 최종 소감 작성하고 제출하기!
             </button>
+            {% else %}
+            <div class="bg-green-500 text-white px-8 py-4 rounded-full text-xl font-bold shadow-xl">
+                ✅ 제출 완료!
+            </div>
+            {% endif %}
         </div>
     </div>
     
@@ -269,6 +294,11 @@ const fixedPromises = {
 // 페이지 로드 시 데이터 불러오기
 $(document).ready(function() {
     loadTrackerData();
+    
+    // 제출 완료된 경우 읽기 전용 모드 설정
+    {% if is_submitted %}
+    setReadOnlyMode();
+    {% endif %}
 });
 
 // 트래커 데이터 로드
@@ -363,6 +393,68 @@ function openReflectionModal(button) {
     $('#reflectionModal').css('display', 'flex');
 }
 
+// 읽기 전용 소감 모달 열기
+function openReadOnlyReflectionModal(button) {
+    const $btn = $(button);
+    const promise = $btn.data('promise');
+    const week = $btn.data('week');
+    const day = $btn.data('day');
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
+    
+    // 모달 정보 설정
+    const promiseText = fixedPromises[promise];
+    $('#modalInfo').text(`${promiseText} - ${week}주차 ${days[day-1]}요일`);
+    
+    // 기존 소감 로드 (읽기 전용)
+    if (trackerId) {
+        loadReflectionReadOnly(promise, week, day);
+    }
+    
+    $('#reflectionModal').css('display', 'flex');
+}
+
+// 읽기 전용 소감 로드
+function loadReflectionReadOnly(promise, week, day) {
+    $.ajax({
+        url: `/health_habit/api/reflection/${trackerId}/${promise}/${week}/${day}/`,
+        type: 'GET',
+        success: function(response) {
+            if (response.success && response.data) {
+                // 기존 데이터로 필드 채우기
+                $('#reflectionText').val(response.data.reflection_text);
+                $('#reflectionDate').val(response.data.reflection_date);
+                $('#reflectionTime').val(response.data.reflection_time);
+                
+                // 읽기 전용 모드로 전환
+                $('#reflectionText').prop('disabled', true).addClass('bg-gray-100');
+                $('#reflectionDate').prop('disabled', true).addClass('bg-gray-100');
+                $('#reflectionTime').prop('disabled', true).addClass('bg-gray-100');
+                
+                // 저장 버튼 숨기고 닫기 버튼으로 변경
+                $('#reflectionModal button[onclick="saveReflection()"]').hide();
+                $('#reflectionModal button[onclick="closeReflectionModal()"]').text('닫기').removeClass('bg-gray-300').addClass('bg-blue-500 text-white');
+            } else {
+                // 소감이 없는 경우
+                $('#reflectionText').val('소감이 작성되지 않았습니다.');
+                $('#reflectionDate').val('');
+                $('#reflectionTime').val('');
+                
+                // 읽기 전용 모드로 전환
+                $('#reflectionText').prop('disabled', true).addClass('bg-gray-100');
+                $('#reflectionDate').prop('disabled', true).addClass('bg-gray-100');
+                $('#reflectionTime').prop('disabled', true).addClass('bg-gray-100');
+                
+                // 저장 버튼 숨기고 닫기 버튼으로 변경
+                $('#reflectionModal button[onclick="saveReflection()"]').hide();
+                $('#reflectionModal button[onclick="closeReflectionModal()"]').text('닫기').removeClass('bg-gray-300').addClass('bg-blue-500 text-white');
+            }
+        },
+        error: function() {
+            alert('소감 정보를 불러오는데 실패했습니다.');
+        }
+    });
+}
+
 // 기존 소감 로드
 function loadReflection(promise, week, day) {
     $.ajax({
@@ -430,6 +522,11 @@ function closeReflectionModal() {
     $('#reflectionModal').hide();
     $('#reflectionText').val('');
     currentButton = null;
+    
+    // 읽기 전용 모드에서 변경된 요소들 초기화
+    $('#reflectionText, #reflectionDate, #reflectionTime').prop('disabled', false).removeClass('bg-gray-100');
+    $('#reflectionModal button[onclick="saveReflection()"]').show();
+    $('#reflectionModal button[onclick="closeReflectionModal()"]').text('취소').removeClass('bg-blue-500 text-white').addClass('bg-gray-300 text-gray-700');
 }
 
 // 소감 목록 토글
@@ -616,6 +713,51 @@ function loadFinalReflection() {
 // 최종 소감 모달 닫기
 function closeFinalReflectionModal() {
     $('#finalReflectionModal').hide();
+}
+
+// 읽기 전용 모드 설정 (선택적 - 보기는 허용, 편집만 차단)
+function setReadOnlyMode() {
+    // 입력 필드만 비활성화 (보기 기능은 유지)
+    $('textarea, input').prop('disabled', true).addClass('bg-gray-100');
+    
+    // 저장 버튼들만 숨김
+    $('.save-detail-btn').hide();
+    
+    // 일반적인 hover 효과 제거하되 클릭은 가능하도록 (읽기 전용 모달로 변경)
+    $('.day-bubble').removeClass('hover:bg-purple-200').addClass('cursor-pointer');
+    
+    // 원래 함수를 백업하고 읽기 전용 버전으로 교체
+    window.originalOpenReflectionModal = window.openReflectionModal;
+    window.openReflectionModal = function(button) {
+        openReadOnlyReflectionModal(button);
+    };
+    
+    // 최종 제출 모달 비활성화
+    window.showFinalReflectionModal = function() {
+        alert('이미 제출이 완료되었습니다.');
+    };
+    
+    // 저장 관련 함수들 무효화
+    window.saveReflection = function() {
+        alert('제출 완료된 기록은 수정할 수 없습니다.');
+    };
+    
+    window.savePromiseDetail = function() {
+        alert('제출 완료된 기록은 수정할 수 없습니다.');
+    };
+    
+    // 읽기 전용 알림 추가
+    addReadOnlyIndicators();
+}
+
+// 읽기 전용 지시자 추가
+function addReadOnlyIndicators() {
+    // 약속 실천 방법 입력 필드에 읽기 전용 안내 추가
+    $('.promise-detail-input').each(function() {
+        if ($(this).val().trim()) {
+            $(this).after('<div class="text-xs text-gray-500 mt-1">📖 읽기 전용: 제출 완료된 기록입니다</div>');
+        }
+    });
 }
 
 // 최종 제출
