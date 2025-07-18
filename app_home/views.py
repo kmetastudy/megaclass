@@ -18,6 +18,7 @@ from app_home.models import (
 )
 from accounts.models import Student, Teacher, Class
 from teacher.models import ChasiSlide
+from student.models import StudentProgress
 
 # 학생용 뷰
 @login_required
@@ -56,11 +57,23 @@ def student_health_habit_view(request, slide_id):
         {'num': 7, 'name': '일'},
     ]
     
+    # 기존 트래커 조회하여 제출 상태 확인
+    try:
+        student = request.user.student
+        tracker = HealthHabitTracker.objects.get(student=student, slide_id=slide_id)
+        is_submitted = tracker.is_submitted
+        final_reflection = tracker.final_reflection
+    except HealthHabitTracker.DoesNotExist:
+        is_submitted = False
+        final_reflection = ''
+    
     context = {
         'slide_id': slide_id,
         'user': request.user,
         'promises_list': promises_list,
         'week_days': week_days,
+        'is_submitted': is_submitted,
+        'final_reflection': final_reflection,
     }
     return render(request, 'health_habit/student_health_habit.html', context)
 
@@ -144,6 +157,10 @@ def save_promises(request):
                 slide_id=slide_id
             )
             
+            # 제출 완료된 경우 수정 불가
+            if tracker.is_submitted:
+                return JsonResponse({'success': False, 'error': '이미 제출 완료된 기록은 수정할 수 없습니다.'}, status=400)
+            
             tracker.promises = promises
             tracker.save()
             
@@ -201,6 +218,10 @@ def save_promise_details(request):
                 student=student,
                 slide_id=slide_id
             )
+            
+            # 제출 완료된 경우 수정 불가
+            if tracker.is_submitted:
+                return JsonResponse({'success': False, 'error': '이미 제출 완료된 기록은 수정할 수 없습니다.'}, status=400)
             
             tracker.promise_details = promise_details
             tracker.save()
@@ -315,6 +336,10 @@ def save_reflection(request):
             # 권한 확인
             if tracker.student != request.user.student:
                 return JsonResponse({'error': '권한이 없습니다.'}, status=403)
+            
+            # 제출 완료된 경우 수정 불가
+            if tracker.is_submitted:
+                return JsonResponse({'success': False, 'error': '이미 제출 완료된 기록은 수정할 수 없습니다.'}, status=400)
             
             # 날짜 문자열을 date 객체로 변환
             reflection_date = data.get('reflection_date')
@@ -458,10 +483,31 @@ def submit_final(request):
             if tracker.student != request.user.student:
                 return JsonResponse({'error': '권한이 없습니다.'}, status=403)
             
+            # 이미 제출된 경우 중복 제출 방지
+            if tracker.is_submitted:
+                return JsonResponse({'success': False, 'error': '이미 제출 완료된 기록입니다.'}, status=400)
+            
             tracker.final_reflection = final_reflection
             tracker.is_submitted = True
             tracker.submitted_at = timezone.now()
             tracker.save()
+            
+            # StudentProgress 업데이트 - 건강습관 완료로 마킹
+            student_progress, created = StudentProgress.objects.get_or_create(
+                student=tracker.student,
+                slide=tracker.slide,
+                defaults={
+                    'started_at': timezone.now(),
+                    'is_completed': True,
+                    'completed_at': timezone.now()
+                }
+            )
+            
+            # 이미 존재하는 경우 완료 상태로 업데이트
+            if not created:
+                student_progress.is_completed = True
+                student_progress.completed_at = timezone.now()
+                student_progress.save()
             
             return JsonResponse({
                 'success': True,

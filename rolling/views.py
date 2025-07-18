@@ -15,7 +15,7 @@ import re
 import csv
 
 def mark_rolling_completed(student, slide_id):
-    """앞구르기 성공 시 StudentProgress 완료 처리"""
+    """앞구르기 완료 시 StudentProgress 완료 처리 (성공 또는 5회 시도 완료)"""
     try:
         slide = get_object_or_404(ChasiSlide, id=slide_id)
         
@@ -106,11 +106,12 @@ def save_attempt(request, slide_id):
                 }
             )
             
-            # 앞구르기 성공 시 StudentProgress 완료 처리
-            if data.get('is_success'):
+            # 앞구르기 성공 시 또는 5회 시도 완료 시 StudentProgress 완료 처리
+            if data.get('is_success') or data.get('attempt_number') == 5:
                 progress = mark_rolling_completed(student, slide_id)
                 if progress:
-                    print(f"앞구르기 완료 처리 성공: {student.user.get_full_name()}")
+                    completion_reason = "성공" if data.get('is_success') else "5회 시도 완료"
+                    print(f"앞구르기 완료 처리 성공 ({completion_reason}): {student.user.get_full_name()}")
             
             return JsonResponse({'success': True, 'created': created})
         except Exception as e:
