@@ -4,5 +4,5 @@ from . import views
 app_name = 'physical_education'
 
 urlpatterns = [
-    # 기본 뷰들을 여기에 추가
+    path('teachers/', views.teacher_dashboard, name='teacher_dashboard'),
 ]
