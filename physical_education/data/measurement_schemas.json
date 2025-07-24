@@ -1,0 +1,851 @@
+{
+  "SHUTTLE_RUN": {
+    "fields": [
+      {
+        "name": "shuttles_completed",
+        "type": "integer",
+        "label": "완주 횟수",
+        "required": true,
+        "min": 0,
+        "max": 150,
+        "unit": "회",
+        "readonly": false
+      }
+    ]
+  },
+  "LONG_RUN_WALK": {
+    "fields": [
+      {
+        "name": "minutes",
+        "type": "integer",
+        "label": "분",
+        "required": true,
+        "min": 2,
+        "max": 16,
+        "unit": "분",
+        "readonly": false
+      },
+      {
+        "name": "seconds",
+        "type": "integer",
+        "label": "초",
+        "required": true,
+        "min": 0,
+        "max": 59,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "total_seconds",
+        "type": "integer",
+        "label": "총 시간(초)",
+        "required": false,
+        "readonly": true,
+        "unit": "초"
+      }
+    ]
+  },
+  "STEP_TEST": {
+    "fields": [
+      {
+        "name": "is_palpation",
+        "type": "boolean",
+        "label": "촉진 여부",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "heart_rate_1",
+        "type": "integer",
+        "label": "심박수(1)",
+        "required": true,
+        "min": 20,
+        "max": 250,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "heart_rate_2",
+        "type": "integer",
+        "label": "심박수(2)",
+        "required": true,
+        "min": 20,
+        "max": 250,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "heart_rate_3",
+        "type": "integer",
+        "label": "심박수(3)",
+        "required": true,
+        "min": 20,
+        "max": 250,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "pei",
+        "type": "decimal",
+        "label": "PEI",
+        "required": false,
+        "min": 0.0,
+        "max": 200.0,
+        "decimal_places": 1,
+        "readonly": true
+      }
+    ]
+  },
+  "SIT_REACH": {
+    "fields": [
+      {
+        "name": "first_attempt",
+        "type": "decimal",
+        "label": "1차",
+        "required": true,
+        "min": -40.0,
+        "max": 50.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "second_attempt",
+        "type": "decimal",
+        "label": "2차",
+        "required": true,
+        "min": -40.0,
+        "max": 50.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "best_record",
+        "type": "decimal",
+        "label": "평가값",
+        "required": false,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": true
+      }
+    ]
+  },
+  "COMPREHENSIVE_FLEXIBILITY": {
+    "fields": [
+      {
+        "name": "shoulder_left",
+        "type": "boolean",
+        "label": "어깨 좌",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "shoulder_right",
+        "type": "boolean",
+        "label": "어깨 우",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "body_left",
+        "type": "boolean",
+        "label": "몸통 좌",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "body_right",
+        "type": "boolean",
+        "label": "몸통 우",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "side_left",
+        "type": "boolean",
+        "label": "옆구리 좌",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "side_right",
+        "type": "boolean",
+        "label": "옆구리 우",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "lower_body_left",
+        "type": "boolean",
+        "label": "하체 좌",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "lower_body_right",
+        "type": "boolean",
+        "label": "하체 우",
+        "required": true,
+        "readonly": false
+      },
+      {
+        "name": "total_score",
+        "type": "integer",
+        "label": "평가값",
+        "required": false,
+        "min": 0,
+        "max": 8,
+        "readonly": true
+      }
+    ]
+  },
+  "BMI": {
+    "fields": [
+      {
+        "name": "height",
+        "type": "decimal",
+        "label": "신장",
+        "required": true,
+        "min": 100.0,
+        "max": 300.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "weight",
+        "type": "decimal",
+        "label": "체중",
+        "required": true,
+        "min": 10.0,
+        "max": 300.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "bmi",
+        "type": "decimal",
+        "label": "BMI",
+        "required": false,
+        "decimal_places": 1,
+        "unit": "kg/m²",
+        "readonly": true
+      }
+    ]
+  },
+  "PUSH_UP": {
+    "fields": [
+      {
+        "name": "repetitions",
+        "type": "integer",
+        "label": "(무릎대고)팔굽혀펴기",
+        "required": true,
+        "min": 0,
+        "max": 200,
+        "unit": "회",
+        "readonly": false
+      }
+    ]
+  },
+  "SIT_UP": {
+    "fields": [
+      {
+        "name": "repetitions",
+        "type": "integer",
+        "label": "윗몸말아올리기",
+        "required": true,
+        "min": 0,
+        "max": 200,
+        "unit": "회",
+        "readonly": false
+      }
+    ]
+  },
+  "GRIP_STRENGTH": {
+    "fields": [
+      {
+        "name": "left_hand_1",
+        "type": "decimal",
+        "label": "왼쪽 1차",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "right_hand_1",
+        "type": "decimal",
+        "label": "오른쪽 1차",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "left_hand_2",
+        "type": "decimal",
+        "label": "왼쪽 2차",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "right_hand_2",
+        "type": "decimal",
+        "label": "오른쪽 2차",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "best_grip",
+        "type": "decimal",
+        "label": "악력",
+        "required": false,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": true
+      }
+    ]
+  },
+  "FIFTY_METER_RUN": {
+    "fields": [
+      {
+        "name": "time_seconds",
+        "type": "decimal",
+        "label": "50m달리기",
+        "required": true,
+        "min": 5.0,
+        "max": 30.0,
+        "decimal_places": 2,
+        "unit": "초",
+        "readonly": false
+      }
+    ]
+  },
+  "STANDING_LONG_JUMP": {
+    "fields": [
+      {
+        "name": "first_attempt",
+        "type": "decimal",
+        "label": "1차",
+        "required": true,
+        "min": 50.0,
+        "max": 350.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "second_attempt",
+        "type": "decimal",
+        "label": "2차",
+        "required": true,
+        "min": 50.0,
+        "max": 350.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "best_record",
+        "type": "decimal",
+        "label": "평가값",
+        "required": false,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": true
+      }
+    ]
+  },
+  "CARDIO_PRECISION_TEST": {
+    "fields": [
+      {
+        "name": "avg_heart_rate",
+        "type": "integer",
+        "label": "평균 심박수",
+        "required": true,
+        "min": 40,
+        "max": 220,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "max_heart_rate",
+        "type": "integer",
+        "label": "최고 심박수",
+        "required": true,
+        "min": 40,
+        "max": 220,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "avg_intensity",
+        "type": "integer",
+        "label": "평균 운동강도",
+        "required": false,
+        "min": 0,
+        "max": 100,
+        "unit": "%",
+        "readonly": true
+      },
+      {
+        "name": "total_calories",
+        "type": "integer",
+        "label": "총 소비열량",
+        "required": true,
+        "min": 0,
+        "max": 1000,
+        "unit": "kcal",
+        "readonly": false
+      },
+      {
+        "name": "section_1_time",
+        "type": "integer",
+        "label": "1구간 시간",
+        "required": true,
+        "min": 0,
+        "max": 600,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "section_2_time",
+        "type": "integer",
+        "label": "2구간 시간",
+        "required": true,
+        "min": 0,
+        "max": 600,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "section_3_time",
+        "type": "integer",
+        "label": "3구간 시간",
+        "required": true,
+        "min": 0,
+        "max": 600,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "section_4_time",
+        "type": "integer",
+        "label": "4구간 시간",
+        "required": true,
+        "min": 0,
+        "max": 600,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "section_5_time",
+        "type": "integer",
+        "label": "5구간 시간",
+        "required": true,
+        "min": 0,
+        "max": 600,
+        "unit": "초",
+        "readonly": false
+      },
+      {
+        "name": "rest_heart_rate_1",
+        "type": "integer",
+        "label": "휴식 심박수1",
+        "required": false,
+        "min": 40,
+        "max": 220,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "rest_heart_rate_2",
+        "type": "integer",
+        "label": "휴식 심박수2",
+        "required": false,
+        "min": 40,
+        "max": 220,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "rest_heart_rate_3",
+        "type": "integer",
+        "label": "휴식 심박수3",
+        "required": false,
+        "min": 40,
+        "max": 220,
+        "unit": "회/분",
+        "readonly": false
+      },
+      {
+        "name": "pei",
+        "type": "integer",
+        "label": "PEI",
+        "required": false,
+        "min": 0,
+        "max": 150,
+        "unit": "PEI",
+        "readonly": true
+      }
+    ]
+  },
+  "BODY_FAT_RATE_TEST": {
+    "fields": [
+      {
+        "name": "height",
+        "type": "decimal",
+        "label": "키",
+        "required": true,
+        "min": 100.0,
+        "max": 220.0,
+        "decimal_places": 1,
+        "unit": "cm",
+        "readonly": false
+      },
+      {
+        "name": "weight",
+        "type": "decimal",
+        "label": "몸무게",
+        "required": true,
+        "min": 20.0,
+        "max": 150.0,
+        "decimal_places": 1,
+        "unit": "kg",
+        "readonly": false
+      },
+      {
+        "name": "bmi",
+        "type": "decimal",
+        "label": "BMI",
+        "required": false,
+        "decimal_places": 1,
+        "unit": "kg/m²",
+        "readonly": true
+      },
+      {
+        "name": "body_fat_rate",
+        "type": "decimal",
+        "label": "체지방률",
+        "required": true,
+        "min": 0.0,
+        "max": 50.0,
+        "decimal_places": 1,
+        "unit": "%fat",
+        "readonly": false
+      },
+      {
+        "name": "muscle_mass",
+        "type": "decimal",
+        "label": "근육량",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "%",
+        "readonly": false
+      },
+      {
+        "name": "fat_mass",
+        "type": "decimal",
+        "label": "지방량",
+        "required": true,
+        "min": 0.0,
+        "max": 100.0,
+        "decimal_places": 1,
+        "unit": "%",
+        "readonly": false
+      }
+    ]
+  },
+  "POSTURE_TEST": {
+    "fields": [
+      {
+        "name": "shoulder_tilt",
+        "type": "integer",
+        "label": "어깨 기울기",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "pelvis_tilt",
+        "type": "integer",
+        "label": "골반 기울기",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "leg_flexion",
+        "type": "integer",
+        "label": "다리 굴곡",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "neck_tilt",
+        "type": "integer",
+        "label": "목뼈 기울기",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "upper_body_tilt",
+        "type": "integer",
+        "label": "상체 기울기",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "pelvis_sagittal_tilt",
+        "type": "integer",
+        "label": "골반전후 기울기",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "spine_curvature",
+        "type": "integer",
+        "label": "척추 휨정도",
+        "required": true,
+        "min": 0,
+        "max": 3,
+        "readonly": false
+      },
+      {
+        "name": "overall_evaluation",
+        "type": "string",
+        "label": "평가",
+        "required": false,
+        "readonly": false
+      },
+      {
+        "name": "questionnaire_1",
+        "type": "integer",
+        "label": "문진1",
+        "required": false,
+        "min": 0,
+        "max": 1,
+        "readonly": false
+      },
+      {
+        "name": "questionnaire_2",
+        "type": "integer",
+        "label": "문진2",
+        "required": false,
+        "min": 0,
+        "max": 1,
+        "readonly": false
+      }
+    ]
+  },
+  "SELF_BODY_TEST": {
+    "fields": [
+      {
+        "name": "question_1",
+        "type": "integer",
+        "label": "1번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_2",
+        "type": "integer",
+        "label": "2번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_3",
+        "type": "integer",
+        "label": "3번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_4",
+        "type": "integer",
+        "label": "4번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_5",
+        "type": "integer",
+        "label": "5번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_6",
+        "type": "integer",
+        "label": "6번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_7",
+        "type": "integer",
+        "label": "7번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_8",
+        "type": "integer",
+        "label": "8번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_9",
+        "type": "integer",
+        "label": "9번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_10",
+        "type": "integer",
+        "label": "10번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_11",
+        "type": "integer",
+        "label": "11번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_12",
+        "type": "integer",
+        "label": "12번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_13",
+        "type": "integer",
+        "label": "13번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_14",
+        "type": "integer",
+        "label": "14번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_15",
+        "type": "integer",
+        "label": "15번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_16",
+        "type": "integer",
+        "label": "16번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_17",
+        "type": "integer",
+        "label": "17번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_18",
+        "type": "integer",
+        "label": "18번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_19",
+        "type": "integer",
+        "label": "19번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      },
+      {
+        "name": "question_20",
+        "type": "integer",
+        "label": "20번",
+        "required": true,
+        "min": 1,
+        "max": 6,
+        "readonly": false
+      }
+    ]
+  }
+}
