@@ -297,99 +297,60 @@ def paps_session_delete_view(request, session_id):
 @login_required
 @teacher_required
 def paps_session_activities_view(request):
-    """PAPS 측정종목 선택 뷰"""
+    """PAPS 측정종목 선택 뷰 (렌더링 전용)"""
     # 교사의 모든 측정회차 가져오기
     sessions = PAPSSession.objects.filter(
         teacher_id=request.user.teacher.id
     ).order_by('-created_at')
     
-    # URL 파라미터 또는 POST에서 session_id 가져오기
-    session_id = request.GET.get('session_id') or request.POST.get('session_id')
+    # URL 파라미터에서 session_id 가져오기 (GET only)
+    session_id = request.GET.get('session_id')
     session = None
     
     if session_id:
-        session = get_object_or_404(
-            PAPSSession,
-            id=session_id,
-            teacher_id=request.user.teacher.id
-        )
-        
-        # 완료된 세션은 수정 불가
-        if session.is_completed:
-            messages.error(request, '완료된 측정회차의 종목은 수정할 수 없습니다.')
-            return redirect('physical_education:paps_session_list')
-    
-    # session이 선택되지 않았을 때 처리
-    if not session:
-        context = {
-            'sessions': sessions,
-            'session': None,
-        }
-        return render(request, 'physical_education/paps/sessions/activities_selection.html', context)
-    
-    # 학년 선택 처리
-    selected_grades = []
-    if request.method == 'POST':
-        selected_grades_str = request.POST.get('selected_grades', '')
-        if selected_grades_str:
-            try:
-                selected_grades = [int(g) for g in selected_grades_str.split(',') if g.strip()]
-            except ValueError:
-                messages.error(request, '올바른 학년을 선택해주세요.')
-                return redirect(f'{request.path}?session_id={session.id}')
-        
-        # 종목 선택 폼 처리
-        if selected_grades and 'save_activities' in request.POST:
-            form = PAPSActivitySelectionForm(
-                request.POST,
-                session=session,
-                selected_grades=selected_grades
+        try:
+            session = get_object_or_404(
+                PAPSSession,
+                id=session_id,
+                teacher_id=request.user.teacher.id
             )
-            if form.is_valid():
-                try:
-                    with transaction.atomic():
-                        saved_count = form.save_selections(session, selected_grades)
-                        messages.success(
-                            request, 
-                            f'{len(selected_grades)}개 학년, {saved_count}개 종목이 저장되었습니다.'
-                        )
-                        return redirect(f'{request.path}?session_id={session.id}')
-                except Exception as e:
-                    messages.error(request, f'저장 중 오류가 발생했습니다: {str(e)}')
-        else:
-            # 학년 선택 후 폼 생성
-            form = PAPSActivitySelectionForm(
-                session=session,
-                selected_grades=selected_grades
-            )
-    else:
-        form = None
+            
+            # 완료된 세션은 수정 불가 (경고만 표시)
+            if session.is_completed:
+                messages.warning(request, '완료된 측정회차는 수정할 수 없습니다.')
+        
+        except Exception:
+            messages.error(request, '올바르지 않은 측정회차입니다.')
+            session = None
     
-    # 기존 선택된 종목들 조회
-    existing_activities = PAPSSessionActivity.objects.filter(
-        session_id=session.id
-    ).select_related('category_id', 'activity_id')
+    # 카테고리별 활동 조회 (세션이 선택된 경우에만)
+    required_categories = []
+    optional_categories = []
+    existing_activities = []
     
-    # 카테고리별 활동 조회
-    required_categories = PAPSCategory.objects.filter(
-        evaluation_type=PAPSCategory.REQUIRED
-    ).order_by('order')
-    
-    optional_categories = PAPSCategory.objects.filter(
-        evaluation_type=PAPSCategory.OPTIONAL
-    ).order_by('order')
+    if session:
+        required_categories = PAPSCategory.objects.filter(
+            evaluation_type=PAPSCategory.REQUIRED
+        ).order_by('order')
+        
+        optional_categories = PAPSCategory.objects.filter(
+            evaluation_type=PAPSCategory.OPTIONAL
+        ).order_by('order')
+        
+        # 기존 선택된 종목들 조회
+        existing_activities = PAPSSessionActivity.objects.filter(
+            session_id=session.id
+        ).select_related('category_id', 'activity_id')
     
     context = {
-        'sessions': sessions,  # 모든 측정회차 목록 추가
+        'sessions': sessions,
         'session': session,
-        'form': form,
-        'selected_grades': selected_grades,
         'existing_activities': existing_activities,
         'required_categories': required_categories,
         'optional_categories': optional_categories,
         'grade_choices': PAPSSessionActivity.GRADE_CHOICES,
     }
-    return render(request, 'physical_education/paps/sessions/activities_selection.html', context)
+    return render(request, 'physical_education/teachers/paps/sessions/session_activities.html', context)
 
 
 # ================= PAPS 측정 입력 =================

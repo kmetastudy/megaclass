@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views, apis
 
 app_name = "physical_education"
 
@@ -44,5 +44,21 @@ urlpatterns = [
         "api/paps/activities/<str:category>/",
         views.api_paps_get_activities,
         name="api_paps_get_activities",
+    ),
+    # PAPSSessionActivity 관리 API
+    path(
+        "api/paps/session-activities/form-fields/",
+        apis.api_get_activity_form_fields,
+        name="api_get_activity_form_fields",
+    ),
+    path(
+        "api/paps/session-activities/save/",
+        apis.api_save_session_activities,
+        name="api_save_session_activities",
+    ),
+    path(
+        "api/paps/session-activities/existing/",
+        apis.api_get_existing_activities,
+        name="api_get_existing_activities",
     ),
 ]
