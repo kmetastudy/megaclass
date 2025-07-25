@@ -1,0 +1,246 @@
+<!-- 모바일 하단 네비게이션 바 -->
+<div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 lg:hidden z-40" id="mobile-bottom-nav">
+    <div class="grid grid-cols-4 gap-1 px-2 py-2">
+        <!-- 홈 -->
+        <a href="{% url 'physical_education:teacher_dashboard' %}" 
+           class="flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors
+                  {% if request.resolver_match.url_name == 'teacher_dashboard' %}
+                      text-green-600 bg-green-50
+                  {% else %}
+                      text-gray-600 hover:text-green-600 hover:bg-gray-50
+                  {% endif %}"
+           aria-label="홈으로 이동">
+            <i class="fas fa-home text-xl mb-1" aria-hidden="true"></i>
+            <span class="text-xs font-medium">홈</span>
+        </a>
+        
+        <!-- 측정회차 -->
+        <a href="{% url 'physical_education:paps_session_list' %}" 
+           class="flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors
+                  {% if request.resolver_match.url_name == 'paps_session_list' %}
+                      text-blue-600 bg-blue-50
+                  {% else %}
+                      text-gray-600 hover:text-blue-600 hover:bg-gray-50
+                  {% endif %}"
+           aria-label="측정회차 관리">
+            <i class="fas fa-calendar-alt text-xl mb-1" aria-hidden="true"></i>
+            <span class="text-xs font-medium">회차</span>
+        </a>
+        
+        <!-- 측정입력 (드롭업 메뉴) -->
+        <button class="flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors text-gray-600 hover:text-purple-600 hover:bg-gray-50"
+                onclick="toggleMobileDropup('measurement-dropup')"
+                aria-expanded="false"
+                aria-controls="measurement-dropup"
+                aria-label="측정 입력 메뉴">
+            <i class="fas fa-edit text-xl mb-1" aria-hidden="true"></i>
+            <span class="text-xs font-medium">입력</span>
+        </button>
+        
+        <!-- 더보기 (드롭업 메뉴) -->
+        <button class="flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                onclick="toggleMobileDropup('more-dropup')"
+                aria-expanded="false"
+                aria-controls="more-dropup"
+                aria-label="더보기 메뉴">
+            <i class="fas fa-ellipsis-h text-xl mb-1" aria-hidden="true"></i>
+            <span class="text-xs font-medium">더보기</span>
+        </button>
+    </div>
+</div>
+
+<!-- 측정입력 드롭업 메뉴 -->
+<div id="measurement-dropup" class="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg transform translate-y-full transition-transform duration-300 lg:hidden z-30">
+    <div class="p-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">측정 입력</h3>
+        <div class="space-y-2">
+            <a href="{% url 'physical_education:paps_required_measurement' %}" 
+               class="flex items-center p-3 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+               onclick="closeMobileDropup('measurement-dropup')">
+                <i class="fas fa-clipboard-check mr-3 text-lg" aria-hidden="true"></i>
+                <div>
+                    <div class="font-medium">필수평가 입력</div>
+                    <div class="text-sm text-purple-600">체력 5요인 측정</div>
+                </div>
+            </a>
+            <a href="{% url 'physical_education:paps_optional_measurement' %}" 
+               class="flex items-center p-3 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+               onclick="closeMobileDropup('measurement-dropup')">
+                <i class="fas fa-clipboard-list mr-3 text-lg" aria-hidden="true"></i>
+                <div>
+                    <div class="font-medium">선택평가 입력</div>
+                    <div class="text-sm text-purple-600">추가 체력 평가</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 더보기 드롭업 메뉴 -->
+<div id="more-dropup" class="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg transform translate-y-full transition-transform duration-300 lg:hidden z-30">
+    <div class="p-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">더보기</h3>
+        <div class="space-y-2">
+            <a href="{% url 'physical_education:paps_session_activities' %}" 
+               class="flex items-center p-3 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+               onclick="closeMobileDropup('more-dropup')">
+                <i class="fas fa-tasks mr-3 text-lg" aria-hidden="true"></i>
+                <div>
+                    <div class="font-medium">측정종목 선택</div>
+                    <div class="text-sm text-gray-600">회차별 종목 설정</div>
+                </div>
+            </a>
+            <button class="flex items-center w-full p-3 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                    onclick="openMobileSidebar(); closeMobileDropup('more-dropup')">
+                <i class="fas fa-bars mr-3 text-lg" aria-hidden="true"></i>
+                <div class="text-left">
+                    <div class="font-medium">전체 메뉴</div>
+                    <div class="text-sm text-gray-600">모든 기능 보기</div>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 드롭업 오버레이 -->
+<div id="mobile-dropup-overlay" class="fixed inset-0 bg-black bg-opacity-25 z-20 hidden lg:hidden" aria-hidden="true"></div>
+
+<style>
+/* 모바일 하단 네비게이션을 위한 컨텐츠 패딩 */
+@media (max-width: 1023px) {
+    .mobile-nav-padding {
+        padding-bottom: 5rem; /* 하단 네비게이션 높이만큼 패딩 */
+    }
+}
+
+/* 터치 친화적 크기 조정 */
+#mobile-bottom-nav button,
+#mobile-bottom-nav a {
+    min-height: 3rem;
+    min-width: 2.5rem;
+}
+
+/* 드롭업 애니메이션 */
+.dropup-open {
+    transform: translateY(0) !important;
+}
+</style>
+
+<script>
+// 모바일 네비게이션 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileDropupOverlay = document.getElementById('mobile-dropup-overlay');
+    let currentOpenDropup = null;
+    
+    // 드롭업 토글 기능
+    window.toggleMobileDropup = function(dropupId) {
+        const dropup = document.getElementById(dropupId);
+        const button = document.querySelector(`[aria-controls="${dropupId}"]`);
+        
+        if (!dropup || !button) return;
+        
+        // 다른 드롭업이 열려있다면 닫기
+        if (currentOpenDropup && currentOpenDropup !== dropupId) {
+            closeMobileDropup(currentOpenDropup);
+        }
+        
+        if (dropup.classList.contains('dropup-open')) {
+            closeMobileDropup(dropupId);
+        } else {
+            openMobileDropup(dropupId);
+        }
+    };
+    
+    // 드롭업 열기
+    window.openMobileDropup = function(dropupId) {
+        const dropup = document.getElementById(dropupId);
+        const button = document.querySelector(`[aria-controls="${dropupId}"]`);
+        
+        if (!dropup || !button) return;
+        
+        dropup.classList.add('dropup-open');
+        mobileDropupOverlay.classList.remove('hidden');
+        button.setAttribute('aria-expanded', 'true');
+        currentOpenDropup = dropupId;
+        
+        // 배경 스크롤 방지
+        document.body.classList.add('overflow-hidden');
+    };
+    
+    // 드롭업 닫기
+    window.closeMobileDropup = function(dropupId) {
+        const dropup = document.getElementById(dropupId);
+        const button = document.querySelector(`[aria-controls="${dropupId}"]`);
+        
+        if (!dropup || !button) return;
+        
+        dropup.classList.remove('dropup-open');
+        mobileDropupOverlay.classList.add('hidden');
+        button.setAttribute('aria-expanded', 'false');
+        currentOpenDropup = null;
+        
+        // 배경 스크롤 복원
+        document.body.classList.remove('overflow-hidden');
+    };
+    
+    // 모든 드롭업 닫기
+    window.closeAllMobileDropups = function() {
+        ['measurement-dropup', 'more-dropup'].forEach(id => {
+            const dropup = document.getElementById(id);
+            if (dropup && dropup.classList.contains('dropup-open')) {
+                closeMobileDropup(id);
+            }
+        });
+    };
+    
+    // 사이드바 열기 (기존 사이드바와 연동)
+    window.openMobileSidebar = function() {
+        const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+        if (mobileSidebarToggle) {
+            mobileSidebarToggle.click();
+        }
+    };
+    
+    // 오버레이 클릭시 드롭업 닫기
+    if (mobileDropupOverlay) {
+        mobileDropupOverlay.addEventListener('click', closeAllMobileDropups);
+    }
+    
+    // ESC 키로 드롭업 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && currentOpenDropup) {
+            closeMobileDropup(currentOpenDropup);
+        }
+    });
+    
+    // 화면 크기 변경시 드롭업 닫기
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+            closeAllMobileDropups();
+        }
+    });
+    
+    // 스와이프 제스처로 드롭업 닫기
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    document.addEventListener('touchstart', function(e) {
+        touchStartY = e.changedTouches[0].screenY;
+    });
+    
+    document.addEventListener('touchend', function(e) {
+        touchEndY = e.changedTouches[0].screenY;
+        handleSwipe();
+    });
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const swipeDown = touchStartY < touchEndY - swipeThreshold;
+        
+        // 아래로 스와이프시 드롭업 닫기
+        if (swipeDown && currentOpenDropup) {
+            closeMobileDropup(currentOpenDropup);
+        }
+    }
+});
+</script>

@@ -97,6 +97,9 @@ def paps_session_list_view(request):
     """PAPS 측정회차 목록/생성/삭제 통합 뷰"""
     teacher_id = request.user.teacher.id
     
+    # AJAX 요청 확인
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
     # POST 요청 처리 (생성 또는 삭제)
     if request.method == 'POST':
         # 삭제 처리
@@ -104,6 +107,7 @@ def paps_session_list_view(request):
             session_ids = request.POST.getlist('session_ids')
             if session_ids:
                 deleted_count = 0
+                errors = []
                 for session_id in session_ids:
                     try:
                         session = PAPSSession.objects.get(
@@ -112,11 +116,15 @@ def paps_session_list_view(request):
                         )
                         # 완료된 세션은 삭제 불가
                         if session.is_completed:
-                            messages.error(request, f'완료된 측정회차 "{session.name}"는 삭제할 수 없습니다.')
+                            error_msg = f'완료된 측정회차 "{session.name}"는 삭제할 수 없습니다.'
+                            errors.append(error_msg)
+                            messages.error(request, error_msg)
                             continue
                         # 관련 측정 기록이 있는지 확인
                         if PAPSRecord.objects.filter(session_id=session.id).exists():
-                            messages.error(request, f'측정 기록이 있는 회차 "{session.name}"는 삭제할 수 없습니다.')
+                            error_msg = f'측정 기록이 있는 회차 "{session.name}"는 삭제할 수 없습니다.'
+                            errors.append(error_msg)
+                            messages.error(request, error_msg)
                             continue
                         
                         session_name = session.name
@@ -128,8 +136,20 @@ def paps_session_list_view(request):
                 
                 if deleted_count == 0:
                     messages.warning(request, '삭제된 측정회차가 없습니다.')
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': deleted_count > 0,
+                        'deleted_count': deleted_count,
+                        'errors': errors
+                    })
             else:
                 messages.error(request, '삭제할 측정회차를 선택해주세요.')
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'error': '삭제할 측정회차를 선택해주세요.'
+                    })
         
         # 생성 처리
         else:
@@ -137,26 +157,82 @@ def paps_session_list_view(request):
             if form.is_valid():
                 session = form.save()
                 messages.success(request, f'측정회차 "{session.name}"이 생성되었습니다.')
-                return redirect('physical_education:paps_session_list')
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'session': {
+                            'id': str(session.id),
+                            'school_year': session.school_year,
+                            'session_type': session.session_type,
+                            'session_type_display': session.get_session_type_display(),
+                            'name': session.name,
+                            'measurement_date': session.measurement_date.strftime('%Y-%m-%d'),
+                            'is_completed': session.is_completed
+                        }
+                    })
+                else:
+                    return redirect('physical_education:paps_session_list')
+            else:
+                if is_ajax:
+                    return JsonResponse({
+                        'success': False,
+                        'errors': form.errors
+                    })
     else:
         form = PAPSSessionForm(teacher_id=teacher_id)
     
-    # 세션 목록 조회
-    sessions = PAPSSession.objects.filter(
-        teacher_id=teacher_id
-    ).order_by('-school_year', '-measurement_date')
+    # 필터링 파라미터
+    filter_year = request.GET.get('year')
+    filter_type = request.GET.get('type')
     
-    # 페이지네이션
-    paginator = Paginator(sessions, 10)
+    # 세션 목록 조회
+    sessions_qs = PAPSSession.objects.filter(teacher_id=teacher_id)
+    
+    # 필터링 적용
+    if filter_year:
+        sessions_qs = sessions_qs.filter(school_year=filter_year)
+    if filter_type:
+        sessions_qs = sessions_qs.filter(session_type=filter_type)
+    
+    sessions_qs = sessions_qs.order_by('-school_year', '-measurement_date')
+    
+    # AJAX 요청인 경우 JSON 응답
+    if is_ajax and request.method == 'GET':
+        sessions_data = []
+        for session in sessions_qs:
+            sessions_data.append({
+                'id': str(session.id),
+                'school_year': session.school_year,
+                'session_type': session.session_type,
+                'session_type_display': session.get_session_type_display(),
+                'name': session.name,
+                'measurement_date': session.measurement_date.strftime('%Y-%m-%d'),
+                'is_completed': session.is_completed
+            })
+        return JsonResponse({
+            'success': True,
+            'sessions': sessions_data,
+            'total': len(sessions_data)
+        })
+    
+    # 페이지네이션 (일반 요청의 경우)
+    paginator = Paginator(sessions_qs, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # 년도 범위 생성 (현재 년도 기준 ±5년)
+    current_year = timezone.now().year
+    year_range = range(current_year - 5, current_year + 6)
     
     context = {
         'page_obj': page_obj,
         'sessions': page_obj.object_list,
-        'form': form,  # 생성 폼 추가
+        'form': form,
+        'year_range': year_range,
+        'current_year': current_year,
     }
-    return render(request, 'physical_education/paps/sessions/list.html', context)
+    return render(request, 'physical_education/teachers/paps/sessions/list.html', context)
 
 
 # paps_session_create_view 제거됨 - paps_session_list_view에 통합

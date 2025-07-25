@@ -1,0 +1,136 @@
+<!-- Tabulator Bootstrap 5 테마 CSS -->
+<link href="https://unpkg.com/tabulator-tables@6.3.1/dist/css/tabulator_bootstrap5.min.css" rel="stylesheet">
+
+<!-- Tabulator JS -->
+<script type="text/javascript" src="https://unpkg.com/tabulator-tables@6.3.1/dist/js/tabulator.min.js"></script>
+
+<!-- Physical Education Tabulator 공통 설정 -->
+<script>
+// Physical Education 앱용 Tabulator 기본 설정
+window.PETabulator = {
+    // 기본 설정
+    defaultConfig: {
+        pagination: true,
+        paginationSize: 20,
+        paginationSizeSelector: [10, 20, 50, 100],
+        layout: "fitColumns",
+        responsiveLayout: "collapse",
+        selectableRows: true,
+        selectableRowsRangeMode: "click",
+        langs: {
+            "ko": {
+                "pagination": {
+                    "page_size": "페이지 크기:",
+                    "page_title": "페이지 표시",
+                    "first": "처음",
+                    "first_title": "첫 페이지",
+                    "last": "마지막",
+                    "last_title": "마지막 페이지",
+                    "prev": "이전",
+                    "prev_title": "이전 페이지",
+                    "next": "다음", 
+                    "next_title": "다음 페이지",
+                    "all": "전체"
+                },
+                "headerFilters": {
+                    "default": "필터링...",
+                },
+                "ajax": {
+                    "loading": "로딩 중...",
+                    "error": "에러",
+                },
+                "groups": {
+                    "item": "항목",
+                    "items": "항목들",
+                },
+                "data": {
+                    "loading": "로딩 중...",
+                    "error": "에러",
+                },
+                "columns": {
+                    "name": "이름",
+                }
+            }
+        },
+        locale: "ko"
+    },
+    
+    // 공통 포맷터들
+    formatters: {
+        // 상태 뱃지 포맷터
+        statusBadge: function(cell, formatterParams, onRendered) {
+            const value = cell.getValue();
+            const isCompleted = value === true || value === 'completed' || value === '완료';
+            
+            if (isCompleted) {
+                return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-check-circle mr-1"></i>완료
+                </span>`;
+            } else {
+                return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-clock mr-1"></i>진행중
+                </span>`;
+            }
+        },
+        
+        // 측정구분 뱃지 포맷터  
+        sessionTypeBadge: function(cell, formatterParams, onRendered) {
+            const value = cell.getValue();
+            const isRegular = value === 'REGULAR' || value === '정시';
+            
+            if (isRegular) {
+                return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    정시
+                </span>`;
+            } else {
+                return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                    수시
+                </span>`;
+            }
+        },
+        
+        // 날짜 포맷터
+        koreanDate: function(cell, formatterParams, onRendered) {
+            const value = cell.getValue();
+            if (!value) return '';
+            
+            const date = new Date(value);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long', 
+                day: 'numeric'
+            });
+        }
+    },
+    
+    // 공통 이벤트 핸들러
+    events: {
+        // 체크박스 선택 변경 시
+        onRowSelectionChanged: function(data, rows) {
+            const selectedCount = data.length;
+            const deleteButton = document.getElementById('btn-delete-selected');
+            
+            if (deleteButton) {
+                deleteButton.disabled = selectedCount === 0;
+                deleteButton.textContent = selectedCount > 0 ? 
+                    `선택 삭제 (${selectedCount})` : '선택 삭제';
+            }
+        }
+    }
+};
+
+// 모바일 감지 헬퍼
+window.PETabulator.isMobile = function() {
+    return window.innerWidth < 1024;
+};
+
+// 반응형 레이아웃 업데이트
+window.addEventListener('resize', function() {
+    // 모든 Tabulator 인스턴스에 대해 반응형 레이아웃 업데이트
+    if (window.tabulatorInstances) {
+        window.tabulatorInstances.forEach(function(table) {
+            table.redraw();
+        });
+    }
+});
+</script>

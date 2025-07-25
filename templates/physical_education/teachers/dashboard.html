@@ -3,90 +3,15 @@
 {% block title %}체육 활동 관리 시스템{% endblock %}
 
 {% block content %}
-<div class="flex min-h-screen bg-gray-50">
-    <!-- 사이드바 -->
-    <div id="sidebar" class="fixed left-0 top-16 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 z-40">
-        <div class="flex flex-col h-full">
-            <!-- 사이드바 헤더 -->
-            <div class="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-800">PAPS 관리</h2>
-                <button id="sidebar-toggle" class="p-2 rounded-md hover:bg-gray-100">
-                    <i class="fas fa-times text-gray-600"></i>
-                </button>
-            </div>
-            
-            <!-- 메뉴 목록 -->
-            <nav class="flex-1 px-4 py-6 space-y-2">
-                <!-- 홈 -->
-                <a href="{% url 'physical_education:teacher_dashboard' %}" 
-                   class="flex items-center px-4 py-3 text-green-700 bg-green-50 border-r-4 border-green-500 rounded-l-lg font-medium">
-                    <i class="fas fa-home mr-3"></i>
-                    홈
-                </a>
-                
-                <!-- PAPS 섹션 -->
-                <div class="space-y-1">
-                    <button class="flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium" 
-                            onclick="toggleMenu('paps-menu')">
-                        <div class="flex items-center">
-                            <i class="fas fa-chart-line mr-3"></i>
-                            PAPS
-                        </div>
-                        <i class="fas fa-chevron-down transform transition-transform" id="paps-chevron"></i>
-                    </button>
-                    
-                    <div id="paps-menu" class="ml-6 space-y-1">
-                        <!-- 측정종목관리 -->
-                        <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm"
-                                onclick="toggleMenu('measurement-menu')">
-                            <span>측정종목관리</span>
-                            <i class="fas fa-chevron-down transform transition-transform text-xs" id="measurement-chevron"></i>
-                        </button>
-                        
-                        <div id="measurement-menu" class="ml-4 space-y-1 hidden">
-                            <a href="#" class="block px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm">
-                                측정회차관리
-                            </a>
-                            <a href="#" class="block px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm">
-                                측정종목선택
-                            </a>
-                        </div>
-                        
-                        <!-- 측정결과입력 -->
-                        <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm"
-                                onclick="toggleMenu('input-menu')">
-                            <span>측정결과입력</span>
-                            <i class="fas fa-chevron-down transform transition-transform text-xs" id="input-chevron"></i>
-                        </button>
-                        
-                        <div id="input-menu" class="ml-4 space-y-1 hidden">
-                            <a href="#" class="block px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm">
-                                학급별필수평가입력
-                            </a>
-                            <a href="#" class="block px-4 py-2 text-gray-500 hover:bg-gray-50 rounded-lg text-sm">
-                                학급별선택평가입력
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-    </div>
-    
-    <!-- 사이드바 오버레이 (모바일용) -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
+<div class="flex min-h-screen mobile-nav-padding">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
     
     <!-- 메인 컨텐츠 -->
     <div class="flex-1 lg:ml-64">
-        <!-- 사이드바 토글 버튼 -->
-        <div class="lg:hidden p-4">
-            <button id="mobile-sidebar-toggle" class="p-2 rounded-md bg-green-100 text-green-600 hover:bg-green-200">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
         
         <!-- 대시보드 내용 -->
-        <div class="p-6">
+        <div class="p-4 lg:p-6">
             <!-- 페이지 헤더 -->
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">체육 활동 관리 시스템</h1>
@@ -152,7 +77,7 @@
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">빠른 작업</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <a href="#" class="flex items-center p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    <a href="{% url 'physical_education:paps_session_list' %}" class="flex items-center p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                         <i class="fas fa-plus-circle mr-3 text-xl"></i>
                         <span class="font-medium">새 측정회차</span>
                     </a>
@@ -207,7 +132,7 @@
                     <div class="text-center py-8 text-gray-500">
                         <i class="fas fa-calendar-times text-4xl mb-4"></i>
                         <p>아직 생성된 측정회차가 없습니다.</p>
-                        <a href="#" class="text-green-600 hover:text-green-700 font-medium">첫 번째 측정회차를 만들어보세요!</a>
+                        <a href="{% url 'physical_education:paps_session_list' %}" class="text-green-600 hover:text-green-700 font-medium">첫 번째 측정회차를 만들어보세요!</a>
                     </div>
                 {% endif %}
             </div>
@@ -215,61 +140,7 @@
     </div>
 </div>
 
-<script>
-// 사이드바 토글 기능
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    
-    // 사이드바 닫기
-    function closeSidebar() {
-        sidebar.classList.add('-translate-x-full');
-        sidebarOverlay.classList.add('hidden');
-    }
-    
-    // 사이드바 열기
-    function openSidebar() {
-        sidebar.classList.remove('-translate-x-full');
-        sidebarOverlay.classList.remove('hidden');
-    }
-    
-    // 데스크톱 사이드바 토글
-    sidebarToggle.addEventListener('click', closeSidebar);
-    
-    // 모바일 사이드바 토글
-    mobileSidebarToggle.addEventListener('click', openSidebar);
-    
-    // 오버레이 클릭시 사이드바 닫기
-    sidebarOverlay.addEventListener('click', closeSidebar);
-    
-    // 반응형 처리
-    function handleResize() {
-        if (window.innerWidth >= 1024) {
-            sidebar.classList.remove('-translate-x-full');
-            sidebarOverlay.classList.add('hidden');
-        } else {
-            sidebar.classList.add('-translate-x-full');
-        }
-    }
-    
-    window.addEventListener('resize', handleResize);
-    handleResize(); // 초기 실행
-});
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
 
-// 메뉴 토글 기능
-function toggleMenu(menuId) {
-    const menu = document.getElementById(menuId);
-    const chevron = document.getElementById(menuId.replace('-menu', '-chevron'));
-    
-    if (menu.classList.contains('hidden')) {
-        menu.classList.remove('hidden');
-        chevron.classList.add('rotate-180');
-    } else {
-        menu.classList.add('hidden');
-        chevron.classList.remove('rotate-180');
-    }
-}
-</script>
 {% endblock %}

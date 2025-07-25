@@ -1,0 +1,235 @@
+<!-- PAPS 관리 사이드바 -->
+<div id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white shadow-xl border-r-2 border-gray-100 transform transition-transform duration-300 z-40 lg:translate-x-0 -translate-x-full">
+    <div class="flex flex-col h-full">
+        <!-- 사이드바 헤더 -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">PAPS 관리</h2>
+            <button id="sidebar-toggle" class="p-2 rounded-md hover:bg-gray-100 lg:hidden" aria-label="사이드바 닫기">
+                <i class="fas fa-times text-gray-600"></i>
+            </button>
+        </div>
+        
+        <!-- 메뉴 목록 -->
+        <nav class="flex-1 px-4 py-6 space-y-2" role="navigation" aria-label="PAPS 메뉴">
+            <!-- 홈 -->
+            <a href="{% url 'physical_education:teacher_dashboard' %}" 
+               class="flex items-center px-4 py-3 rounded-lg font-medium transition-colors sidebar-link
+                      {% if request.resolver_match.url_name == 'teacher_dashboard' %}
+                          text-blue-600 bg-blue-50 font-medium cursor-default
+                      {% else %}
+                          text-gray-500 hover:bg-gray-50
+                      {% endif %}"
+               data-current="{% if request.resolver_match.url_name == 'teacher_dashboard' %}true{% else %}false{% endif %}"
+               aria-current="{% if request.resolver_match.url_name == 'teacher_dashboard' %}page{% endif %}">
+                <i class="fas fa-home mr-3" aria-hidden="true"></i>
+                홈
+            </a>
+            
+            <!-- PAPS 섹션 -->
+            <div class="space-y-1">
+                <button class="flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors" 
+                        onclick="toggleMenu('paps-menu')"
+                        aria-expanded="{% if 'paps' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                        aria-controls="paps-menu">
+                    <div class="flex items-center">
+                        <i class="fas fa-chart-line mr-3" aria-hidden="true"></i>
+                        PAPS
+                    </div>
+                    <i class="fas fa-chevron-down transform transition-transform duration-200 
+                             {% if 'paps' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                       id="paps-chevron" aria-hidden="true"></i>
+                </button>
+                
+                <div id="paps-menu" class="ml-6 space-y-1 {% if 'paps' not in request.resolver_match.url_name %}hidden{% endif %}">
+                    <!-- 측정종목관리 -->
+                    <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                            onclick="toggleMenu('measurement-menu')"
+                            aria-expanded="{% if 'session' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                            aria-controls="measurement-menu">
+                        <span>측정종목관리</span>
+                        <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                 {% if 'session' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                           id="measurement-chevron" aria-hidden="true"></i>
+                    </button>
+                    
+                    <div id="measurement-menu" class="ml-4 space-y-1 {% if 'session' not in request.resolver_match.url_name %}hidden{% endif %}">
+                        <a href="{% url 'physical_education:paps_session_list' %}" 
+                           class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                  {% if request.resolver_match.url_name == 'paps_session_list' %}
+                                      text-blue-600 bg-blue-50 font-medium cursor-default
+                                  {% else %}
+                                      text-gray-500 hover:bg-gray-50
+                                  {% endif %}"
+                           data-current="{% if request.resolver_match.url_name == 'paps_session_list' %}true{% else %}false{% endif %}"
+                           aria-current="{% if request.resolver_match.url_name == 'paps_session_list' %}page{% endif %}">
+                            측정회차관리
+                        </a>
+                        <a href="{% url 'physical_education:paps_session_activities' %}" 
+                           class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                  {% if request.resolver_match.url_name == 'paps_session_activities' %}
+                                      text-blue-600 bg-blue-50 font-medium cursor-default
+                                  {% else %}
+                                      text-gray-500 hover:bg-gray-50
+                                  {% endif %}"
+                           data-current="{% if request.resolver_match.url_name == 'paps_session_activities' %}true{% else %}false{% endif %}"
+                           aria-current="{% if request.resolver_match.url_name == 'paps_session_activities' %}page{% endif %}">
+                            측정종목선택
+                        </a>
+                    </div>
+                    
+                    <!-- 측정결과입력 -->
+                    <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                            onclick="toggleMenu('input-menu')"
+                            aria-expanded="{% if 'measurement' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                            aria-controls="input-menu">
+                        <span>측정결과입력</span>
+                        <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                 {% if 'measurement' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                           id="input-chevron" aria-hidden="true"></i>
+                    </button>
+                    
+                    <div id="input-menu" class="ml-4 space-y-1 {% if 'measurement' not in request.resolver_match.url_name %}hidden{% endif %}">
+                        <a href="{% url 'physical_education:paps_required_measurement' %}" 
+                           class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                  {% if request.resolver_match.url_name == 'paps_required_measurement' %}
+                                      text-blue-600 bg-blue-50 font-medium cursor-default
+                                  {% else %}
+                                      text-gray-500 hover:bg-gray-50
+                                  {% endif %}"
+                           data-current="{% if request.resolver_match.url_name == 'paps_required_measurement' %}true{% else %}false{% endif %}"
+                           aria-current="{% if request.resolver_match.url_name == 'paps_required_measurement' %}page{% endif %}">
+                            학급별필수평가입력
+                        </a>
+                        <a href="{% url 'physical_education:paps_optional_measurement' %}" 
+                           class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                  {% if request.resolver_match.url_name == 'paps_optional_measurement' %}
+                                      text-blue-600 bg-blue-50 font-medium cursor-default
+                                  {% else %}
+                                      text-gray-500 hover:bg-gray-50
+                                  {% endif %}"
+                           data-current="{% if request.resolver_match.url_name == 'paps_optional_measurement' %}true{% else %}false{% endif %}"
+                           aria-current="{% if request.resolver_match.url_name == 'paps_optional_measurement' %}page{% endif %}">
+                            학급별선택평가입력
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+</div>
+
+<!-- 사이드바 오버레이 (모바일용) -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" aria-hidden="true"></div>
+
+<!-- 모바일 사이드바 토글 버튼 -->
+<div class="lg:hidden p-4">
+    <button id="mobile-sidebar-toggle" 
+            class="inline-flex items-center justify-center p-3 rounded-md bg-green-100 text-green-600 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 transition-colors"
+            aria-expanded="false"
+            aria-controls="sidebar"
+            aria-label="메뉴 열기">
+        <i class="fas fa-bars text-lg" aria-hidden="true"></i>
+    </button>
+</div>
+
+<script>
+// 사이드바 토글 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    // 사이드바 닫기
+    function closeSidebar() {
+        sidebar.classList.add('-translate-x-full');
+        sidebarOverlay.classList.add('hidden');
+        mobileSidebarToggle.setAttribute('aria-expanded', 'false');
+        document.body.classList.remove('overflow-hidden'); // 모바일에서 스크롤 복원
+    }
+    
+    // 사이드바 열기
+    function openSidebar() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+        mobileSidebarToggle.setAttribute('aria-expanded', 'true');
+        document.body.classList.add('overflow-hidden'); // 모바일에서 배경 스크롤 방지
+    }
+    
+    // 데스크톱 사이드바 토글 (닫기만)
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', closeSidebar);
+    }
+    
+    // 모바일 사이드바 토글 (열기)
+    if (mobileSidebarToggle) {
+        mobileSidebarToggle.addEventListener('click', openSidebar);
+    }
+    
+    // 오버레이 클릭시 사이드바 닫기
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+    
+    // ESC 키로 사이드바 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) {
+            closeSidebar();
+        }
+    });
+    
+    // 반응형 처리
+    function handleResize() {
+        if (window.innerWidth >= 1024) {
+            // 데스크톱: 사이드바 항상 표시
+            sidebar.classList.remove('-translate-x-full');
+            sidebarOverlay.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            mobileSidebarToggle.setAttribute('aria-expanded', 'false');
+        } else {
+            // 모바일: 사이드바 숨김
+            if (!sidebar.classList.contains('-translate-x-full')) {
+                // 현재 열려있다면 닫기
+                closeSidebar();
+            }
+        }
+    }
+    
+    // 화면 크기 변경 감지
+    window.addEventListener('resize', handleResize);
+    
+    // 초기 실행
+    handleResize();
+    
+    // 현재 페이지 링크 클릭 방지
+    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const isCurrent = this.getAttribute('data-current') === 'true';
+            if (isCurrent) {
+                e.preventDefault();
+                console.log('현재 페이지 링크 클릭이 방지되었습니다:', this.textContent.trim());
+            }
+        });
+    });
+});
+
+// 메뉴 토글 기능
+function toggleMenu(menuId) {
+    const menu = document.getElementById(menuId);
+    const chevron = document.getElementById(menuId.replace('-menu', '-chevron'));
+    const button = document.querySelector(`[aria-controls="${menuId}"]`);
+    
+    if (menu && chevron && button) {
+        if (menu.classList.contains('hidden')) {
+            menu.classList.remove('hidden');
+            chevron.classList.add('rotate-180');
+            button.setAttribute('aria-expanded', 'true');
+        } else {
+            menu.classList.add('hidden');
+            chevron.classList.remove('rotate-180');
+            button.setAttribute('aria-expanded', 'false');
+        }
+    }
+}
+</script>

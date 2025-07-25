@@ -1,0 +1,484 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}측정회차 관리 - PAPS{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+{% include "physical_education/includes/tabulator_setup.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen mobile-nav-padding">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 컨텐츠 -->
+    <div class="flex-1 lg:ml-64">
+        <!-- 페이지 내용 -->
+        <div class="p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">측정회차관리</h1>
+            </div>
+            
+            <!-- 메시지 표시 -->
+            {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                        <div class="p-4 mb-4 rounded-lg {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+                            <div class="flex items-center">
+                                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} mr-2"></i>
+                                {{ message }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- 상단 필터 영역 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-red-500">*</span>
+                            <label class="text-sm font-medium text-gray-700">학년도</label>
+                            <select id="filter-year" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                {% for year in year_range %}
+                                    <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm font-medium text-gray-700">측정구분</label>
+                            <select id="filter-type" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">전체</option>
+                                <option value="REGULAR">정시</option>
+                                <option value="SUPPLEMENTARY">수시</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="btn-search" class="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <i class="fas fa-search mr-2"></i>조회
+                    </button>
+                </div>
+                <div class="mt-3 text-xs text-gray-500 space-y-1">
+                    <p>※ 정시는 학년도에 한번만 입력 가능합니다.</p>
+                    <p>※ 측정회차는 해당 학년도(예상년도:03월~다음년도:02월) 기간만 입력 가능합니다.</p>
+                    <p>※ 측정회차 측정구분은 정시는 1회, 수시는 2회부터 자동입력됩니다.</p>
+                    <p>※ 측정회차를 선택할 경우 해당회차에 입력된 모든 측정결과도 자동삭제됩니다.</p>
+                </div>
+            </div>
+            
+            <!-- 액션 버튼 영역 -->
+            <div class="flex justify-between items-center mb-4">
+                <div class="text-sm text-gray-600">
+                    Total <span id="total-count" class="font-medium">{{ sessions.count|default:"0" }}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-register" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm">
+                        등록
+                    </button>
+                    <button id="btn-delete-selected" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm" disabled>
+                        선택삭제
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Tabulator 테이블 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div id="sessions-table"></div>
+            </div>
+            
+            <!-- 측정회차 등록 영역 (토글) -->
+            <div id="registration-form" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900">측정회차 등록</h2>
+                    <div class="flex gap-2">
+                        <button id="btn-save" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm">
+                            저장
+                        </button>
+                        <button id="btn-cancel" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                
+                <form method="post" id="session-form">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- 학년도 (읽기 전용) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">학년도</label>
+                            <input type="text" id="form-year" name="school_year" readonly 
+                                   class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm cursor-not-allowed">
+                        </div>
+                        
+                        <!-- 측정구분 (읽기 전용) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">측정구분</label>
+                            <input type="text" id="form-type-display" readonly 
+                                   class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm cursor-not-allowed">
+                            <input type="hidden" id="form-type" name="session_type">
+                        </div>
+                        
+                        <!-- 측정회차 (읽기 전용) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">측정회차</label>
+                            <input type="text" id="form-session-number" readonly 
+                                   class="w-full bg-gray-100 border border-gray-300 rounded-md px-3 py-2 text-sm cursor-not-allowed">
+                        </div>
+                        
+                        <!-- 빈 공간 -->
+                        <div class="hidden lg:block"></div>
+                        
+                        <!-- 측정이름 -->
+                        <div class="lg:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <span class="text-red-500">*</span>측정이름
+                            </label>
+                            <input type="text" id="form-name" name="name" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   placeholder="예: 2024년도 정시 1차">
+                        </div>
+                        
+                        <!-- 측정일자 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <span class="text-red-500">*</span>측정일자
+                            </label>
+                            <input type="date" id="form-date" name="measurement_date" required
+                                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
+
+<!-- 삭제 확인 모달 -->
+<div id="delete-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-4">측정회차 삭제</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">선택한 측정회차를 삭제하시겠습니까?</p>
+                <p class="text-sm text-red-600 mt-2">이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 mr-2">
+                    삭제
+                </button>
+                <button id="cancel-delete" class="px-4 py-2 bg-gray-300 text-gray-700 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 전역 변수
+    let sessionsData = [];
+    let currentTable = null;
+    const registrationForm = document.getElementById('registration-form');
+    const sessionForm = document.getElementById('session-form');
+    
+    // 초기 데이터 로드
+    loadSessions();
+    
+    // 세션 데이터 로드 함수
+    function loadSessions() {
+        const year = document.getElementById('filter-year').value;
+        const type = document.getElementById('filter-type').value;
+        
+        // AJAX로 서버에서 데이터 가져오기
+        const params = new URLSearchParams();
+        if (year) params.append('year', year);
+        if (type) params.append('type', type);
+        
+        fetch(`${window.location.pathname}?${params}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                sessionsData = data.sessions;
+                updateTable(sessionsData);
+                updateTotalCount(data.total);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading sessions:', error);
+            // 폴백: Django 템플릿 데이터 사용
+            sessionsData = [
+                {% for session in sessions %}
+                {
+                    id: '{{ session.id }}',
+                    school_year: '{{ session.school_year }}',
+                    session_type: '{{ session.session_type }}',
+                    session_type_display: '{{ session.get_session_type_display }}',
+                    name: '{{ session.name }}',
+                    measurement_date: '{{ session.measurement_date|date:"Y-m-d" }}',
+                    is_completed: {{ session.is_completed|yesno:"true,false" }},
+                    selectable: {{ session.is_completed|yesno:"false,true" }}
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            updateTable(sessionsData);
+            updateTotalCount(sessionsData.length);
+        });
+    }
+    
+    // 테이블 업데이트
+    function updateTable(data) {
+        if (currentTable) {
+            currentTable.setData(data);
+        } else {
+            currentTable = new Tabulator("#sessions-table", {
+                data: data,
+                layout: "fitColumns",
+                selectableRows: true,
+                columns: [
+                    {
+                        formatter: "rowSelection", 
+                        titleFormatter: "rowSelection", 
+                        align: "center", 
+                        headerSort: false, 
+                        width: 60,
+                        resizable: false,
+                        cellClick: function(e, cell) {
+                            cell.getRow().toggleSelect();
+                        }
+                    },
+                    {
+                        title: "측정구분",
+                        field: "session_type_display",
+                        width: 120,
+                        formatter: window.PETabulator.formatters.sessionTypeBadge
+                    },
+                    {
+                        title: "측정회차", 
+                        field: "session_number",
+                        width: 120,
+                        formatter: function(cell) {
+                            const row = cell.getRow().getData();
+                            // 정시는 1, 수시는 해당 연도의 수시 회차 계산
+                            if (row.session_type === 'REGULAR') {
+                                return '1';
+                            } else {
+                                // 같은 연도의 수시 회차들을 찾아서 순서 계산
+                                const sameyearSupplementary = sessionsData.filter(s => 
+                                    s.school_year === row.school_year && 
+                                    s.session_type === 'SUPPLEMENTARY'
+                                ).sort((a, b) => new Date(a.measurement_date) - new Date(b.measurement_date));
+                                
+                                const index = sameyearSupplementary.findIndex(s => s.id === row.id);
+                                return index >= 0 ? (index + 2).toString() : '2';
+                            }
+                        }
+                    },
+                    {
+                        title: "측정이름",
+                        field: "name", 
+                        minWidth: 200,
+                        formatter: function(cell) {
+                            return `<span class="font-medium text-gray-900">${cell.getValue()}</span>`;
+                        }
+                    },
+                    {
+                        title: "진행상태",
+                        field: "is_completed",
+                        width: 120,
+                        formatter: window.PETabulator.formatters.statusBadge
+                    },
+                    {
+                        title: "측정일자",
+                        field: "measurement_date",
+                        width: 140,
+                        formatter: window.PETabulator.formatters.koreanDate
+                    }
+                ],
+                selectableCheck: function(row) {
+                    return !row.getData().is_completed;
+                },
+                rowSelectionChanged: window.PETabulator.events.onRowSelectionChanged,
+                placeholder: `
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-calendar-times text-4xl mb-4 text-gray-400"></i>
+                        <p class="text-lg">등록된 측정회차가 없습니다.</p>
+                        <p class="text-sm">등록 버튼을 클릭하여 새 측정회차를 생성하세요.</p>
+                    </div>
+                `
+            });
+        }
+    }
+    
+    // 총 개수 업데이트
+    function updateTotalCount(count) {
+        document.getElementById('total-count').textContent = count;
+    }
+    
+    // 조회 버튼
+    document.getElementById('btn-search').addEventListener('click', function() {
+        loadSessions();
+    });
+    
+    // 등록 버튼
+    document.getElementById('btn-register').addEventListener('click', function() {
+        const year = document.getElementById('filter-year').value;
+        const type = document.getElementById('filter-type').value;
+        
+        if (!type) {
+            alert('측정구분을 선택해주세요.');
+            return;
+        }
+        
+        // 폼 표시
+        registrationForm.classList.remove('hidden');
+        
+        // 스크롤 이동
+        registrationForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // 폼 자동 채우기
+        document.getElementById('form-year').value = year;
+        document.getElementById('form-type').value = type;
+        document.getElementById('form-type-display').value = type === 'REGULAR' ? '정시' : '수시';
+        
+        // 측정회차 자동 계산
+        const existingSessions = sessionsData.filter(s => 
+            s.school_year === year && s.session_type === type
+        );
+        const sessionNumber = existingSessions.length + 1;
+        document.getElementById('form-session-number').value = sessionNumber;
+        
+        // 측정이름 자동 생성
+        const typeDisplay = type === 'REGULAR' ? '정시' : '수시';
+        document.getElementById('form-name').value = `${year}년도 ${typeDisplay} ${sessionNumber}차`;
+    });
+    
+    // 취소 버튼
+    document.getElementById('btn-cancel').addEventListener('click', function() {
+        registrationForm.classList.add('hidden');
+        sessionForm.reset();
+    });
+    
+    // 저장 버튼
+    document.getElementById('btn-save').addEventListener('click', function() {
+        if (sessionForm.checkValidity()) {
+            // 폼 데이터 수집
+            const formData = new FormData(sessionForm);
+            
+            // AJAX로 제출
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 성공 메시지 표시
+                    alert(`측정회차 "${data.session.name || '새 측정회차'}"이 생성되었습니다.`);
+                    
+                    // 폼 숨기기 및 리셋
+                    registrationForm.classList.add('hidden');
+                    sessionForm.reset();
+                    
+                    // 테이블 새로고침
+                    loadSessions();
+                } else {
+                    // 에러 표시
+                    if (data.errors) {
+                        let errorMsg = '입력 오류:\n';
+                        for (let field in data.errors) {
+                            errorMsg += `${field}: ${data.errors[field].join(', ')}\n`;
+                        }
+                        alert(errorMsg);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error saving session:', error);
+                // 폴백: 일반 폼 제출
+                sessionForm.submit();
+            });
+        } else {
+            sessionForm.reportValidity();
+        }
+    });
+    
+    // 삭제 기능
+    const deleteButton = document.getElementById('btn-delete-selected');
+    const deleteModal = document.getElementById('delete-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete');
+    const cancelDeleteBtn = document.getElementById('cancel-delete');
+    
+    deleteButton.addEventListener('click', function() {
+        const selectedRows = currentTable.getSelectedRows();
+        if (selectedRows.length > 0) {
+            deleteModal.classList.remove('hidden');
+        }
+    });
+    
+    cancelDeleteBtn.addEventListener('click', function() {
+        deleteModal.classList.add('hidden');
+    });
+    
+    confirmDeleteBtn.addEventListener('click', function() {
+        const selectedRows = currentTable.getSelectedRows();
+        const sessionIds = selectedRows.map(row => row.getData().id);
+        
+        // 폼 생성 및 제출
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = window.location.href;
+        
+        // CSRF 토큰
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // 삭제 플래그
+        const deleteInput = document.createElement('input');
+        deleteInput.type = 'hidden';
+        deleteInput.name = 'delete';
+        deleteInput.value = 'true';
+        form.appendChild(deleteInput);
+        
+        // 세션 ID들
+        sessionIds.forEach(id => {
+            const sessionInput = document.createElement('input');
+            sessionInput.type = 'hidden';
+            sessionInput.name = 'session_ids';
+            sessionInput.value = id;
+            form.appendChild(sessionInput);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    });
+    
+    // 모달 외부 클릭시 닫기
+    deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+            deleteModal.classList.add('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}
