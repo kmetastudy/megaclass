@@ -566,14 +566,24 @@ def api_paps_save_measurement(request):
 
         activity = get_object_or_404(PAPSActivity, id=activity_id)
 
-        # 학생 정보 확인 (실제 구현에서는 Student 모델 사용)
-        # student = get_object_or_404(Student, id=student_id)
-        # class_id = student.class_id
-        # student_grade = student.grade
-
-        # 임시로 하드코딩 (실제 구현에서는 위 코드 사용)
-        class_id = 1
-        student_grade = 6
+        # 학생 정보 확인 및 권한 검증
+        try:
+            student = get_object_or_404(Student, id=student_id)
+            class_id = student.school_class.id
+            student_grade = student.school_class.grade
+            
+            # 교사가 해당 학생의 학급을 담당하는지 권한 확인
+            if not ClassTeacher.objects.filter(
+                teacher_id=request.user.teacher.id, 
+                class_instance=student.school_class
+            ).exists():
+                return JsonResponse(
+                    {"success": False, "error": "해당 학생의 측정 데이터를 저장할 권한이 없습니다."}
+                )
+        except Student.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "해당 학생을 찾을 수 없습니다."}
+            )
 
         # 기존 기록 조회 또는 생성
         record, created = PAPSRecord.objects.get_or_create(
