@@ -103,13 +103,14 @@ def teacher_dashboard(request):
     # 각 측정회차별 진행률 계산
     session_progress = []
     for session in recent_sessions:
-        # 해당 회차의 총 활동 수
+        # 해당 회차의 총 활동 수 (활성 상태인 것만)
         total_activities = PAPSSessionActivity.objects.filter(
-            session_id=session.id
+            session_id=session.id,
+            is_active=True
         ).count()
 
-        # 측정 완료된 기록 수 (임시로 전체 기록 수 사용)
-        completed_records = PAPSRecord.objects.filter(session_id=session.id).count()
+        # 측정 완료된 기록 수 (활성 종목에 대한 기록만)
+        completed_records = PAPSRecord.objects.active_for_session(session.id).count()
 
         # 진행률 계산 (임시로 간단한 계산)
         progress_percentage = (
@@ -169,8 +170,8 @@ def paps_session_list_view(request):
                             errors.append(error_msg)
                             messages.error(request, error_msg)
                             continue
-                        # 관련 측정 기록이 있는지 확인
-                        if PAPSRecord.objects.filter(session_id=session.id).exists():
+                        # 관련 측정 기록이 있는지 확인 (활성 종목에 대한 기록만)
+                        if PAPSRecord.objects.active_for_session(session.id).exists():
                             error_msg = f'측정 기록이 있는 회차 "{session.name}"는 삭제할 수 없습니다.'
                             errors.append(error_msg)
                             messages.error(request, error_msg)
@@ -337,8 +338,8 @@ def paps_session_delete_view(request, session_id):
         messages.error(request, '완료된 측정회차는 삭제할 수 없습니다.')
         return redirect('physical_education:paps_session_list')
     
-    # 관련 측정 기록이 있는지 확인
-    if PAPSRecord.objects.filter(session_id=session.id).exists():
+    # 관련 측정 기록이 있는지 확인 (활성 종목에 대한 기록만)
+    if PAPSRecord.objects.active_for_session(session.id).exists():
         messages.error(request, '측정 기록이 있는 회차는 삭제할 수 없습니다.')
         return redirect('physical_education:paps_session_list')
     
@@ -393,9 +394,10 @@ def paps_session_activities_view(request):
             evaluation_type=PAPSCategory.OPTIONAL
         ).order_by("order")
 
-        # 기존 선택된 종목들 조회
+        # 기존 선택된 종목들 조회 (활성 상태인 것만)
         existing_activities = PAPSSessionActivity.objects.filter(
-            session_id=session.id
+            session_id=session.id,
+            is_active=True
         ).select_related("category_id", "activity_id")
 
     context = {
@@ -585,26 +587,26 @@ def api_paps_save_measurement(request):
                 {"success": False, "error": "해당 학생을 찾을 수 없습니다."}
             )
 
-        # 기존 기록 조회 또는 생성
-        record, created = PAPSRecord.objects.get_or_create(
-            session_id=session.id,
-            student_id=student_id,
-            activity_id=activity.id,
-            defaults={
-                "measured_by_teacher_id": request.user.teacher.id,
-                "class_id": class_id,
-                "student_grade": student_grade,
-                "measurement_data": measurement_data,
-            },
-        )
+        # 기존 기록 조회 및 업데이트 (PAPSRecord는 PAPSSessionActivity 생성 시 자동 생성됨)
+        try:
+            record = PAPSRecord.objects.get(
+                session_id=session.id,
+                student_id=student_id,
+                activity_id=activity.id
+            )
+        except PAPSRecord.DoesNotExist:
+            return JsonResponse({
+                "success": False, 
+                "error": "측정 기록을 찾을 수 없습니다. 측정 종목이 올바르게 설정되었는지 확인해주세요."
+            })
 
-        if not created:
-            record.measurement_data = measurement_data
-            record.measured_at = timezone.now()
-            record.save()
+        # 측정 데이터 업데이트
+        record.measurement_data = measurement_data
+        record.measured_at = timezone.now()
+        record.save()
 
         return JsonResponse(
-            {"success": True, "record_id": str(record.id), "created": created}
+            {"success": True, "record_id": str(record.id), "updated": True}
         )
 
     except json.JSONDecodeError:

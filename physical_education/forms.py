@@ -209,9 +209,14 @@ class PAPSActivitySelectionForm(forms.Form):
         return cleaned_data
 
     def save_selections(self, session, selected_grades):
-        """선택된 종목들을 PAPSSessionActivity에 저장"""
+        """
+        선택된 종목들을 PAPSSessionActivity에 저장
         
-        # 기존 선택 삭제
+        ⚠️ 주의: 이 메서드는 구식 Delete & Recreate 패턴을 사용합니다.
+        새로운 Activate/Deactivate 패턴을 사용하는 api_save_session_activities API를 사용하세요.
+        """
+        
+        # 기존 선택 삭제 (⚠️ 구식 패턴 - API 사용 권장)
         PAPSSessionActivity.objects.filter(
             session_id=session.id,
             grade__in=selected_grades

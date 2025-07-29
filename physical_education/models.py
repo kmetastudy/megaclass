@@ -164,14 +164,43 @@ class PAPSSessionActivity(models.Model):
     )
     category_id = models.UUIDField()  # PAPSCategory ID 참조
     activity_id = models.UUIDField()  # PAPSActivity ID 참조
+    is_active = models.BooleanField(default=True, verbose_name="활성 상태")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ["session_id", "grade", "category_id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['session_id', 'grade', 'category_id'],
+                condition=models.Q(is_active=True),
+                name='unique_active_session_grade_category'
+            ),
+            models.UniqueConstraint(
+                fields=['session_id', 'grade', 'category_id', 'activity_id'],
+                name='unique_session_grade_category_activity'
+            ),
+        ]
 
     def __str__(self):
         return f"{self.get_grade_display()} - 선택 종목"
+
+
+class PAPSRecordManager(models.Manager):
+    """PAPSRecord 전용 Manager"""
+    
+    def active_for_session(self, session_id, grade=None):
+        """활성 PAPSSessionActivity와 연결된 PAPSRecord만 조회"""
+        active_activities = PAPSSessionActivity.objects.filter(
+            session_id=session_id,
+            is_active=True
+        )
+        if grade:
+            active_activities = active_activities.filter(grade=grade)
+        
+        return self.filter(
+            session_id=session_id,
+            activity_id__in=active_activities.values_list('activity_id', flat=True)
+        )
 
 
 class PAPSRecord(models.Model):
@@ -205,6 +234,9 @@ class PAPSRecord(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Manager 적용
+    objects = PAPSRecordManager()
 
     class Meta:
         ordering = ["-measured_at"]

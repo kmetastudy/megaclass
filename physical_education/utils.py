@@ -376,6 +376,178 @@ def calculate_paps_grade(
     return grade_result
 
 
+# ==================== PAPSRecord 자동 생성 유틸리티 ====================
+
+def create_default_paps_records(session_activity, teacher_id):
+    """
+    특정 PAPSSessionActivity에 대한 모든 학생의 기본 PAPSRecord 생성
+    
+    Args:
+        session_activity: PAPSSessionActivity 인스턴스
+        teacher_id: 교사 ID
+    
+    Returns:
+        dict: {'created_count': int, 'skipped_count': int, 'students': list}
+    """
+    from django.db import transaction
+    from .models import PAPSRecord
+    from accounts.models import Student, ClassTeacher
+    
+    created_count = 0
+    skipped_count = 0
+    students_info = []
+    
+    try:
+        with transaction.atomic():
+            # 해당 학년의 교사가 담당하는 모든 학급의 학생들 조회
+            students = Student.objects.filter(
+                school_class__grade=session_activity.grade,
+                school_class__classteacher__teacher_id=teacher_id
+            ).select_related('school_class', 'user')
+            
+            for student in students:
+                # 이미 해당 활동에 대한 기록이 있는지 확인
+                existing_record = PAPSRecord.objects.filter(
+                    session_id=session_activity.session_id,
+                    student_id=student.id,
+                    activity_id=session_activity.activity_id
+                ).first()
+                
+                if existing_record:
+                    skipped_count += 1
+                    students_info.append({
+                        'student_id': student.id,
+                        'student_name': student.user.get_full_name(),
+                        'status': 'skipped',
+                        'reason': 'already_exists'
+                    })
+                else:
+                    # 새로운 PAPSRecord 생성 (빈 측정 데이터로)
+                    PAPSRecord.objects.create(
+                        session_id=session_activity.session_id,
+                        student_id=student.id,
+                        activity_id=session_activity.activity_id,
+                        measured_by_teacher_id=teacher_id,
+                        class_id=student.school_class.id,
+                        student_grade=student.school_class.grade,
+                        measurement_data={}  # 빈 측정 데이터
+                    )
+                    created_count += 1
+                    students_info.append({
+                        'student_id': student.id,
+                        'student_name': student.user.get_full_name(),
+                        'status': 'created',
+                        'class_name': str(student.school_class)
+                    })
+            
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'PAPSRecord 생성 중 오류: {str(e)}',
+            'created_count': 0,
+            'skipped_count': 0
+        }
+    
+    return {
+        'success': True,
+        'created_count': created_count,
+        'skipped_count': skipped_count,
+        'students': students_info
+    }
+
+
+def get_students_for_session_activity(session_activity, teacher_id):
+    """
+    세션 활동에 해당하는 학생들 조회 (권한 검증 포함)
+    
+    Args:
+        session_activity: PAPSSessionActivity 인스턴스
+        teacher_id: 교사 ID
+    
+    Returns:
+        QuerySet: 해당 학년의 교사 담당 학생들
+    """
+    from accounts.models import Student, ClassTeacher
+    
+    return Student.objects.filter(
+        school_class__grade=session_activity.grade,
+        school_class__classteacher__teacher_id=teacher_id
+    ).select_related('school_class', 'user')
+
+
+def get_active_session_activities(session_id, grade=None):
+    """
+    활성 상태인 세션 활동들만 조회
+    
+    Args:
+        session_id: PAPSSession ID
+        grade: 학년 (optional)
+    
+    Returns:
+        QuerySet: 활성 PAPSSessionActivity들
+    """
+    from .models import PAPSSessionActivity
+    
+    queryset = PAPSSessionActivity.objects.filter(
+        session_id=session_id,
+        is_active=True
+    )
+    
+    if grade:
+        queryset = queryset.filter(grade=grade)
+    
+    return queryset
+
+
+def deactivate_session_activity(session_activity):
+    """
+    세션 활동을 비활성화
+    기존 측정 데이터는 보존하되, 더 이상 활성 목록에 표시되지 않도록 함
+    
+    Args:
+        session_activity: PAPSSessionActivity 인스턴스
+    
+    Returns:
+        dict: 처리 결과
+    """
+    try:
+        session_activity.is_active = False
+        session_activity.save()
+        
+        return {
+            'success': True,
+            'message': f'{session_activity.get_grade_display()} 종목이 비활성화되었습니다.'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': f'비활성화 중 오류: {str(e)}'
+        }
+
+
+def get_paps_records_for_active_activities(session_id, grade=None, student_id=None):
+    """
+    활성 세션 활동에 해당하는 PAPSRecord들만 조회
+    
+    Args:
+        session_id: PAPSSession ID  
+        grade: 학년 (optional)
+        student_id: 학생 ID (optional)
+    
+    Returns:
+        QuerySet: 활성 종목에 해당하는 PAPSRecord들
+    """
+    from .models import PAPSRecord
+    
+    # Manager 메서드 사용
+    queryset = PAPSRecord.objects.active_for_session(session_id, grade)
+    
+    if student_id:
+        queryset = queryset.filter(student_id=student_id)
+    
+    return queryset
+
+
 # ==================== 임시 성별 처리 ====================
 
 def get_temporary_gender_info() -> Dict[str, str]:

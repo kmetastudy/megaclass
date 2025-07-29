@@ -75,11 +75,12 @@ def api_get_activity_form_fields(request):
             evaluation_type=PAPSCategory.OPTIONAL
         ).order_by('order')
         
-        # 기존 선택된 종목들 조회
+        # 기존 선택된 종목들 조회 (활성 상태인 것만)
         existing_activities = {}
         existing_selections = PAPSSessionActivity.objects.filter(
             session_id=session.id,
-            grade__in=selected_grades
+            grade__in=selected_grades,
+            is_active=True
         )
         
         for selection in existing_selections:
@@ -190,6 +191,7 @@ def api_save_session_activities(request):
         session_id = data.get('session_id')
         selected_grades = data.get('selected_grades', [])
         activity_selections = data.get('activity_selections', {})
+        print(f"Received data: session_id={session_id}, selected_grades={selected_grades}, activity_selections={activity_selections}")
         
         # 필수 파라미터 확인
         if not session_id:
@@ -236,16 +238,32 @@ def api_save_session_activities(request):
                 'error': f'다음 필수평가 영역을 선택해주세요: {", ".join(missing_required)}'
             })
         
-        # 데이터베이스 저장
+        # 데이터베이스 저장 (Activate/Deactivate 패턴)
         with transaction.atomic():
-            # 기존 선택 삭제
-            PAPSSessionActivity.objects.filter(
+            from .utils import create_default_paps_records, deactivate_session_activity
+            
+            # 모든 기존 항목들 조회 (활성/비활성 구분없이)
+            all_existing_activities = PAPSSessionActivity.objects.filter(
                 session_id=session.id,
                 grade__in=selected_grades
-            ).delete()
+            )
             
-            # 새로운 선택 저장
-            session_activities = []
+            # 기존 항목들을 활성/비활성 구분하여 매핑
+            active_existing_map = {}  # category_id + grade -> 활성 항목
+            inactive_existing_map = {}  # category_id + grade + activity_id -> 비활성 항목들
+            
+            for existing in all_existing_activities:
+                category_grade_key = f"{existing.category_id}_{existing.grade}"
+                category_grade_activity_key = f"{existing.category_id}_{existing.grade}_{existing.activity_id}"
+                
+                if existing.is_active:
+                    active_existing_map[category_grade_key] = existing
+                else:
+                    inactive_existing_map[category_grade_activity_key] = existing
+            
+            # 새로운 선택들을 파싱하여 필요한 항목들 파악
+            new_selections = {}
+            activities_to_create = []
             
             for field_name, activity_id in activity_selections.items():
                 if not activity_id:  # 선택되지 않은 경우 건너뛰기
@@ -268,13 +286,12 @@ def api_save_session_activities(request):
                     category = PAPSCategory.objects.get(name=category_name)
                     activity = PAPSActivity.objects.get(id=activity_id)
                     
-                    session_activity = PAPSSessionActivity(
-                        session_id=session.id,
-                        grade=grade,
-                        category_id=category.id,
-                        activity_id=activity.id
-                    )
-                    session_activities.append(session_activity)
+                    key = f"{category.id}_{grade}"
+                    new_selections[key] = {
+                        'category': category,
+                        'activity': activity,
+                        'grade': grade
+                    }
                     
                 except PAPSCategory.DoesNotExist:
                     print(f"카테고리를 찾을 수 없음: {category_name}")
@@ -283,14 +300,91 @@ def api_save_session_activities(request):
                     print(f"활동을 찾을 수 없음: {activity_id}")
                     continue
             
-            # 벌크 생성
-            PAPSSessionActivity.objects.bulk_create(session_activities)
+            # 1. 기존 활성 항목 중 선택이 변경되었거나 제거된 항목들을 비활성화
+            deactivated_count = 0
+            for key, existing_activity in active_existing_map.items():
+                new_selection = new_selections.get(key)
+                
+                if not new_selection or str(new_selection['activity'].id) != str(existing_activity.activity_id):
+                    # 선택이 변경되었거나 제거된 경우 비활성화
+                    result = deactivate_session_activity(existing_activity)
+                    if result['success']:
+                        deactivated_count += 1
+            
+            # 2. 새로운 항목들이나 변경된 항목들을 위한 PAPSSessionActivity 생성/재활성화
+            created_count = 0
+            reactivated_count = 0
+            
+            for key, selection in new_selections.items():
+                active_existing = active_existing_map.get(key)
+                
+                # 기존 활성 항목이 없거나, 있지만 선택된 활동이 다른 경우
+                if not active_existing or str(selection['activity'].id) != str(active_existing.activity_id):
+                    
+                    # 우선 같은 activity_id를 가진 비활성 항목이 있는지 확인
+                    inactive_key = f"{selection['category'].id}_{selection['grade']}_{selection['activity'].id}"
+                    existing_inactive = inactive_existing_map.get(inactive_key)
+                    
+                    if existing_inactive:
+                        # 비활성 항목 재활성화
+                        existing_inactive.is_active = True
+                        existing_inactive.save()
+                        print(f"기존 비활성 항목 재활성화: session={session.id}, grade={selection['grade']}, category={selection['category'].get_name_display()}, activity={selection['activity'].get_name_display()}")
+                        
+                        # PAPSRecord 자동 생성 (필요한 경우)
+                        record_result = create_default_paps_records(existing_inactive, request.user.teacher.id)
+                        if record_result['success']:
+                            print(f"PAPSRecord 자동 생성: {record_result['created_count']}개 생성, {record_result['skipped_count']}개 건너뛰기")
+                        
+                        activities_to_create.append(existing_inactive)
+                        reactivated_count += 1
+                    else:
+                        # 새로운 PAPSSessionActivity 생성
+                        try:
+                            new_session_activity = PAPSSessionActivity.objects.create(
+                                session_id=session.id,
+                                grade=selection['grade'],
+                                category_id=selection['category'].id,
+                                activity_id=selection['activity'].id,
+                                is_active=True
+                            )
+                            print(f"신규 PAPSSessionActivity 생성: session={session.id}, grade={selection['grade']}, category={selection['category'].get_name_display()}, activity={selection['activity'].get_name_display()}")
+                            
+                            # 새로운 세션 활동에 대한 PAPSRecord 자동 생성
+                            record_result = create_default_paps_records(new_session_activity, request.user.teacher.id)
+                            if record_result['success']:
+                                print(f"PAPSRecord 자동 생성: {record_result['created_count']}개 생성, {record_result['skipped_count']}개 건너뛰기")
+                            else:
+                                print(f"PAPSRecord 생성 실패: {record_result['error']}")
+                            
+                            activities_to_create.append(new_session_activity)
+                            created_count += 1
+                            
+                        except Exception as create_error:
+                            print(f"PAPSSessionActivity 생성 실패: {create_error}")
+                            raise create_error
+            
+            # 응답 메시지 구성
+            total_selections = len(new_selections)
+            message_parts = [f'{len(selected_grades)}개 학년']
+            
+            if created_count > 0:
+                message_parts.append(f'{created_count}개 종목 신규생성')
+            if reactivated_count > 0:
+                message_parts.append(f'{reactivated_count}개 종목 재활성화')
+            if deactivated_count > 0:
+                message_parts.append(f'{deactivated_count}개 종목 비활성화')
+            
+            message = ', '.join(message_parts) + '되었습니다.'
             
             return JsonResponse({
                 'success': True,
-                'message': f'{len(selected_grades)}개 학년, {len(session_activities)}개 종목이 저장되었습니다.',
+                'message': message,
                 'data': {
-                    'saved_count': len(session_activities),
+                    'total_selections': total_selections,
+                    'created_count': created_count,
+                    'reactivated_count': reactivated_count,
+                    'deactivated_count': deactivated_count,
                     'grades_count': len(selected_grades)
                 }
             })
@@ -331,9 +425,10 @@ def api_get_existing_activities(request):
             teacher_id=request.user.teacher.id
         )
         
-        # 기존 선택된 종목들 조회
+        # 기존 선택된 종목들 조회 (활성 상태인 것만)
         existing_activities = PAPSSessionActivity.objects.filter(
-            session_id=session.id
+            session_id=session.id,
+            is_active=True
         )
         
         activities_data = []
