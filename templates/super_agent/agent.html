@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - 교육 콘텐츠 통합 관리</title>
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 커스텀 CSS -->
+    <link rel="stylesheet" href="/static/css/super_agent/super_agent.css">
+    <!-- agent.html의 <head> 섹션에 추가 -->
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+
+    <!-- </body> 태그 앞에 추가 -->
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <!-- </body> 태그 앞에 추가 (CodeMirror 스크립트들 다음에) -->
+    <!-- js-beautify 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- CSRF Token -->
+    {% csrf_token %}
+    
+    <!-- 상단 메뉴 -->
+    <nav class="top-nav bg-white shadow-sm border-b border-gray-200 px-6 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-xl font-bold text-gray-900">
+                    <i class="fas fa-robot text-blue-600 mr-2"></i>AI Agent
+                </h1>
+                <div class="text-sm text-gray-600">
+                    {% if user.is_authenticated %}
+                        {{ user.get_full_name|default:user.username }}님의 통합 관리 시스템
+                    {% else %}
+                        교육 콘텐츠 통합 관리 시스템
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 영역 제어 버튼들 -->
+            <div class="flex items-center space-x-2">
+                <button id="promptToggleBtn" onclick="togglePromptArea()" class="btn-toggle px-3 py-1 rounded text-sm bg-blue-100 text-blue-700 hover:bg-blue-200">
+                    <i class="fas fa-comment-alt mr-1"></i>프롬프트
+                </button>
+                <button onclick="toggleArea('course')" class="btn-toggle px-3 py-1 rounded text-sm bg-green-100 text-green-700 hover:bg-green-200">
+                    <i class="fas fa-sitemap mr-1"></i>코스
+                </button>
+                <button id="manualEditToggleBtn" onclick="toggleManualEditPanel()" class="btn-toggle px-3 py-1 rounded text-sm bg-orange-100 text-orange-700 hover:bg-orange-200">
+                    <i class="fas fa-edit mr-1"></i>수동편집
+                </button>
+                <button id="contentToggleBtn" onclick="toggleContentArea()" class="btn-toggle px-3 py-1 rounded text-sm bg-purple-100 text-purple-700 hover:bg-purple-200">
+                    <i class="fas fa-file-alt mr-1"></i>콘텐츠
+                </button>
+                <button onclick="toggleArea('search')" class="btn-toggle px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-700 hover:bg-yellow-200">
+                    <i class="fas fa-search mr-1"></i>검색
+                </button>
+                
+                <div class="border-l border-gray-300 h-6 mx-2"></div>
+                
+                <button onclick="showStatistics()" class="px-3 py-1 rounded text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-chart-bar mr-1"></i>통계
+                </button>
+                <a href="{% url 'teacher:dashboard' %}" class="px-3 py-1 rounded text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-home mr-1"></i>대시보드
+                </a>
+                <a href="{% url 'accounts:logout' %}" class="px-3 py-1 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200">
+                    <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 1영역: 드래그 가능한 프롬프트 (플로팅) -->
+<div id="promptArea" class="fixed top-20 left-1/2 transform -translate-x-1/2 w-2/3 max-w-4xl z-20 prompt-visible">
+    <div class="bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+        <!-- 드래그 가능한 헤더 -->
+        <div class="prompt-header draggable-prompt" id="promptHeader">
+            <div class="flex items-center flex-1">
+                <i class="fas fa-grip-vertical mr-2"></i>
+                <span class="font-medium">AI 프롬프트</span>
+            </div>
+            <button class="prompt-minimize-btn" onclick="togglePromptArea()" title="숨기기">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+        
+        <!-- 프롬프트 카드 내용 -->
+        <div class="p-6">
+            <!-- 프롬프트 카드 상단 -->
+            <div class="mb-4">
+                <textarea id="promptInput" rows="4" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                          placeholder="AI에게 요청할 내용을 입력하세요... (예: 수학 중1 피타고라스 정리에 대한 객관식 문제 5개 만들어줘)"></textarea>
+            </div>
+            
+            <!-- 프롬프트 카드 하단 -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <!-- 파일 첨부 (다중 파일 지원) -->
+                    <div class="flex items-center">
+                        <input type="file" id="fileUpload" class="hidden" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.png,.xlsx,.xls,.csv">
+                        <button onclick="document.getElementById('fileUpload').click()" 
+                                class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            <i class="fas fa-paperclip mr-1"></i>첨부
+                        </button>
+                        <span id="fileCount" class="ml-2 text-sm text-gray-500"></span>
+                    </div>
+                    
+                    <!-- AI 프로바이더 선택 -->
+                    <div class="flex space-x-1" id="aiProviderButtons">
+                        <button onclick="selectAIProvider('claude', event)" class="ai-provider-btn active px-3 py-2 text-sm rounded-lg border border-gray-300">
+                            Claude
+                        </button>
+                        <button onclick="selectAIProvider('gemini', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                            Gemini
+                        </button>
+                        <button onclick="selectAIProvider('chatgpt', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                            ChatGPT
+                        </button>
+                        <button onclick="selectAIProvider('grok', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                            Grok
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 실행 버튼 -->
+                <button onclick="executePrompt()" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i class="fas fa-magic mr-2"></i>생성하기
+                </button>
+            </div>
+            
+            <!-- 아코디언 설정 영역 -->
+            <div class="mt-4 border-t pt-4">
+                <button onclick="togglePromptSettings()" 
+                        class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900">
+                    <span><i class="fas fa-cog mr-2"></i>고급 설정</span>
+                    <i id="settingsToggleIcon" class="fas fa-chevron-down transition-transform"></i>
+                </button>
+                
+                <div id="promptSettings" class="prompt-settings mt-3">
+                    <!-- Agent 모드 선택 탭 -->
+                    <div class="mb-4 border-b border-gray-200">
+                        <nav class="flex space-x-4">
+                            <button onclick="switchAgentMode('course')" 
+                                    class="agent-mode-tab active px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600"
+                                    data-mode="course">
+                                <i class="fas fa-sitemap mr-2"></i>Course 제작
+                            </button>
+                            <button onclick="switchAgentMode('content')" 
+                                    class="agent-mode-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+                                    data-mode="content">
+                                <i class="fas fa-file-alt mr-2"></i>Content 제작
+                            </button>
+                            <button onclick="switchAgentMode('batch')" 
+                                    class="agent-mode-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700"
+                                    data-mode="batch">
+                                <i class="fas fa-layer-group mr-2"></i>Batch 처리
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <!-- Course 제작 설정 -->
+                    <div id="courseSettings" class="agent-settings">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">교육 단계</label>
+                                <select id="educationLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="elementary">초등학교</option>
+                                    <option value="middle" selected>중학교</option>
+                                    <option value="high">고등학교</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">난이도</label>
+                                <select id="courseDifficulty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="상">상</option>
+                                    <option value="중" selected>중</option>
+                                    <option value="하">하</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">추가 옵션</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeAssessment" checked class="mr-2 rounded">
+                                        <span class="text-sm">평가 항목 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeActivities" checked class="mr-2 rounded">
+                                        <span class="text-sm">학습 활동 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeResources" class="mr-2 rounded">
+                                        <span class="text-sm">참고 자료 포함</span>
+                                    </label>
+                                                        <!-- 여기에 추가 -->
+                                    <div class="mt-2 pt-2 border-t border-gray-200">
+                                        <label class="flex items-center cursor-pointer">
+                                            <input type="checkbox" id="generateFullCourse" class="mr-2 rounded text-blue-600">
+                                            <span class="text-sm font-medium">전체 코스 생성 
+                                                <span class="text-xs text-gray-500">(PDF 파일의 모든 내용 포함)</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Content 제작 설정 -->
+                    <div id="contentSettings" class="agent-settings hidden">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 콘텐츠 타입 선택 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">콘텐츠 타입</label>
+                                <select id="contentTypeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="">선택하세요</option>
+                                    {% for content_type in content_types %}
+                                    <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- 슬라이드 유형 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">슬라이드 유형</label>
+                                <select id="slideType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="single">단일 슬라이드</option>
+                                    <option value="multiple">다중 슬라이드</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 난이도 설정 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">난이도</label>
+                                <select id="contentDifficulty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="상">상</option>
+                                    <option value="중" selected>중</option>
+                                    <option value="하">하</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 슬라이드 개수 (다중 슬라이드 선택시만 표시) -->
+                            <div id="slideCountDiv" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">슬라이드 개수</label>
+                                <input type="number" id="slideCount" min="2" max="20" value="5" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <!-- 체크박스 설정들 -->
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">콘텐츠 옵션</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeExplanation" checked class="mr-2 rounded">
+                                        <span class="text-sm">해설 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeHints" class="mr-2 rounded">
+                                        <span class="text-sm">힌트 제공</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeImages" class="mr-2 rounded">
+                                        <span class="text-sm">이미지 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="multipleVersions" class="mr-2 rounded">
+                                        <span class="text-sm">다양한 버전</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Batch 처리 설정 -->
+                    <div id="batchSettings" class="agent-settings hidden">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Batch 유형 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">처리 유형</label>
+                                <select id="batchType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="slide_generation">슬라이드 생성</option>
+                                    <option value="question_generation">문항 생성</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 생성 개수 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">생성 개수</label>
+                                <input type="number" id="batchCount" min="1" max="100" value="10" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            
+                            <!-- 슬라이드 생성 옵션 -->
+                            <div id="slideGenerationOptions" class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">슬라이드 생성 옵션</label>
+                                <div class="space-y-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="autoConnect" checked class="mr-2 rounded">
+                                        <span class="text-sm">차시에 자동 연결</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="generateThumbnails" class="mr-2 rounded">
+                                        <span class="text-sm">썸네일 생성</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 문항 생성 옵션 -->
+                            <div id="questionGenerationOptions" class="col-span-2 hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">문항 생성 옵션</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="multipleChoice" checked class="mr-2 rounded">
+                                        <span class="text-sm">객관식</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="shortAnswer" class="mr-2 rounded">
+                                        <span class="text-sm">주관식</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="essay" class="mr-2 rounded">
+                                        <span class="text-sm">서술형</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="trueFalse" class="mr-2 rounded">
+                                        <span class="text-sm">OX문제</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- 파일 목록 표시 영역 -->
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">첨부 파일 목록</label>
+                                <div id="fileListDisplay" class="border border-gray-300 rounded-lg p-2 max-h-32 overflow-y-auto bg-gray-50">
+                                    <p class="text-sm text-gray-500 text-center">첨부된 파일이 없습니다</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    {% comment %} <!-- 1영역: 드래그 가능한 프롬프트 (플로팅) -->
+    <div id="promptArea" class="fixed top-20 left-1/2 transform -translate-x-1/2 w-2/3 max-w-4xl z-20 prompt-visible">
+        <div class="bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+            <!-- 드래그 가능한 헤더 -->
+            <div class="prompt-header draggable-prompt" id="promptHeader">
+                <div class="flex items-center flex-1">
+                    <i class="fas fa-grip-vertical mr-2"></i>
+                    <span class="font-medium">AI 프롬프트</span>
+                </div>
+                <button class="prompt-minimize-btn" onclick="togglePromptArea()" title="숨기기">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            
+            <!-- 프롬프트 카드 내용 -->
+            <div class="p-6">
+                <!-- 프롬프트 카드 상단 -->
+                <div class="mb-4">
+                    <textarea id="promptInput" rows="4" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              placeholder="AI에게 요청할 내용을 입력하세요... (예: 수학 중1 피타고라스 정리에 대한 객관식 문제 5개 만들어줘)"></textarea>
+                </div>
+                
+                <!-- 프롬프트 카드 하단 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <!-- 파일 첨부 -->
+                        <div class="flex items-center">
+                            <input type="file" id="fileUpload" class="hidden" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.png">
+                            <button onclick="document.getElementById('fileUpload').click()" 
+                                    class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-paperclip mr-1"></i>첨부
+                            </button>
+                            <span id="fileCount" class="ml-2 text-sm text-gray-500"></span>
+                        </div>
+                        
+                        <!-- AI 프로바이더 선택 -->
+                        <div class="flex space-x-1" id="aiProviderButtons">
+                            <button onclick="selectAIProvider('claude', event)" class="ai-provider-btn active px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Claude
+                            </button>
+                            <button onclick="selectAIProvider('gemini', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Gemini
+                            </button>
+                            <button onclick="selectAIProvider('chatgpt', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                ChatGPT
+                            </button>
+                            <button onclick="selectAIProvider('grok', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Grok
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 실행 버튼 -->
+                    <button onclick="executePrompt()" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors">
+                        <i class="fas fa-magic mr-2"></i>생성하기
+                    </button>
+                </div>
+                
+                <!-- 아코디언 설정 영역 -->
+                <div class="mt-4 border-t pt-4">
+                    <button onclick="togglePromptSettings()" 
+                            class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900">
+                        <span><i class="fas fa-cog mr-2"></i>고급 설정</span>
+                        <i id="settingsToggleIcon" class="fas fa-chevron-down transition-transform"></i>
+                    </button>
+                    
+                    <div id="promptSettings" class="prompt-settings mt-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 콘텐츠 타입 선택 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">콘텐츠 타입</label>
+                                <select id="contentTypeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="">선택하세요</option>
+                                    {% for content_type in content_types %}
+                                    <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- 난이도 설정 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">난이도</label>
+                                <select id="difficultySelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="초급">초급</option>
+                                    <option value="중급" selected>중급</option>
+                                    <option value="고급">고급</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 체크박스 설정들 -->
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">AI 최적화 옵션</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeExplanation" checked class="mr-2 rounded">
+                                        <span class="text-sm">해설 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeHints" class="mr-2 rounded">
+                                        <span class="text-sm">힌트 제공</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeImages" class="mr-2 rounded">
+                                        <span class="text-sm">이미지 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="multipleVersions" class="mr-2 rounded">
+                                        <span class="text-sm">다양한 버전</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> {% endcomment %}
+
+    <!-- 메인 컨테이너 -->
+    <div class="flex main-container min-h-screen" id="mainContainer" style="padding-top: 64px;">
+        <!-- 2영역: 코스 네비게이션 (좌측) -->
+        <div id="courseArea" class="area-toggle course-area h-screen">
+            <div class="area-header">
+                <h3 class="flex items-center">
+                    <i class="fas fa-sitemap mr-2"></i>코스 구조
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <button onclick="refreshCourseList()" class="text-gray-500 hover:text-gray-700" title="새로고침">
+                        <i class="fas fa-sync-alt text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-gray-200">
+                <!-- 코스 검색 -->
+                <div class="mb-3">
+                    <div class="relative">
+                        <input type="text" id="courseSearchInput" 
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="코스 검색...">
+                        <i class="fas fa-search absolute right-3 top-2.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- 코스 선택 드롭다운 -->
+                <select id="courseSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-blue-500">
+                    <option value="">코스를 선택하세요</option>
+                    {% for course in recent_courses %}
+                    <option value="{{ course.id }}">{{ course.subject_name }} - {{ course.target }}</option>
+                    {% endfor %}
+                </select>
+                
+                <!-- 구조 편집 버튼들 -->
+                <div class="flex space-x-2">
+                    <button onclick="editStructureManually()" 
+                            class="flex-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                        <i class="fas fa-edit mr-1"></i>수동편집
+                    </button>
+                    <button onclick="editStructureWithAI()" 
+                            class="flex-1 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors">
+                        <i class="fas fa-robot mr-1"></i>AI편집
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 트리뷰 -->
+            <div id="courseTreeView" class="p-4 scroll-area">
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-folder-open text-4xl mb-2 opacity-50"></i>
+                    <p class="text-sm">코스를 선택하세요</p>
+                    <p class="text-xs text-gray-400 mt-1">구조를 편집하고 관리할 수 있습니다</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수동편집 패널 -->
+        <div id="manualEditPanel" class="manual-edit-panel min-h-screen">
+            <div class="manual-edit-content">
+                <div class="manual-edit-header">
+                    <div class="flex items-center">
+                        <i class="fas fa-edit mr-2"></i>
+                        <span class="font-semibold">수동 편집</span>
+                    </div>
+                    <button onclick="toggleManualEditPanel()" class="text-gray-600 hover:bg-gray-200 p-1 rounded transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="manual-edit-body" id="manualEditContent">
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-hand-pointer text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg font-medium">코스 구조를 선택하세요</p>
+                        <p class="text-sm mt-2 text-gray-400">좌측 트리에서 편집할 항목을 클릭하면<br>수동 편집 폼이 나타납니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3영역: 콘텐츠 생성/수정/미리보기 (중앙) -->
+        <div id="contentArea" class="h-screen area-toggle content-area">
+            <!-- 탭 메뉴 -->
+            <div class="border-b border-gray-200 px-4 bg-gray-50">
+                <nav class="flex space-x-4">
+                    <button onclick="switchContentTab('edit', event)" 
+                            class="content-tab active py-3 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                        <i class="fas fa-edit mr-2"></i>편집
+                    </button>
+                    <button onclick="switchContentTab('preview', event)" 
+                            class="content-tab py-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-eye mr-2"></i>미리보기
+                    </button>
+                    <button onclick="switchContentTab('play', event)" 
+                            class="content-tab py-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-play mr-2"></i>플레이
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- 콘텐츠 편집 탭 부분을 다음으로 교체 -->
+            <div id="editTab" class="content-tab-content p-4 flex-1 overflow-auto">
+                <div class="mb-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <input type="text" id="contentTitle" 
+                            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            placeholder="콘텐츠 제목">
+                        <select id="contentType" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">타입 선택</option>
+                            {% for content_type in content_types %}
+                            <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 저장 버튼 그룹에 정렬 버튼 추가 07201219 -->
+                    <div class="flex space-x-2">
+                        <button onclick="formatAllEditors()" 
+                                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                title="모든 코드를 보기 좋게 정렬합니다">
+                            <i class="fas fa-magic mr-2"></i>전체 정렬
+                        </button>
+                        <button onclick="saveContent()" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>저장
+                        </button>
+                        <button onclick="clearContent()" 
+                                class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>초기화
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- HTML 편집기 -->
+                <div class="border border-gray-300 rounded-lg mb-4">
+                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-300 text-sm text-gray-600 font-medium flex items-center justify-between">
+                        <span><i class="fas fa-code mr-2"></i>HTML 편집기</span>
+                        <button onclick="toggleEditorView()" class="text-xs text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-eye mr-1"></i>미리보기
+                        </button>
+                    </div>
+                    <textarea id="contentEditor" rows="20" 
+                            class="w-full p-4 font-mono text-sm border-0 focus:ring-0"
+                            placeholder="HTML 콘텐츠를 입력하거나 AI로 생성하세요..."></textarea>
+                </div>
+                
+                <!-- 추가 필드들 (아코디언 형태) -->
+                <div class="space-y-3">
+                    <!-- 정답/해설 -->
+                    <div class="border border-gray-300 rounded-lg">
+                        <button onclick="toggleAccordion('answerAccordion')" 
+                                class="w-full px-4 py-2 bg-gray-50 text-left flex items-center justify-between hover:bg-gray-100">
+                            <span class="text-sm font-medium text-gray-700">
+                                <i class="fas fa-check-circle mr-2 text-green-600"></i>정답/해설
+                            </span>
+                            <i class="fas fa-chevron-down text-gray-400 accordion-icon" id="answerAccordionIcon"></i>
+                        </button>
+                        <div id="answerAccordion" class="hidden p-4">
+                            <textarea id="answerEditor" rows="6" 
+                                    class="w-full p-3 font-mono text-sm border border-gray-300 rounded"
+                                    placeholder='{"answer": "정답", "solution": "해설"}'></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 메타데이터 -->
+                    <div class="border border-gray-300 rounded-lg">
+                        <button onclick="toggleAccordion('metadataAccordion')" 
+                                class="w-full px-4 py-2 bg-gray-50 text-left flex items-center justify-between hover:bg-gray-100">
+                            <span class="text-sm font-medium text-gray-700">
+                                <i class="fas fa-database mr-2 text-blue-600"></i>메타데이터
+                            </span>
+                            <i class="fas fa-chevron-down text-gray-400 accordion-icon" id="metadataAccordionIcon"></i>
+                        </button>
+                        <div id="metadataAccordion" class="hidden p-4">
+                            <textarea id="metadataEditor" rows="6" 
+                                    class="w-full p-3 font-mono text-sm border border-gray-300 rounded"
+                                    placeholder='{}'></textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- 태그/평가기준 -->
+                    <div class="border border-gray-300 rounded-lg">
+                        <button onclick="toggleAccordion('tagsAccordion')" 
+                                class="w-full px-4 py-2 bg-gray-50 text-left flex items-center justify-between hover:bg-gray-100">
+                            <span class="text-sm font-medium text-gray-700">
+                                <i class="fas fa-tags mr-2 text-purple-600"></i>태그/평가기준
+                            </span>
+                            <i class="fas fa-chevron-down text-gray-400 accordion-icon" id="tagsAccordionIcon"></i>
+                        </button>
+                        <div id="tagsAccordion" class="hidden p-4">
+                            <textarea id="tagsEditor" rows="6" 
+                                    class="w-full p-3 font-mono text-sm border border-gray-300 rounded"
+                                    placeholder='{}'></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 미리보기 탭 -->
+            <div id="previewTab" class="content-tab-content hidden p-4 flex-1 overflow-auto">
+                <div class="border border-gray-300 rounded-lg p-4 bg-white h-full">
+                    <div id="previewContent" class="prose max-w-none">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-eye text-4xl mb-4 opacity-50"></i>
+                            <p class="text-lg">미리보기할 콘텐츠가 없습니다</p>
+                            <p class="text-sm mt-2 text-gray-400">편집 탭에서 콘텐츠를 작성해보세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 플레이 탭 -->
+            <div id="playTab" class="content-tab-content hidden p-4 flex-1 overflow-auto">
+                <div class="border border-gray-300 rounded-lg p-4 bg-gray-50 h-full">
+                    <div id="playContent" class="prose max-w-none">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-play text-4xl mb-4 opacity-50"></i>
+                            <p class="text-lg">플레이할 콘텐츠가 없습니다</p>
+                            <p class="text-sm mt-2 text-gray-400">인터랙티브 콘텐츠를 작성해보세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4영역: 콘텐츠 검색 (우측) -->
+        <div id="searchArea" class="area-toggle search-area h-screen">
+            <!-- 최근 생성된 콘텐츠 (상단) -->
+            <div class="area-header">
+                <h4 class="flex items-center">
+                    <i class="fas fa-clock mr-2"></i>최근 생성
+                </h4>
+                <button onclick="refreshRecentContents()" class="text-gray-500 hover:text-gray-700" title="새로고침">
+                    <i class="fas fa-sync-alt text-sm"></i>
+                </button>
+            </div>
+            <div class="p-4 border-b border-gray-200" style="max-height: 280px;">
+                <div id="recentContents" class="space-y-2 overflow-y-auto" style="max-height: 200px;">
+                    {% if recent_contents %}
+                        {% for content in recent_contents|slice:":5" %}
+                        <div class="content-card p-2 border border-gray-200 rounded-lg cursor-move transition-colors hover:bg-gray-50"
+                             draggable="true"
+                             data-content-id="{{ content.id }}"
+                             data-content-title="{{ content.title }}"
+                             data-content-type="{{ content.content_type.type_name }}"
+                             ondragstart="handleContentDragStart(event)"
+                             ondragend="handleContentDragEnd(event)">
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800 truncate">{{ content.title }}</div>
+                                    <div class="text-xs text-gray-500">{{ content.content_type.type_name }} • {{ content.created_at|date:"m/d" }}</div>
+                                </div>
+                                <div class="flex items-center space-x-1 ml-2">
+                                    <button onclick="event.stopPropagation(); showContentDetails({{ content.id }})" 
+                                            class="px-1 py-0.5 bg-green-100 hover:bg-green-200 rounded text-green-700 text-xs" 
+                                            title="상세보기">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); loadContent({{ content.id }})" 
+                                            class="px-1 py-0.5 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 text-xs" 
+                                            title="편집하기">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <div class="drag-handle text-gray-400">
+                                        <i class="fas fa-grip-vertical text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-gray-400 py-4">
+                            <i class="fas fa-inbox text-2xl mb-2"></i>
+                            <p class="text-sm">최근 콘텐츠가 없습니다</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 검색 필터 -->
+            <div class="p-4 border-b border-gray-200">
+                <h4 class="font-semibold text-gray-800 mb-3">
+                    <i class="fas fa-search mr-2"></i>콘텐츠 검색
+                </h4>
+                
+                <div class="space-y-3">
+                    <input type="text" id="searchInput" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                           placeholder="제목, 내용 검색...">
+                    
+                    <select id="searchContentType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                        <option value="">모든 타입</option>
+                        {% for content_type in content_types %}
+                        <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select id="searchCourse" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                        <option value="">모든 코스</option>
+                        {% for course in recent_courses %}
+                        <option value="{{ course.id }}">{{ course.subject_name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <button onclick="performSearch()" 
+                            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">
+                        <i class="fas fa-search mr-2"></i>검색
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 검색 결과 -->
+            <div class="p-4" style="height: calc(100vh - 520px); overflow-y: auto;">
+                <div id="searchResults" class="space-y-2">
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-search text-4xl mb-2 opacity-50"></i>
+                        <p class="text-sm">검색 조건을 입력하세요</p>
+                        <p class="text-xs text-gray-400 mt-1">제목이나 내용으로 검색할 수 있습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 text-center max-w-sm mx-4">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-700 font-medium">AI가 작업 중입니다...</p>
+            <p class="text-gray-500 text-sm mt-2">잠시만 기다려주세요</p>
+        </div>
+    </div>
+
+    <!-- 슬라이드 관리 모달 -->
+    <div id="slideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" id="slideModalTitle">슬라이드 관리</h3>
+                <button onclick="closeSlideModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="slideModalContent">
+                <!-- 슬라이드 관리 내용이 여기에 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 파일들 -->
+    <!-- 핵심 기능 -->
+    <script src="/static/super_agent/js/agent/core.js"></script>
+    
+    <!-- 매니저 클래스들 -->
+    <script src="/static/super_agent/js/agent/managers.js"></script>
+    
+    <!-- UI 관련 -->
+    <script src="/static/super_agent/js/agent/ui.js"></script>
+    
+    <!-- 콘텐츠 관련 -->
+    <script src="/static/super_agent/js/agent/content.js"></script>
+    
+    <!-- 검색 관련 -->
+    <script src="/static/super_agent/js/agent/search.js"></script>
+    
+    <!-- 트리뷰 및 슬라이드 -->
+    <script src="/static/super_agent/js/agent/tree.js"></script>
+    
+    <!-- 슬라이드 관련 -->
+    <script src="/static/super_agent/js/agent/slides.js"></script>
+    
+    <!-- 폼 관련 -->
+    <script src="/static/super_agent/js/agent/forms.js"></script>
+
+    <!-- 코스 디자인 애이전트 -->
+    <script src="/static/super_agent/js/agent/course_designer.js"></script>
+</body>
+</html>

@@ -176,5 +176,5 @@ cython_debug/
 # DS_Store
 .DS_Store
 
-# Documents
+#docs
 docs/
