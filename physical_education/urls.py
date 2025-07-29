@@ -45,6 +45,12 @@ urlpatterns = [
         views.api_paps_get_activities,
         name="api_paps_get_activities",
     ),
+    # 학생 목록 조회 API
+    path(
+        "api/students/by-class/",
+        views.api_get_students_by_class,
+        name="api_get_students_by_class",
+    ),
     # PAPSSessionActivity 관리 API
     path(
         "api/paps/session-activities/form-fields/",
