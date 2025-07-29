@@ -763,3 +763,97 @@ def api_get_students_by_class(request):
         return JsonResponse(
             {"success": False, "error": f"학생 목록 조회 중 오류: {str(e)}"}
         )
+
+
+@login_required
+@teacher_required
+@require_http_methods(["GET"])
+def api_paps_get_measurements_by_activity(request):
+    """특정 활동에 대한 학생별 측정 기록 조회 API"""
+    try:
+        teacher_id = request.user.teacher.id
+        session_id = request.GET.get("session_id")
+        activity_id = request.GET.get("activity_id")
+        class_id = request.GET.get("class_id")
+        grade = request.GET.get("grade")
+        
+        if not all([session_id, activity_id, class_id, grade]):
+            return JsonResponse(
+                {"success": False, "error": "필수 파라미터가 누락되었습니다."}
+            )
+            
+        # 권한 확인 - 해당 측정회차가 교사 소유인지
+        session = get_object_or_404(
+            PAPSSession, id=session_id, teacher_id=teacher_id
+        )
+        
+        # 학급 권한 확인
+        try:
+            class_instance = Class.objects.get(id=class_id, grade=grade)
+        except Class.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": "해당 학급을 찾을 수 없습니다."}
+            )
+            
+        if not ClassTeacher.objects.filter(
+            teacher_id=teacher_id, class_instance=class_instance
+        ).exists():
+            return JsonResponse(
+                {"success": False, "error": "해당 학급에 대한 권한이 없습니다."}
+            )
+        
+        # 해당 학급의 학생 목록 조회
+        students = Student.objects.filter(school_class=class_instance).select_related(
+            "user"
+        ).order_by("student_id")
+        
+        # 해당 활동에 대한 측정 기록들 조회
+        records = PAPSRecord.objects.filter(
+            session_id=session_id,
+            activity_id=activity_id,
+            class_id=class_id,
+            student_grade=grade
+        ).select_related()
+        
+        # 학생별 측정 기록 매핑
+        records_by_student = {record.student_id: record for record in records}
+        
+        # 학생 데이터와 측정 기록을 결합
+        students_data = []
+        for student in students:
+            record = records_by_student.get(student.id)
+            measurement_data = record.measurement_data if record else {}
+            
+            student_data = {
+                "id": student.id,
+                "name": student.user.get_full_name() or student.user.username,
+                "number": get_student_number_from_id(student.student_id),
+                "gender": get_student_gender(student),
+                "student_id": student.student_id,
+                "measurement_data": measurement_data,
+                "evaluation_grade": record.evaluation_grade if record else None,
+                "measured_at": record.measured_at.isoformat() if record and record.measured_at else None,
+                "notes": record.notes if record else "",
+                "record_id": str(record.id) if record else None
+            }
+            students_data.append(student_data)
+        
+        return JsonResponse(
+            {
+                "success": True,
+                "students": students_data,
+                "total": len(students_data),
+                "activity_info": {
+                    "session_id": session_id,
+                    "activity_id": activity_id,
+                    "class_id": int(class_id),
+                    "grade": int(grade)
+                },
+                "records_count": len(records)
+            }
+        )
+        
+    except Exception as e:
+        return JsonResponse(
+            {"success": False, "error": f"측정 기록 조회 중 오류: {str(e)}"}
+        )

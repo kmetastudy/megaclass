@@ -51,6 +51,12 @@ urlpatterns = [
         views.api_get_students_by_class,
         name="api_get_students_by_class",
     ),
+    # 특정 활동에 대한 측정 기록 조회 API
+    path(
+        "api/paps/measurements/by-activity/",
+        views.api_paps_get_measurements_by_activity,
+        name="api_paps_get_measurements_by_activity",
+    ),
     # PAPSSessionActivity 관리 API
     path(
         "api/paps/session-activities/form-fields/",

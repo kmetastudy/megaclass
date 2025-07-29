@@ -477,15 +477,7 @@ window.PAPSTabulator.transformStudentData = function(students, activity) {
     if (!students || !Array.isArray(students)) return [];
     
     return students.map(student => {
-        const measurementData = {};
-        
-        // Get existing measurement data if available
-        if (window.appState?.studentsData?.[student.id]?.[activity.id]) {
-            const existingData = window.appState.studentsData[student.id][activity.id];
-            Object.keys(existingData).forEach(key => {
-                measurementData[key] = existingData[key];
-            });
-        }
+        const measurementData = student.measurement_data || {};
         
         return {
             id: student.id,
@@ -494,32 +486,146 @@ window.PAPSTabulator.transformStudentData = function(students, activity) {
             gender: student.gender,
             measurement_data: measurementData,
             score: null, // Will be calculated
-            grade: null  // Will be calculated
+            grade: null,  // Will be calculated
+            evaluation_grade: student.evaluation_grade || null,
+            measured_at: student.measured_at || null,
+            notes: student.notes || "",
+            record_id: student.record_id || null
         };
     });
 };
 
-// Initialize PAPS Tabulator table
-window.PAPSTabulator.init = function(containerId, activity, students, options = {}) {
+// Build Ajax URL for data loading
+window.PAPSTabulator.buildAjaxURL = function(sessionId, activityId, classId, grade) {
+    const baseUrl = '/physical_education/api/paps/measurements/by-activity/';
+    
+    // Convert all parameters to strings to ensure consistency
+    const params = new URLSearchParams({
+        session_id: String(sessionId),
+        activity_id: String(activityId),
+        class_id: String(classId),
+        grade: String(grade)
+    });
+    
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+    console.log('생성된 Ajax URL:', fullUrl);
+    
+    return fullUrl;
+};
+
+// Ajax response processor
+window.PAPSTabulator.ajaxResponseProcessor = function(url, params, response) {
+    console.log('Ajax 응답 처리 시작:', { url, params, response });
+    
+    // Check if response is valid
+    if (!response) {
+        console.error('응답이 null 또는 undefined');
+        throw new Error('서버에서 응답을 받지 못했습니다.');
+    }
+    
+    if (!response.success) {
+        console.error('API 호출 실패:', response.error);
+        throw new Error(response.error || 'API 호출에 실패했습니다.');
+    }
+    
+    if (!response.students || !Array.isArray(response.students)) {
+        console.error('학생 데이터가 올바르지 않음:', response.students);
+        throw new Error('올바르지 않은 학생 데이터 형식입니다.');
+    }
+    
+    console.log(`${response.students.length}명의 학생 데이터 처리 중...`);
+    
+    // Transform the server response to Tabulator format
+    const transformedData = window.PAPSTabulator.transformStudentData(response.students);
+    console.log('변환된 테이블 데이터:', transformedData);
+    
+    return transformedData;
+};
+
+// Initialize PAPS Tabulator table with Ajax support
+window.PAPSTabulator.init = function(containerId, activity, options = {}, sessionData = {}) {
     const container = document.getElementById(containerId);
     if (!container) {
         console.error('Container not found:', containerId);
         return null;
     }
     
+    // Check if we have the required state for Ajax loading
+    // Use sessionData first, fallback to window.appState
+    const selectedSession = sessionData.selectedSession || window.appState?.selectedSession;
+    const selectedClass = sessionData.selectedClass || window.appState?.selectedClass;
+    const selectedGrade = sessionData.selectedGrade || window.appState?.selectedGrade;
+    
+    const requiredFields = {
+        useAjax: options.useAjax,
+        selectedSession: selectedSession,
+        selectedClass: selectedClass,
+        selectedGrade: selectedGrade,
+        activityId: activity?.id,
+        sessionDataProvided: Object.keys(sessionData).length > 0,
+        windowAppStateAvailable: !!window.appState
+    };
+    
+    console.log('Ajax 조건 체크:', requiredFields);
+    
+    const useAjax = options.useAjax && 
+                   selectedSession && 
+                   selectedClass && 
+                   selectedGrade &&
+                   activity?.id;
+    
+    console.log('Ajax 모드 사용 여부:', useAjax);
+    
     // Build columns
-    const columns = window.PAPSTabulator.buildColumns(activity, students);
+    const columns = window.PAPSTabulator.buildColumns(activity, []);
     
-    // Transform data
-    const data = window.PAPSTabulator.transformStudentData(students, activity);
-    
-    // Merge configuration
-    const config = {
+    let config = {
         ...window.PAPSTabulator.config,
         ...options,
-        columns: columns,
-        data: data
+        columns: columns
     };
+    
+    if (useAjax) {
+        // Ajax-based configuration
+        const ajaxURL = window.PAPSTabulator.buildAjaxURL(
+            selectedSession,
+            activity.id,
+            selectedClass,
+            selectedGrade
+        );
+        
+        config.ajaxURL = ajaxURL;
+        config.ajaxConfig = {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': window.djangoData?.csrfToken || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                'Content-Type': 'application/json'
+            }
+        };
+        config.ajaxRequesting = function() {
+            console.log('Ajax 데이터 로딩 시작...', ajaxURL);
+        };
+        config.ajaxResponse = function(url, params, response) {
+            console.log('Ajax 데이터 로딩 완료:', response);
+            return window.PAPSTabulator.ajaxResponseProcessor(url, params, response);
+        };
+        config.ajaxError = function(xhr, textStatus, errorThrown) {
+            console.error('Tabulator Ajax 오류:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                errorThrown: errorThrown,
+                url: ajaxURL
+            });
+            if (window.showMessage) {
+                window.showMessage('error', '측정 데이터 로딩 중 오류가 발생했습니다.');
+            }
+        };
+    } else {
+        // Fallback to empty data for manual loading
+        console.log('Ajax 모드가 아닙니다. 빈 데이터로 테이블 초기화합니다.');
+        config.data = [];
+        config.placeholder = "조회 버튼을 클릭하여 학생 데이터를 불러오세요.";
+    }
     
     // Create table
     const table = new Tabulator(`#${containerId}`, config);
@@ -533,7 +639,25 @@ window.PAPSTabulator.init = function(containerId, activity, students, options = 
     return table;
 };
 
-// Update table data
+// Update table data with Ajax reload
+window.PAPSTabulator.reloadData = function(table, sessionId, activityId, classId, grade) {
+    if (!table) return Promise.reject(new Error('Table not found'));
+    
+    const ajaxURL = window.PAPSTabulator.buildAjaxURL(sessionId, activityId, classId, grade);
+    
+    // Use setData with URL to trigger Ajax reload
+    return table.setData(ajaxURL)
+        .then(() => {
+            console.log('테이블 데이터 새로고침 완료');
+            return table;
+        })
+        .catch(error => {
+            console.error('테이블 데이터 새로고침 실패:', error);
+            throw error;
+        });
+};
+
+// Legacy update function for backward compatibility
 window.PAPSTabulator.updateData = function(table, students, activity) {
     if (!table) return;
     

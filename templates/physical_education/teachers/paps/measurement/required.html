@@ -241,8 +241,7 @@ const appState = {
     selectedSession: null,
     activeTab: null,
     activeActivity: null,
-    studentsData: {},
-    currentStudents: [],
+    studentsData: {}, // 계산 로직 호환성을 위해 유지
     sessionActivities: {},
     isDirty: false
 };
@@ -321,9 +320,16 @@ async function handleFilterSearch() {
     appState.selectedClass = parseInt(elements.classSelect.value);
     appState.selectedSession = elements.sessionSelect.value;
     
+    console.log('상태 업데이트 완료:', {
+        selectedYear: appState.selectedYear,
+        selectedGrade: appState.selectedGrade,
+        selectedClass: appState.selectedClass,
+        selectedSession: appState.selectedSession
+    });
+    
     try {
-        // 학생 목록 조회
-        const studentsResponse = await fetch(`/physical_education/api/students/by-class/?year=${appState.selectedYear}&grade=${appState.selectedGrade}&class=${appState.selectedClass}`, {
+        // 학급 존재 여부 및 권한 확인을 위한 기본 검증만 수행
+        const validationResponse = await fetch(`/physical_education/api/students/by-class/?year=${appState.selectedYear}&grade=${appState.selectedGrade}&class=${appState.selectedClass}`, {
             method: 'GET',
             headers: {
                 'X-CSRFToken': djangoData.csrfToken,
@@ -331,16 +337,15 @@ async function handleFilterSearch() {
             }
         });
         
-        if (!studentsResponse.ok) {
-            throw new Error('학생 목록을 불러올 수 없습니다.');
+        if (!validationResponse.ok) {
+            throw new Error('학급 정보를 확인할 수 없습니다.');
         }
         
-        const studentsData = await studentsResponse.json();
-        console.log('학생 데이터 로드 성공:', studentsData);
-        appState.currentStudents = studentsData.students || [];
+        const validationData = await validationResponse.json();
+        console.log('학급 검증 데이터:', validationData);
         
         // 1. 학생 수 검증
-        if (appState.currentStudents.length === 0) {
+        if (!validationData.success || !validationData.students || validationData.students.length === 0) {
             showLoading(false);
             showAlert('해당 학급에 학생이 없습니다.');
             return; // mainContent 숨김 유지
@@ -378,17 +383,19 @@ async function handleFilterSearch() {
         showLoading(false);
         elements.mainContent.classList.remove('hidden');
         
-        // 학생 수 업데이트 (검증 통과 후)
-        elements.studentsCount.textContent = appState.currentStudents.length;
-        console.log('학생 수 업데이트:', appState.currentStudents.length);
+        // 학생 수는 Ajax 로드 시 업데이트됨
+        console.log('학급 검증 완료, Ajax를 통해 실제 데이터 로드 예정');
         
-        // 첫 번째 탭 렌더링
+        // 첫 번째 탭 렌더링 (Ajax 모드로 데이터 로드)
         if (appState.activeTab) {
+            console.log('첫 번째 탭 렌더링 시작. activeTab:', appState.activeTab);
             renderCurrentTab();
+        } else {
+            console.warn('activeTab이 설정되지 않았습니다.');
         }
         
         // 성공 메시지 표시
-        showMessage('success', `${getGradeDisplay(appState.selectedGrade)} ${getClassDisplay(appState.selectedClass)} 학생 목록을 불러왔습니다.`);
+        showMessage('success', `${getGradeDisplay(appState.selectedGrade)} ${getClassDisplay(appState.selectedClass)} 조회가 완료되었습니다.`);
         
     } catch (error) {
         showLoading(false);
@@ -458,12 +465,11 @@ function switchTab(tabName) {
 async function renderCurrentTab() {
     console.log('=== renderCurrentTab 함수 시작 ===');
     console.log('appState.activeTab:', appState.activeTab);
-    console.log('appState.currentStudents.length:', appState.currentStudents.length);
     console.log('appState.sessionActivities:', appState.sessionActivities);
     
     // 기본 상태 확인
-    if (!appState.activeTab || appState.currentStudents.length === 0) {
-        console.log('activeTab이 없거나 학생이 없음 - 종료');
+    if (!appState.activeTab) {
+        console.log('activeTab이 없음 - 종료');
         return;
     }
     
@@ -530,9 +536,15 @@ async function renderCurrentTab() {
         elements.currentActivityDescription.textContent = getActivityDescription(currentActivity);
         console.log('종목 정보 UI 업데이트 완료');
         
-        // Tabulator Table 렌더링 (반응형 디자인 지원)
+        // Tabulator Table 렌더링 (Ajax 기반 데이터 로드)
         console.log('학생 Tabulator 테이블 렌더링 시작');
-        renderStudentTable(currentActivity);
+        const sessionData = {
+            selectedSession: appState.selectedSession,
+            selectedClass: appState.selectedClass,
+            selectedGrade: appState.selectedGrade
+        };
+        console.log('renderStudentTable에 전달할 sessionData:', sessionData);
+        renderStudentTable(currentActivity, sessionData);
         
         console.log('=== renderCurrentTab 함수 정상 완료 ===');
         
@@ -558,9 +570,19 @@ function getActivityDescription(activity) {
 // Tabulator table instance
 let currentTabulatorTable = null;
 
-// 학생 Tabulator Table 렌더링
-function renderStudentTable(activity) {
+// 학생 Tabulator Table 렌더링 (Ajax 기반)
+function renderStudentTable(activity, sessionData = {}) {
+    console.log('renderStudentTable 함수 시작. activity:', activity);
+    console.log('전달받은 sessionData:', sessionData);
+    console.log('현재 appState 상태:', {
+        selectedSession: appState.selectedSession,
+        selectedClass: appState.selectedClass,
+        selectedGrade: appState.selectedGrade,
+        activeTab: appState.activeTab
+    });
+    
     if (!activity || !activity.measurement_schema) {
+        console.error('activity 또는 measurement_schema가 없습니다:', activity);
         const container = document.getElementById('students-tabulator-table');
         if (container) {
             container.innerHTML = '<p class="text-gray-500 text-center py-4">종목 정보를 불러올 수 없습니다.</p>';
@@ -570,16 +592,19 @@ function renderStudentTable(activity) {
     
     // Destroy existing table if any
     if (currentTabulatorTable) {
+        console.log('기존 테이블 제거 중...');
         currentTabulatorTable.destroy();
         currentTabulatorTable = null;
     }
     
-    // Initialize Tabulator table
+    // Initialize Tabulator table with Ajax support
     currentTabulatorTable = window.PAPSTabulator.init(
         'students-tabulator-table',
         activity,
-        appState.currentStudents,
         {
+            // Enable Ajax loading
+            useAjax: true,
+            
             // Additional configuration options
             height: "60vh",
             persistence: false,
@@ -601,15 +626,31 @@ function renderStudentTable(activity) {
                 console.log('셀 편집됨:', cell.getField(), cell.getValue());
             },
             
+            // Ajax event handlers
+            ajaxRequesting: function() {
+                console.log('테이블 데이터 로딩 시작...');
+            },
+            
+            ajaxResponse: function(url, params, response) {
+                console.log('테이블 데이터 로딩 완료:', response);
+                if (response.success) {
+                    // Update student count
+                    elements.studentsCount.textContent = response.total || 0;
+                    console.log('학생 수 업데이트:', response.total);
+                }
+                return window.PAPSTabulator.ajaxResponseProcessor(url, params, response);
+            },
+            
             // Error handling
             ajaxError: function(xhr, textStatus, errorThrown) {
-                console.error('Tabulator 오류:', errorThrown);
-                showMessage('error', '테이블 데이터 로딩 중 오류가 발생했습니다.');
+                console.error('Tabulator Ajax 오류:', errorThrown);
+                showMessage('error', '측정 데이터 로딩 중 오류가 발생했습니다.');
             }
-        }
+        },
+        sessionData
     );
     
-    console.log('Tabulator 테이블 초기화 완료');
+    console.log('Tabulator 테이블 초기화 완료 (Ajax 모드)');
 }
 
 // 학생 카드 렌더링 (모바일용) - Tabulator로 대체
@@ -737,7 +778,7 @@ function updateCalculatedFieldDisplay(studentId, fieldName, value) {
 
 // 모두 저장 처리 (Tabulator 기반)
 async function handleSaveAll() {
-    if (!appState.activeActivity || appState.currentStudents.length === 0) {
+    if (!appState.activeActivity) {
         showMessage('warning', '저장할 데이터가 없습니다.');
         return;
     }
@@ -790,6 +831,23 @@ async function handleSaveAll() {
         if (successCount === savePromises.length) {
             appState.isDirty = false;
             showMessage('success', `${successCount}건의 측정 데이터가 성공적으로 저장되었습니다.`);
+            
+            // 저장 성공 후 서버에서 최신 데이터로 테이블 새로고침
+            if (currentTabulatorTable && appState.activeActivity) {
+                try {
+                    await window.PAPSTabulator.reloadData(
+                        currentTabulatorTable,
+                        appState.selectedSession,
+                        appState.activeActivity.id,
+                        appState.selectedClass,
+                        appState.selectedGrade
+                    );
+                    console.log('저장 후 테이블 데이터 새로고침 완료');
+                } catch (error) {
+                    console.error('저장 후 테이블 새로고침 실패:', error);
+                    showMessage('warning', '데이터 저장은 완료되었으나 화면 업데이트에 실패했습니다. 페이지를 새로고침해주세요.');
+                }
+            }
         } else {
             showMessage('warning', `${successCount}/${savePromises.length}건이 저장되었습니다. 일부 데이터 저장에 실패했습니다.`);
         }
@@ -812,13 +870,6 @@ function handleClearAll() {
     }
     
     if (confirm('현재 탭의 모든 입력 데이터를 지우시겠습니까?')) {
-        // 현재 활동의 모든 데이터 지우기 (appState에서)
-        appState.currentStudents.forEach(student => {
-            if (appState.studentsData[student.id] && appState.studentsData[student.id][appState.activeActivity.id]) {
-                appState.studentsData[student.id][appState.activeActivity.id] = {};
-            }
-        });
-        
         // Tabulator 데이터 지우기
         window.PAPSTabulator.clearAllData(currentTabulatorTable, appState.activeActivity);
         
