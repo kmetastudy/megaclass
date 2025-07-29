@@ -1,0 +1,940 @@
+/* 기본 영역 스타일 */
+.area-toggle { 
+    transition: all 0.3s ease; 
+}
+
+.area-hidden { 
+    opacity: 0.3; 
+    pointer-events: none; 
+}
+
+/* 트리 아이템 스타일 */
+.tree-item { 
+    cursor: pointer; 
+}
+
+.tree-item:hover { 
+    background-color: #f3f4f6; 
+}
+
+.tree-item.selected { 
+    background-color: #ede9fe; 
+    border-left: 4px solid #a78bfa; 
+}
+
+/* 새로 생성된 노드 하이라이트 애니메이션 */
+.tree-item.new-node {
+    animation: highlightNew 2s ease-in-out;
+}
+
+@keyframes highlightNew {
+    0%, 100% { background-color: transparent; }
+    25% { background-color: #fef3c7; }
+    50% { background-color: #fde047; }
+    75% { background-color: #fef3c7; }
+}
+
+/* 콘텐츠 카드 스타일 */
+.content-card { 
+    transition: all 0.2s ease; 
+}
+
+.content-card:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+}
+
+/* AI 프로바이더 버튼 */
+.ai-provider-btn { 
+    transition: all 0.2s ease; 
+}
+
+.ai-provider-btn.active { 
+    background-color: #3b82f6; 
+    color: white; 
+}
+
+.ai-provider-btn:hover:not(.active) { 
+    background-color: #f3f4f6; 
+}
+
+/* 프롬프트 설정 아코디언 */
+.prompt-settings { 
+    max-height: 0; 
+    overflow: hidden; 
+    transition: max-height 0.3s ease; 
+}
+
+.prompt-settings.expanded { 
+    max-height: 500px; 
+}
+
+/* 드래그 가능한 프롬프트 창 스타일 */
+.draggable-prompt {
+    cursor: move;
+    user-select: none;
+}
+
+.draggable-prompt:active {
+    cursor: grabbing;
+}
+
+.prompt-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prompt-minimize-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.prompt-minimize-btn:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* 프롬프트 숨김/보임 애니메이션 */
+.prompt-hidden {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.3s ease;
+    visibility: hidden;
+}
+
+.prompt-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    visibility: visible;
+}
+
+/* 메인 영역 레이아웃 */
+.main-container {
+    height: calc(100vh - 64px);
+    padding-top: 0;
+    margin-top: 0;
+    display: flex;
+}
+
+/* 개별 영역 스타일 */
+.course-area {
+    width: 500px;
+    min-width: 400px;
+    border-right: 2px solid #e5e7eb;
+    background: #fafafa;
+    transition: all 0.3s ease;
+}
+
+.content-area {
+    flex: 1;
+    border-right: 2px solid #e5e7eb;
+    background: white;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.search-area {
+    width: 500px;
+    min-width: 450px;
+    background: #f9fafb;
+    transition: all 0.3s ease;
+}
+
+/* 수동편집 패널 */
+.manual-edit-panel {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    background: white;
+    border-right: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.manual-edit-panel.open {
+    flex: 1;
+    width: auto;
+    min-width: 400px;
+}
+
+/* 컨텐츠 영역 숨기기 */
+.main-container.manual-edit-open .content-area {
+    display: none;
+}
+
+/* 영역 헤더 */
+.area-header {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-bottom: 1px solid #d1d5db;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 스크롤 영역 - 높이 자동 조정 */
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+}
+
+/* 커스텀 스크롤바 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Firefox 스크롤바 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* 네비게이션 고정 */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: 64px;
+}
+
+/* 트리 뷰 스타일 */
+.tree-view {
+    font-family: inherit;
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.tree-node {
+    position: relative;
+    margin: 2px 0;
+}
+
+.tree-content {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    margin: 2px 0;
+}
+
+.tree-content:hover {
+    background-color: #f3f4f6;
+}
+
+.tree-content.selected {
+    background-color: #ede9fe;
+    border: 1px solid #a78bfa;
+}
+
+.tree-toggle {
+    cursor: pointer;
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+    width: 16px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.tree-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.tree-icon {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.tree-text {
+    flex: 1;
+    font-size: 14px;
+    color: #374151;
+}
+
+.tree-badge {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+.tree-children {
+    margin-left: 24px;
+    border-left: 1px solid #e5e7eb;
+    padding-left: 12px;
+    margin-top: 4px;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.tree-node.collapsed > .tree-children {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* 인라인 슬라이드 관리 스타일 */
+.slide-item-inline {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.slide-item-inline:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.slide-item-inline.drag-over {
+    border-color: #3b82f6 !important;
+    background-color: #dbeafe !important;
+    transform: scale(1.02);
+}
+
+/* 슬라이드 컨테이너 드롭존 */
+.slide-container-dropzone {
+    transition: all 0.3s ease;
+}
+
+.slide-container-dropzone.drag-over {
+    border-color: #3b82f6 !important;
+    background-color: #dbeafe !important;
+}
+
+/* 슬라이드 관련 스타일 */
+.slide-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 8px;
+    margin: 4px 0;
+    background: #f9fafb;
+    transition: all 0.2s ease;
+}
+
+.slide-item:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.slide-item.selected {
+    background: #ede9fe;
+    border-color: #a78bfa;
+}
+
+.slide-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.slide-number {
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+/* 버튼 스타일 */
+.btn-modern {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+/* 폼 스타일 */
+.form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 매뉴얼 편집 패널 스타일 */
+.manual-edit-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.manual-edit-header {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-bottom: 1px solid #d1d5db;
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.manual-edit-body {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* 구조 편집 폼 스타일 */
+.structure-form {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+    margin-bottom: 20px;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+/* 계층 구조 표시 */
+.hierarchy-item {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.hierarchy-item.chapter {
+    border-left: 4px solid #3b82f6;
+}
+
+.hierarchy-item.subchapter {
+    border-left: 4px solid #10b981;
+    margin-left: 20px;
+}
+
+.hierarchy-item.chasi {
+    border-left: 4px solid #8b5cf6;
+    margin-left: 40px;
+}
+
+.hierarchy-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit {
+    background: #f59e0b;
+    color: white;
+}
+
+.btn-delete {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-small:hover {
+    transform: scale(1.05);
+}
+
+/* 알림 메시지 스타일 */
+.notification-message {
+    animation: slideInRight 0.3s ease-out;
+    max-width: 400px;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 콘텐츠 탭 스타일 */
+.content-tab {
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.content-tab.active {
+    border-bottom-color: #3b82f6;
+    color: #3b82f6;
+}
+
+/* 토글 버튼 스타일 */
+.btn-toggle {
+    transition: all 0.2s ease;
+}
+
+.btn-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 로딩 스피너 */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 반응형 스타일 */
+@media (max-width: 1200px) {
+    .course-area {
+        width: 350px;
+        min-width: 300px;
+    }
+    
+    .search-area {
+        width: 350px;
+        min-width: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .course-area,
+    .search-area {
+        width: 100%;
+        min-width: 100%;
+        height: 300px;
+    }
+    
+    .content-area {
+        height: 500px;
+    }
+}
+
+/* 드래그앤드롭 관련 스타일 */
+.content-card[draggable="true"] {
+    transition: all 0.2s ease;
+}
+
+.content-card[draggable="true"]:hover .drag-handle {
+    color: #3b82f6;
+}
+
+.content-card[draggable="true"]:hover .drag-hint {
+    opacity: 0.7 !important;
+}
+
+/* 드롭존 스타일 */
+.slide-drop-zone {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.slide-drop-zone.drag-over {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+}
+
+/* 슬라이드 노드 스타일 */
+.slide-node .tree-content {
+    margin: 2px 4px;
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.slide-node .tree-content.selected {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    border-color: #8b5cf6;
+}
+
+/* 슬라이드 번호 배지 */
+.slide-number {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+/* 펄스 애니메이션 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* 드래그 힌트 */
+.drag-hint {
+    transition: opacity 0.3s ease;
+}
+
+/* 드래그 핸들 */
+.drag-handle {
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* 빈 슬라이드 스타일 */
+.slide-drop-zone:not(.border-green-200) {
+    border-style: dashed;
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 5px,
+        rgba(156, 163, 175, 0.1) 5px,
+        rgba(156, 163, 175, 0.1) 10px
+    );
+}
+
+/* 하이라이트 애니메이션 */
+.slide-node.highlight {
+    animation: slideHighlight 2s ease-in-out;
+}
+
+@keyframes slideHighlight {
+    0%, 100% {
+        background-color: transparent;
+    }
+    25% {
+        background-color: #fef3c7;
+    }
+    50% {
+        background-color: #fde047;
+    }
+    75% {
+        background-color: #fef3c7;
+    }
+}
+
+
+/* CodeMirror 관련 스타일 */
+.CodeMirror {
+    /* border: 1px solid #ddd; */
+    /* border-radius: 4px; */
+    font-size: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.CodeMirror-focused {   
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 상세보기 모달 탭 스타일 */
+.detail-tab {
+    transition: all 0.2s ease;
+}
+
+.detail-tab:hover {
+    background-color: #f3f4f6;
+}
+
+.detail-tab-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 코드 미리보기 영역 스타일 */
+#contentPreviewArea {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+#contentPreviewArea img {
+    max-width: 100%;
+    height: auto;
+}
+
+#contentPreviewArea table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#contentPreviewArea table td,
+#contentPreviewArea table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+/* 아코디언 스타일 */
+.accordion-icon {
+    transition: transform 0.3s ease;
+}
+
+
+/* 편집기 내 CodeMirror 높이 */
+#editTab .CodeMirror {
+    height: auto;
+    min-height: 200px;
+}
+
+/* JSON 편집기 스타일 */
+#answerEditor + .CodeMirror,
+#metadataEditor + .CodeMirror,
+#tagsEditor + .CodeMirror {
+    background-color: #f9fafb;
+}
+
+/* 포맷 버튼 스타일 */
+.format-button {
+    position: absolute;
+    top: 5px;
+    right: 40px;
+    z-index: 10;
+    padding: 4px 12px;
+    background-color: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.format-button:hover {
+    background-color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.format-button i {
+    margin-right: 4px;
+}
+
+/* CodeMirror 스타일 개선 */
+.CodeMirror {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.CodeMirror-focused {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 들여쓰기 가이드라인 (선택사항) */
+.CodeMirror pre.CodeMirror-line {
+    padding-left: 4px;
+}
+
+.CodeMirror-selected {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+
+/* Agent 모드 탭 스타일 */
+.agent-mode-tab {
+    transition: all 0.2s ease;
+}
+
+.agent-mode-tab:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.agent-mode-tab.active {
+    background-color: transparent;
+}
+
+/* Agent 설정 패널 */
+.agent-settings {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 파일 목록 표시 영역 */
+#fileListDisplay {
+    max-height: 150px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+#fileListDisplay::-webkit-scrollbar {
+    width: 6px;
+}
+
+#fileListDisplay::-webkit-scrollbar-track {
+    background: #f7fafc;
+}
+
+#fileListDisplay::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+#fileListDisplay::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* 파일 아이템 호버 효과 */
+#fileListDisplay > div:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+
+/* 새 노드 애니메이션 */
+.new-node-animation {
+    animation: slideInLeft 0.3s ease-out;
+    background-color: rgba(16, 185, 129, 0.1);
+    transition: background-color 1s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 진행률 표시기 스타일 개선 */
+#applyProgress {
+    min-width: 300px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+#applyProgressBar {
+    background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%);
+}

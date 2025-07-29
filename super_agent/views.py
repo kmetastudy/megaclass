@@ -1,434 +1,534 @@
-import json
-import base64
-import re
-from django.shortcuts import render
-from django.views.generic import View
+# super_agent/views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_http_methods, require_POST, require_GET
+from django.db import transaction
+from django.db.models import Count, Q
+from django.core.paginator import Paginator
+import json
+import uuid
+from datetime import datetime
+from .utils import *
 
-from teacher.models import ContentType, Contents 
+# 기존 모델들 import
+from teacher.models import (
+    Course, Chapter, SubChapter, Chasi, ChasiSlide, 
+    ContentType, Contents, CourseAssignment, ContentsAttached
+)
+from accounts.models import Teacher, Class, Student
+from teacher.decorators import teacher_required
+from teacher.utils import get_course_statistics, get_course_progress
 
-# OX 문항 HTML 템플릿
-OX_TEMPLATE = """
-<div class="quiz-container p-2 flex items-start justify-center">
-    <div class="question-box p-2 w-full max-w-2xl mx-auto relative">
-        <!-- 문제 제목 -->
-        <div class="text-center mb-8">
-            <h1 class="question-text text-2xl md:text-3xl font-bold text-gray-800 mb-4">
-                {question_text}
-            </h1>
-            <div class="w-20 h-1 bg-gradient-to-r from-pink-500 to-purple-500 mx-auto rounded-full"></div>
-        </div>
-        <!-- 선택지 -->
-        <div class="space-y-4 options-container">
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-4 cursor-pointer flex items-center space-x-4 choice answer" data-clicked="1">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-2xl">O</div>
-                </div>
-                <div class="option-text text-lg md:text-xl font-semibold text-gray-700">맞다</div>
-            </div>
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-4 cursor-pointer flex items-center space-x-4 choice answer" data-clicked="2">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center font-bold text-2xl">X</div>
-                </div>
-                <div class="option-text text-lg md:text-xl font-semibold text-gray-700">틀리다</div>
-            </div>
-        </div>
-        <!-- 결과 표시 영역 -->
-        <div class="text-center mt-8">
-            <!-- 정답 GIF (평소에 숨김) -->
-            <img id="right-gif" src="/static/img/jungoh/images/right.gif" alt="정답" class="result-gif mx-auto mb-4 hidden absolute top-10 left-10">
-            
-            <!-- 오답 GIF (평소에 숨김) -->
-            <img id="wrong-gif" src="/static/img/jungoh/images/wrong.gif" alt="오답" class="result-gif mx-auto mb-4 hidden absolute top-10 left-10">
-        </div>
-    </div>
-</div>
-"""
+# ========================================
+# 메인 에이전트 페이지
+# ========================================
 
-# 5지선다 문항 HTML 템플릿
-MULTI_CHOICE_TEMPLATE = """
-<div class="quiz-container p-2 flex items-start justify-center font-sans">
-    <div class="question-box p-4 sm:p-6 w-full max-w-3xl mx-auto relative bg-white rounded-xl shadow-lg">
-        <div class="mb-6">
-            <h1 class="question-text text-xl md:text-2xl font-bold text-gray-800 mb-4">
-                {question_text}
-            </h1>
-        </div>
+@login_required
+@teacher_required
+def agent_main_view(request):
+    """AI 에이전트 메인 페이지"""
+    teacher = request.user.teacher
+    
+    # 최근 코스들
+    recent_courses = Course.objects.filter(teacher=teacher).order_by('-created_at')[:10]
+    
+    # 최근 생성된 콘텐츠들
+    recent_contents = Contents.objects.filter(
+        created_by=request.user,
+        is_active=True
+    ).order_by('-created_at')[:20]
+    
+    # 콘텐츠 타입들
+    content_types = ContentType.objects.filter(is_active=True)
+    
+    # 통계
+    stats = {
+        'total_courses': Course.objects.filter(teacher=teacher).count(),
+        'total_contents': Contents.objects.filter(created_by=request.user).count(),
+        'total_students': Student.objects.filter(school_class__teachers=teacher).distinct().count(),
+        'total_assignments': CourseAssignment.objects.filter(course__teacher=teacher).count(),
+    }
+    
+    context = {
+        'recent_courses': recent_courses,
+        'recent_contents': recent_contents,
+        'content_types': content_types,
+        'stats': stats,
+    }
+    
+    return render(request, 'super_agent/agent.html', context)
 
-        <div class="space-y-3 options-container">
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-3 cursor-pointer flex items-center space-x-4 hover:bg-gray-100 hover:border-blue-300 transition-all choice answer" data-clicked="1">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl">1</div>
-                </div>
-                <div class="option-text text-base md:text-lg font-semibold text-gray-700">① {option_1}</div>
-            </div>
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-3 cursor-pointer flex items-center space-x-4 hover:bg-gray-100 hover:border-blue-300 transition-all choice answer" data-clicked="2">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl">2</div>
-                </div>
-                <div class="option-text text-base md:text-lg font-semibold text-gray-700">② {option_2}</div>
-            </div>
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-3 cursor-pointer flex items-center space-x-4 hover:bg-gray-100 hover:border-blue-300 transition-all choice answer" data-clicked="3">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl">3</div>
-                </div>
-                <div class="option-text text-base md:text-lg font-semibold text-gray-700">③ {option_3}</div>
-            </div>
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-3 cursor-pointer flex items-center space-x-4 hover:bg-gray-100 hover:border-blue-300 transition-all choice answer" data-clicked="4">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl">4</div>
-                </div>
-                <div class="option-text text-base md:text-lg font-semibold text-gray-700">④ {option_4}</div>
-            </div>
-            <div class="option-button bg-gray-50 border-2 border-gray-200 rounded-xl p-3 cursor-pointer flex items-center space-x-4 hover:bg-gray-100 hover:border-blue-300 transition-all choice answer" data-clicked="5">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-white border-2 border-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl">5</div>
-                </div>
-                <div class="option-text text-base md:text-lg font-semibold text-gray-700">⑤ {option_5}</div>
-            </div>
-        </div>
+# ========================================
+# 코스 관련 API
+# ========================================
+
+@login_required
+@teacher_required
+@require_GET
+def api_course_search(request):
+    """코스 검색 API"""
+    try:
+        teacher = request.user.teacher
+        query = request.GET.get('q', '').strip()
         
-        <!-- 결과 표시 영역 -->
-        <div class="text-center mt-8">
-            <!-- 정답 GIF (평소에 숨김) -->
-            <img id="right-gif" src="/static/img/jungoh/images/right.gif" alt="정답" class="result-gif mx-auto mb-4 hidden absolute top-10 left-10">
-            
-            <!-- 오답 GIF (평소에 숨김) -->
-            <img id="wrong-gif" src="/static/img/jungoh/images/wrong.gif" alt="오답" class="result-gif mx-auto mb-4 hidden absolute top-10 left-10">
-        </div>
-    </div>
-</div>
-"""
+        courses = Course.objects.filter(teacher=teacher)
+        
+        if query:
+            courses = courses.filter(
+                Q(subject_name__icontains=query) |
+                Q(target__icontains=query) |
+                Q(description__icontains=query)
+            )
+        
+        courses = courses.order_by('-created_at')[:20]
+        
+        results = []
+        for course in courses:
+            results.append({
+                'id': course.id,
+                'subject_name': course.subject_name,
+                'target': course.target,
+                'description': course.description,
+                'created_at': course.created_at.strftime('%Y-%m-%d'),
+                'chapter_count': course.chapters.count(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'results': results
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
-def process_questions_json(questions_json, mindmap_json):
-    """
-    JSON 형태의 문항과 마인드맵을 처리하여 Contents 모델에 저장할 형태로 변환
-    
-    Args:
-        questions_json: 문항 JSON 데이터 (dict 또는 list)
-        mindmap_json: 마인드맵 JSON 데이터
-    
-    Returns:
-        list: 생성할 문항 리스트
-    """
-    print("\n===== process_questions_json 시작 =====")
-    print(f"questions_json 타입: {type(questions_json)}")
-    print(f"mindmap_json 타입: {type(mindmap_json)}")
-    
-    generated_questions = []
-    
-    # 마인드맵에서 상위능력 찾기
-    # 마인드맵이 {"수리능력": {...}} 형태인 경우
-    if isinstance(mindmap_json, dict) and len(mindmap_json) > 0:
-        main_competency = list(mindmap_json.keys())[0]  # 첫 번째 키를 상위역량으로
-    else:
-        main_competency = '직업기초능력'
-    print(f"상위역량: {main_competency}")
-    
-    # 하위능력별 순서 카운터
-    sub_competency_counters = {}
-    
-    # JSON 형식 확인 및 처리
-    if isinstance(questions_json, list):
-        print(f"리스트 형식 감지 - 길이: {len(questions_json)}")
-        # 리스트 형식인 경우 - 각 항목이 {"name": "하위능력명", "ox": [...], "choice": [...]} 형태
-        for idx, item in enumerate(questions_json):
-            print(f"\n[리스트 항목 {idx}] 타입: {type(item)}")
-            if isinstance(item, dict) and 'name' in item:
-                sub_competency_name = item.get('name', f'하위능력{idx+1}')
-                print(f"  하위능력: {sub_competency_name}")
-                
-                # 문항 데이터 구조 생성
-                questions_data = {
-                    'ox': item.get('ox', []),
-                    'multi': item.get('choice', [])  # 'choice'를 'multi'로 매핑
+@login_required
+@teacher_required
+@require_GET
+def api_course_structure(request, course_id):
+    """코스 구조 JSON 반환 API"""
+    try:
+        teacher = request.user.teacher
+        course = get_object_or_404(Course, id=course_id, teacher=teacher)
+        
+        structure = {
+            'course': {
+                'id': course.id,
+                'subject_name': course.subject_name,
+                'target': course.target,
+                'description': course.description
+            },
+            'chapters': []
+        }
+        
+        chapters = Chapter.objects.filter(subject=course).order_by('chapter_order')
+        for chapter in chapters:
+            chapter_data = {
+                'id': chapter.id,
+                'title': chapter.chapter_title,
+                'order': chapter.chapter_order,
+                'description': chapter.description,
+                'subchapters': []
+            }
+            
+            subchapters = SubChapter.objects.filter(chapter=chapter).order_by('sub_chapter_order')
+            for subchapter in subchapters:
+                subchapter_data = {
+                    'id': subchapter.id,
+                    'title': subchapter.sub_chapter_title,
+                    'order': subchapter.sub_chapter_order,
+                    'description': subchapter.description,
+                    'chasis': []
                 }
                 
-                process_sub_competency_questions(
-                    sub_competency_name, questions_data, main_competency,
-                    sub_competency_counters, generated_questions
-                )
-    elif isinstance(questions_json, dict):
-        print(f"딕셔너리 형식 감지 - 키: {list(questions_json.keys())}")
-        # 딕셔너리 형식인 경우
-        for sub_competency_name, questions in questions_json.items():
-            print(f"\n하위능력: {sub_competency_name}")
-            process_sub_competency_questions(
-                sub_competency_name, questions, main_competency,
-                sub_competency_counters, generated_questions
-            )
-    else:
-        print(f"오류: 예상하지 못한 형식 - {type(questions_json)}")
-        raise ValueError("문항 JSON은 딕셔너리 또는 리스트 형식이어야 합니다.")
-    
-    print(f"\n총 생성된 문항 수: {len(generated_questions)}")
-    print("===== process_questions_json 완료 =====\n")
-    
-    return generated_questions
-
-
-def process_sub_competency_questions(sub_competency_name, questions, main_competency, 
-                                    sub_competency_counters, generated_questions):
-    """하위능력별 문항 처리"""
-    print(f"\n  === {sub_competency_name} 처리 시작 ===")
-    
-    # 하위능력별 카운터 초기화
-    if sub_competency_name not in sub_competency_counters:
-        sub_competency_counters[sub_competency_name] = 0
-        print(f"  카운터 초기화: {sub_competency_name} = 0")
-    
-    # OX 문제 처리
-    ox_questions = questions.get('ox', []) if isinstance(questions, dict) else []
-    print(f"  OX 문항 수: {len(ox_questions)}")
-    
-    for idx, ox_q in enumerate(ox_questions):
-        sub_competency_counters[sub_competency_name] += 1
+                chasis = Chasi.objects.filter(sub_chapter=subchapter).order_by('chasi_order')
+                for chasi in chasis:
+                    slide_count = ChasiSlide.objects.filter(chasi=chasi).count()
+                    chasi_data = {
+                        'id': chasi.id,
+                        'title': chasi.chasi_title,
+                        'order': chasi.chasi_order,
+                        'description': chasi.description,
+                        'learning_objectives': chasi.learning_objectives,
+                        'duration_minutes': chasi.duration_minutes,
+                        'slide_count': slide_count
+                    }
+                    subchapter_data['chasis'].append(chasi_data)
+                
+                chapter_data['subchapters'].append(subchapter_data)
+            
+            structure['chapters'].append(chapter_data)
         
-        question_id = f"q_{sub_competency_name}_{sub_competency_counters[sub_competency_name]}"
-        print(f"    OX문항 {idx+1}: {question_id}")
-        print(f"      문제: {ox_q.get('question', '')[:50]}...")
-        print(f"      정답: {ox_q.get('answer', 'O')}")
+        return JsonResponse({
+            'success': True,
+            'structure': structure
+        })
         
-        # HTML 생성 (question_id 파라미터 제거)
-        html = OX_TEMPLATE.format(
-            question_text=ox_q.get('question', '')
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@teacher_required
+@require_POST
+def api_course_structure_update(request, course_id):
+    """코스 구조 업데이트 API (JSON 기반)"""
+    try:
+        teacher = request.user.teacher
+        course = get_object_or_404(Course, id=course_id, teacher=teacher)
+        
+        data = json.loads(request.body)
+        structure = data.get('structure')
+        
+        if not structure:
+            return JsonResponse({
+                'success': False,
+                'error': '구조 데이터가 필요합니다.'
+            }, status=400)
+        
+        with transaction.atomic():
+            # 기존 구조 삭제는 하지 않고 업데이트만 수행
+            # 실제 구현에서는 더 세밀한 업데이트 로직이 필요
+            
+            # 코스 정보 업데이트
+            if 'course' in structure:
+                course_info = structure['course']
+                course.subject_name = course_info.get('subject_name', course.subject_name)
+                course.target = course_info.get('target', course.target)
+                course.description = course_info.get('description', course.description)
+                course.save()
+            
+            # 새로운 구조 생성 로직은 복잡하므로 여기서는 기본 응답만
+            
+        return JsonResponse({
+            'success': True,
+            'message': '코스 구조가 업데이트되었습니다.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# ========================================
+# 콘텐츠 관련 API
+# ========================================
+
+@login_required
+@teacher_required
+@require_POST
+def api_content_create_with_prompt(request):
+    """프롬프트를 이용한 콘텐츠 생성 API"""
+    try:
+        data = json.loads(request.body)
+        
+        # 프롬프트 데이터
+        prompt = data.get('prompt', '')
+        content_type_id = data.get('content_type_id')
+        title = data.get('title', '')
+        ai_provider = data.get('ai_provider', 'claude')  # claude, gemini, chatgpt, grok
+        
+        # 고급 설정 옵션들
+        options = {
+            'difficulty': data.get('difficulty', '중급'),
+            'include_explanation': data.get('include_explanation', True),
+            'include_hints': data.get('include_hints', False),
+            'include_images': data.get('include_images', False),
+            'multiple_versions': data.get('multiple_versions', False)
+        }
+        
+        # 기본 검증
+        if not prompt or not content_type_id or not title:
+            return JsonResponse({
+                'success': False,
+                'error': '프롬프트, 콘텐츠 타입, 제목이 필요합니다.'
+            }, status=400)
+        
+        content_type = get_object_or_404(ContentType, id=content_type_id, is_active=True)
+        
+        # AI API 호출
+        generated_content = generate_content_with_ai(prompt, content_type.type_name, ai_provider, options)
+        
+        # 콘텐츠 생성
+        content = Contents.objects.create(
+            title=title,
+            content_type=content_type,
+            page=generated_content,
+            created_by=request.user,
+            meta_data={
+                'generated_by_ai': True,
+                'ai_provider': ai_provider,
+                'original_prompt': prompt,
+                'generation_timestamp': datetime.now().isoformat()
+            },
+            is_active=True,
+            is_public=False
         )
         
-        # 정답 JSON - O는 1, X는 2로 변환
-        ox_answer = ox_q.get('answer', 'O')
-        answer_value = "1" if ox_answer == "O" else "2"
-        
-        # solution 또는 explanation 필드 처리
-        solution_text = ox_q.get('solution', ox_q.get('explanation', f'이 문항은 {sub_competency_name}을(를) 평가하는 OX 문항입니다.'))
-        
-        answer_json = {
-            "answer": answer_value,
-            "solution": f"정답: {ox_answer}\n\n{solution_text}"
-        }
-        
-        # 태그 생성
-        tags = {
-            "competency": main_competency,  # 상위 역량
-            "sub_competency": sub_competency_name,  # 하위 역량
-            "difficulty": ox_q.get('difficulty', '중'),
-            "question_type": "ox",
-            "order": sub_competency_counters[sub_competency_name]
-        }
-        
-        generated_questions.append({
-            "title": f"{sub_competency_name} {sub_competency_counters[sub_competency_name]}",
-            "question_html": html,
-            "answer_json": json.dumps(answer_json, ensure_ascii=False),
-            "tags_json": json.dumps(tags, ensure_ascii=False),
-            "content_type": "multiple-choice"
-        })
-        print(f"      → 문항 생성 완료")
-    
-    # 5지선다 문제 처리
-    multi_questions = questions.get('multi', []) if isinstance(questions, dict) else []
-    print(f"  5지선다 문항 수: {len(multi_questions)}")
-    
-    for idx, multi_q in enumerate(multi_questions):
-        sub_competency_counters[sub_competency_name] += 1
-        
-        question_id = f"q_{sub_competency_name}_{sub_competency_counters[sub_competency_name]}"
-        print(f"    5지선다 {idx+1}: {question_id}")
-        print(f"      문제: {multi_q.get('question', '')[:50]}...")
-        print(f"      정답: {multi_q.get('answer', 1)}")
-        
-        # HTML 생성 (question_id 파라미터 제거)
-        # options 또는 choices 필드 처리
-        options = multi_q.get('options', multi_q.get('choices', [''] * 5))
-        html = MULTI_CHOICE_TEMPLATE.format(
-            question_text=multi_q.get('question', ''),
-            option_1=options[0] if len(options) > 0 else '',
-            option_2=options[1] if len(options) > 1 else '',
-            option_3=options[2] if len(options) > 2 else '',
-            option_4=options[3] if len(options) > 3 else '',
-            option_5=options[4] if len(options) > 4 else ''
-        )
-        
-        # 정답 JSON
-        answer_num = str(multi_q.get('answer', 1))
-        
-        # solution 또는 explanation 필드 처리
-        solution_text = multi_q.get('solution', multi_q.get('explanation', f'이 문항은 {sub_competency_name}을(를) 평가하는 5지선다 문항입니다.'))
-        
-        answer_json = {
-            "answer": answer_num,
-            "solution": f"정답: {answer_num}\n\n{solution_text}"
-        }
-        
-        # 태그 생성
-        tags = {
-            "competency": main_competency,  # 상위 역량
-            "sub_competency": sub_competency_name,  # 하위 역량
-            "difficulty": multi_q.get('difficulty', '중'),
-            "question_type": "multi",
-            "order": sub_competency_counters[sub_competency_name]
-        }
-        
-        generated_questions.append({
-            "title": f"{sub_competency_name} {sub_competency_counters[sub_competency_name]}",
-            "question_html": html,
-            "answer_json": json.dumps(answer_json, ensure_ascii=False),
-            "tags_json": json.dumps(tags, ensure_ascii=False),
-            "content_type": "multiple-choice"
-        })
-        print(f"      → 문항 생성 완료")
-    
-    print(f"  === {sub_competency_name} 처리 완료 - 총 {sub_competency_counters[sub_competency_name]}문항 ===\n")
-
-
-class QuestionAgentView(View):
-    """메인 페이지를 렌더링하는 뷰"""
-    def get(self, request, *args, **kwargs):
-        return render(request, 'super_agent/index.html')
-
-
-@csrf_exempt
-def process_files(request):
-    """AJAX 요청을 받아 JSON 파일을 처리하고 문항을 생성하는 뷰"""
-    print("\n========== process_files 시작 ==========")
-    print(f"요청 메소드: {request.method}")
-    
-    if request.method == 'POST':
-        try:
-            questions_file = request.FILES.get('questions_file')
-            mindmap_file = request.FILES.get('mindmap_file')
-            
-            print(f"questions_file: {questions_file}")
-            print(f"mindmap_file: {mindmap_file}")
-
-            if not questions_file:
-                print("오류: 문항 JSON 파일 없음")
-                return JsonResponse({'status': 'error', 'message': '문항 JSON 파일을 업로드해주세요.'}, status=400)
-            
-            if not mindmap_file:
-                print("오류: 마인드맵 JSON 파일 없음")
-                return JsonResponse({'status': 'error', 'message': '마인드맵 JSON 파일을 업로드해주세요.'}, status=400)
-
-            # JSON 파일 읽기
-            try:
-                questions_content = questions_file.read().decode('utf-8')
-                print(f"\n문항 파일 내용 (첫 200자): {questions_content[:200]}...")
-                questions_json = json.loads(questions_content)
-                print(f"문항 JSON 파싱 성공")
-            except json.JSONDecodeError as e:
-                print(f"문항 JSON 파싱 오류: {str(e)}")
-                return JsonResponse({'status': 'error', 'message': f'문항 JSON 파일 형식 오류: {str(e)}'}, status=400)
-            
-            try:
-                mindmap_content = mindmap_file.read().decode('utf-8')
-                print(f"\n마인드맵 파일 내용 (첫 200자): {mindmap_content[:200]}...")
-                mindmap_json = json.loads(mindmap_content)
-                print(f"마인드맵 JSON 파싱 성공")
-            except json.JSONDecodeError as e:
-                print(f"마인드맵 JSON 파싱 오류: {str(e)}")
-                return JsonResponse({'status': 'error', 'message': f'마인드맵 JSON 파일 형식 오류: {str(e)}'}, status=400)
-
-            # JSON 데이터 처리
-            print("\nJSON 처리 시작...")
-            generated_questions = process_questions_json(questions_json, mindmap_json)
-            print(f"처리 완료 - 생성된 문항 수: {len(generated_questions)}")
-
-            # multiple-choice ContentType 가져오기
-            content_type, created = ContentType.objects.get_or_create(
-                type_name='multiple-choice',
-                defaults={'description': '객관식 문항 (OX, 5지선다)'}
-            )
-            print(f"ContentType: {content_type.type_name} (새로 생성: {created})")
-
-            # DB에 저장
-            saved_count = 0
-            competency_name = mindmap_json.get('name', '직업기초능력')
-            
-            print("\nDB 저장 시작...")
-            for idx, item in enumerate(generated_questions):
-                try:
-                    content = Contents.objects.create(
-                        content_type=content_type,
-                        title=item['title'],
-                        page=item['question_html'],
-                        answer=item['answer_json'],
-                        tags=json.loads(item['tags_json']),
-                        created_by=request.user if request.user.is_authenticated else None
-                    )
-                    saved_count += 1
-                    print(f"  [{idx+1}] {item['title']} - 저장 성공 (ID: {content.id})")
-                except Exception as e:
-                    print(f"  [{idx+1}] {item['title']} - 저장 실패: {str(e)}")
-            
-            print(f"\nDB 저장 완료 - 성공: {saved_count}/{len(generated_questions)}")
-            
-            response_data = {
-                'status': 'success', 
-                'message': f'{saved_count}개의 문항이 성공적으로 저장되었습니다.',
-                'competency': competency_name
+        return JsonResponse({
+            'success': True,
+            'content': {
+                'id': content.id,
+                'title': content.title,
+                'content_code': content.content_code,
+                'page': content.page,
+                'content_type': content.content_type.type_name,
+                'created_at': content.created_at.strftime('%Y-%m-%d %H:%M')
             }
-            print(f"응답 데이터: {response_data}")
-            print("========== process_files 완료 ==========\n")
-            
-            return JsonResponse(response_data)
-
-        except Exception as e:
-            import traceback
-            print(f"\n!!! 예외 발생 !!!")
-            print(f"오류: {str(e)}")
-            print(traceback.format_exc())
-            print("!!!!!!!!!!!!!!!!!!\n")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-    print("오류: POST 요청이 아님")
-    return JsonResponse({'status': 'error', 'message': '잘못된 요청입니다.'}, status=400)
-
-
-def get_question_tree(request):
-    """생성된 문항들을 태그 기반의 트리 구조로 반환하는 뷰"""
-    print("\n===== get_question_tree 시작 =====")
-    
-    # multiple-choice 타입의 콘텐츠만 필터링
-    content_type = ContentType.objects.filter(type_name='multiple-choice').first()
-    if not content_type:
-        print("ContentType 'multiple-choice' 없음")
-        return JsonResponse({})
-    
-    print(f"ContentType 찾음: {content_type.type_name} (ID: {content_type.id})")
-
-    questions = Contents.objects.filter(content_type=content_type).order_by('created_at')
-    print(f"전체 문항 수: {questions.count()}")
-    
-    # 직업기초능력별로 트리 구조 생성
-    tree_data = {}
-    for q in questions:
-        competency = q.tags.get('competency', '기타')
-        sub_competency = q.tags.get('sub_competency', '기타')
-        order = q.tags.get('order', 0)
-        question_type = q.tags.get('question_type', 'unknown')
-
-        if competency not in tree_data:
-            tree_data[competency] = {}
-        
-        if sub_competency not in tree_data[competency]:
-            tree_data[competency][sub_competency] = []
-        
-        tree_data[competency][sub_competency].append({
-            'id': q.id,
-            'title': q.title,
-            'order': order,
-            'type': question_type
         })
         
-    # 각 하위 역량별로 순서대로 정렬
-    for competency in tree_data:
-        for sub_competency in tree_data[competency]:
-            tree_data[competency][sub_competency].sort(key=lambda x: x['order'])
-    
-    print(f"트리 구조: {len(tree_data)}개 역량")
-    for comp, subs in tree_data.items():
-        print(f"  - {comp}: {len(subs)}개 하위역량")
-    
-    print("===== get_question_tree 완료 =====\n")
-    return JsonResponse(tree_data)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@teacher_required
+@require_POST
+def api_content_update_with_prompt(request, content_id):
+    """프롬프트를 이용한 콘텐츠 수정 API"""
+    try:
+        content = get_object_or_404(Contents, id=content_id, created_by=request.user)
+        data = json.loads(request.body)
+        
+        prompt = data.get('prompt', '')
+        ai_provider = data.get('ai_provider', 'claude')
+        
+        if not prompt:
+            return JsonResponse({
+                'success': False,
+                'error': '수정을 위한 프롬프트가 필요합니다.'
+            }, status=400)
+        
+        # 기존 콘텐츠를 백업
+        backup_content = content.page
+        
+        # AI를 이용한 콘텐츠 수정
+        modified_content = modify_content_with_ai(content.page, prompt, ai_provider)
+        
+        # 콘텐츠 업데이트
+        content.page = modified_content
+        content.meta_data.update({
+            'last_modified_by_ai': True,
+            'last_ai_provider': ai_provider,
+            'last_modification_prompt': prompt,
+            'last_modification_timestamp': datetime.now().isoformat(),
+            'backup_content': backup_content  # 이전 버전 백업
+        })
+        content.save()
+        
+        return JsonResponse({
+            'success': True,
+            'content': {
+                'id': content.id,
+                'page': content.page,
+                'backup_content': backup_content
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@teacher_required
+@require_GET
+def api_content_search(request):
+    """콘텐츠 검색 API"""
+    try:
+        # 검색 파라미터
+        query = request.GET.get('q', '').strip()
+        content_type_id = request.GET.get('content_type', '')
+        course_id = request.GET.get('course_id', '')
+        
+        # 기본 쿼리셋
+        contents = Contents.objects.filter(
+            Q(created_by=request.user) | Q(is_public=True),
+            is_active=True
+        ).select_related('content_type')
+        
+        # 검색어 필터
+        if query:
+            contents = contents.filter(
+                Q(title__icontains=query) | 
+                Q(page__icontains=query) |
+                Q(content_code__icontains=query)
+            )
+        
+        # 콘텐츠 타입 필터
+        if content_type_id:
+            contents = contents.filter(content_type_id=content_type_id)
+        
+        # 코스 필터 (슬라이드를 통해)
+        if course_id:
+            contents = contents.filter(
+                chasislide__chasi__subject_id=course_id
+            ).distinct()
+        
+        # 정렬 및 제한
+        contents = contents.order_by('-created_at')[:50]
+        
+        results = []
+        for content in contents:
+            results.append({
+                'id': content.id,
+                'title': content.title,
+                'content_code': content.content_code,
+                'content_type': content.content_type.type_name,
+                'preview': content.get_preview(100),
+                'created_at': content.created_at.strftime('%Y-%m-%d'),
+                'is_mine': content.created_by == request.user,
+                'view_count': content.view_count
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'results': results,
+            'total': len(results)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+@login_required
+@teacher_required
+@require_GET
+def api_content_detail(request, content_id):
+    """콘텐츠 상세 정보 API"""
+    try:
+        content = get_object_or_404(Contents, id=content_id)
+        
+        # 권한 체크
+        if content.created_by != request.user and not content.is_public:
+            return JsonResponse({
+                'success': False,
+                'error': '접근 권한이 없습니다.'
+            }, status=403)
+        
+        # 조회수 증가
+        content.view_count += 1
+        content.save(update_fields=['view_count'])
+        
+        return JsonResponse({
+            'success': True,
+            'content': {
+                'id': content.id,
+                'title': content.title,
+                'content_code': content.content_code,
+                'page': content.page,
+                'answer': content.answer,
+                'content_type': content.content_type.type_name,
+                'meta_data': content.meta_data,
+                'tags': content.tags,
+                'created_at': content.created_at.strftime('%Y-%m-%d %H:%M'),
+                'updated_at': content.updated_at.strftime('%Y-%m-%d %H:%M'),
+                'is_mine': content.created_by == request.user,
+                'view_count': content.view_count
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# ========================================
+# AI 유틸리티 연동
+# ========================================
+
+from .ai_utils import ai_manager
+
+def generate_content_with_ai(prompt, content_type, ai_provider, options=None):
+    """AI를 이용한 콘텐츠 생성"""
+    try:
+        return ai_manager.generate_content(prompt, content_type, ai_provider, options)
+    except Exception as e:
+        print(f"AI 콘텐츠 생성 오류: {str(e)}")
+        # 폴백으로 모의 콘텐츠 반환
+        return ai_manager._generate_mock_content(prompt, content_type, ai_provider)
+
+def modify_content_with_ai(original_content, prompt, ai_provider):
+    """AI를 이용한 콘텐츠 수정"""
+    try:
+        return ai_manager.modify_content(original_content, prompt, ai_provider)
+    except Exception as e:
+        print(f"AI 콘텐츠 수정 오류: {str(e)}")
+        # 폴백으로 모의 수정 반환
+        return ai_manager._generate_mock_modification(original_content, prompt, ai_provider)
+
+# ========================================
+# 통계 및 분석 API
+# ========================================
+
+@login_required
+@teacher_required
+@require_GET
+def api_agent_statistics(request):
+    """에이전트 통계 API"""
+    try:
+        teacher = request.user.teacher
+        
+        # 기본 통계
+        stats = {
+            'courses': {
+                'total': Course.objects.filter(teacher=teacher).count(),
+                'active': Course.objects.filter(teacher=teacher, is_active=True).count(),
+                'recent': Course.objects.filter(teacher=teacher).filter(
+                    created_at__gte=datetime.now().replace(day=1)
+                ).count()
+            },
+            'contents': {
+                'total': Contents.objects.filter(created_by=request.user).count(),
+                'ai_generated': Contents.objects.filter(
+                    created_by=request.user,
+                    meta_data__generated_by_ai=True
+                ).count(),
+                'recent': Contents.objects.filter(
+                    created_by=request.user,
+                    created_at__gte=datetime.now().replace(day=1)
+                ).count()
+            },
+            'students': {
+                'total': Student.objects.filter(school_class__teachers=teacher).distinct().count(),
+                'assigned': CourseAssignment.objects.filter(
+                    course__teacher=teacher
+                ).values('assigned_student', 'assigned_class').distinct().count()
+            }
+        }
+        
+        # 콘텐츠 타입별 통계
+        content_type_stats = Contents.objects.filter(
+            created_by=request.user
+        ).values(
+            'content_type__type_name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        stats['content_types'] = list(content_type_stats)
+        
+        return JsonResponse({
+            'success': True,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

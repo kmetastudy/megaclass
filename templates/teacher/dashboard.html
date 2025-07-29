@@ -175,6 +175,11 @@
             <i class="fas fa-robot text-orange-500 text-2xl mb-2"></i>
             <span class="text-sm font-medium text-gray-700">문항 생성 agent</span>
         </a>
+        <!-- 새로 추가된 문항 배치저장 버튼 -->
+        <a href="{% url 'super_agent:batch_process' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-upload text-teal-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">문항 배치저장</span>
+        </a>
     </div>
 </div>
 

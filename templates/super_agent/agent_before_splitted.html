@@ -1,0 +1,4328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent - 교육 콘텐츠 통합 관리</title>
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* 기본 영역 스타일 */
+        .area-toggle { transition: all 0.3s ease; }
+        .area-hidden { opacity: 0.3; pointer-events: none; }
+        
+        /* 트리 아이템 스타일 */
+        .tree-item { cursor: pointer; }
+        .tree-item:hover { background-color: #f3f4f6; }
+        .tree-item.selected { background-color: #ede9fe; border-left: 4px solid #a78bfa; }
+        
+        /* 새로 생성된 노드 하이라이트 애니메이션 */
+        .tree-item.new-node {
+            animation: highlightNew 2s ease-in-out;
+        }
+        
+        @keyframes highlightNew {
+            0%, 100% { background-color: transparent; }
+            25% { background-color: #fef3c7; }
+            50% { background-color: #fde047; }
+            75% { background-color: #fef3c7; }
+        }
+        
+        /* 콘텐츠 카드 스타일 */
+        .content-card { transition: all 0.2s ease; }
+        .content-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        
+        /* AI 프로바이더 버튼 */
+        .ai-provider-btn { transition: all 0.2s ease; }
+        .ai-provider-btn.active { background-color: #3b82f6; color: white; }
+        .ai-provider-btn:hover:not(.active) { background-color: #f3f4f6; }
+        
+        /* 프롬프트 설정 아코디언 */
+        .prompt-settings { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .prompt-settings.expanded { max-height: 500px; }
+        
+        /* 드래그 가능한 프롬프트 창 스타일 */
+        .draggable-prompt {
+            cursor: move;
+            user-select: none;
+        }
+        
+        .draggable-prompt:active {
+            cursor: grabbing;
+        }
+        
+        .prompt-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .prompt-minimize-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .prompt-minimize-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* 프롬프트 숨김/보임 애니메이션 */
+        .prompt-hidden {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            visibility: hidden;
+        }
+        
+        .prompt-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            visibility: visible;
+        }
+        
+        /* 메인 영역 레이아웃 */
+        .main-container {
+            height: calc(100vh - 64px);
+            padding-top: 0;
+            margin-top: 0;
+            display: flex;
+        }
+        
+        /* 개별 영역 스타일 */
+        .course-area {
+            width: 500px;
+            min-width: 400px;
+            border-right: 2px solid #e5e7eb;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+        
+        .content-area {
+            flex: 1;
+            border-right: 2px solid #e5e7eb;
+            background: white;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .search-area {
+            width: 500px;
+            min-width: 450px;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        
+        /* 수동편집 패널 */
+        .manual-edit-panel {
+            width: 0;
+            min-width: 0;
+            overflow: hidden;
+            background: white;
+            border-right: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        
+        .manual-edit-panel.open {
+            flex: 1;
+            width: auto;
+            min-width: 400px;
+        }
+        
+        /* 컨텐츠 영역 숨기기 */
+        .main-container.manual-edit-open .content-area {
+            display: none;
+        }
+        
+        /* 영역 헤더 */
+        .area-header {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-bottom: 1px solid #d1d5db;
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 스크롤 영역 - 높이 자동 조정 */
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+        
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Firefox 스크롤바 */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 #f1f1f1;
+        }
+        
+        /* 네비게이션 고정 */
+        .top-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            height: 64px;
+        }
+
+        /* 트리 뷰 스타일 */
+        .tree-view {
+            font-family: inherit;
+            padding: 8px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .tree-node {
+            position: relative;
+            margin: 2px 0;
+        }
+        
+        .tree-content {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin: 2px 0;
+        }
+        
+        .tree-content:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .tree-content.selected {
+            background-color: #ede9fe;
+            border: 1px solid #a78bfa;
+        }
+        
+        .tree-toggle {
+            cursor: pointer;
+            margin-right: 8px;
+            transition: transform 0.2s ease;
+            width: 16px;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .tree-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .tree-icon {
+            margin-right: 8px;
+            width: 16px;
+            text-align: center;
+        }
+        
+        .tree-text {
+            flex: 1;
+            font-size: 14px;
+            color: #374151;
+        }
+        
+        .tree-badge {
+            background-color: #f3f4f6;
+            color: #6b7280;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+        
+        .tree-children {
+            margin-left: 24px;
+            border-left: 1px solid #e5e7eb;
+            padding-left: 12px;
+            margin-top: 4px;
+            max-height: 1000px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .tree-node.collapsed > .tree-children {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        /* 인라인 슬라이드 관리 스타일 */
+        .slide-item-inline {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .slide-item-inline:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .slide-item-inline.drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #dbeafe !important;
+            transform: scale(1.02);
+        }
+        
+        /* 슬라이드 컨테이너 드롭존 */
+        .slide-container-dropzone {
+            transition: all 0.3s ease;
+        }
+        
+        .slide-container-dropzone.drag-over {
+            border-color: #3b82f6 !important;
+            background-color: #dbeafe !important;
+        }
+
+        /* 슬라이드 관련 스타일 */
+        .slide-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 4px 0;
+            background: #f9fafb;
+            transition: all 0.2s ease;
+        }
+        
+        .slide-item:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+        }
+        
+        .slide-item.selected {
+            background: #ede9fe;
+            border-color: #a78bfa;
+        }
+        
+        .slide-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        
+        .slide-number {
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        /* 버튼 스타일 */
+        .btn-modern {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+
+        /* 폼 스타일 */
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* 매뉴얼 편집 패널 스타일 */
+        .manual-edit-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .manual-edit-header {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border-bottom: 1px solid #d1d5db;
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .manual-edit-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        /* 구조 편집 폼 스타일 */
+        .structure-form {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-section {
+            margin-bottom: 20px;
+        }
+        
+        .form-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        /* 계층 구조 표시 */
+        .hierarchy-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        
+        .hierarchy-item.chapter {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .hierarchy-item.subchapter {
+            border-left: 4px solid #10b981;
+            margin-left: 20px;
+        }
+        
+        .hierarchy-item.chasi {
+            border-left: 4px solid #8b5cf6;
+            margin-left: 40px;
+        }
+        
+        .hierarchy-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-edit {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-small:hover {
+            transform: scale(1.05);
+        }
+
+        /* 알림 메시지 스타일 */
+        .notification-message {
+            animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* 콘텐츠 탭 스타일 */
+        .content-tab {
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .content-tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        /* 토글 버튼 스타일 */
+        .btn-toggle {
+            transition: all 0.2s ease;
+        }
+
+        .btn-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 로딩 스피너 */
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 반응형 스타일 */
+        @media (max-width: 1200px) {
+            .course-area {
+                width: 350px;
+                min-width: 300px;
+            }
+            
+            .search-area {
+                width: 350px;
+                min-width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .course-area,
+            .search-area {
+                width: 100%;
+                min-width: 100%;
+                height: 300px;
+            }
+            
+            .content-area {
+                height: 500px;
+            }
+        }
+
+        /* 드래그앤드롭 관련 스타일 */
+        .content-card[draggable="true"] {
+            transition: all 0.2s ease;
+        }
+        
+        .content-card[draggable="true"]:hover .drag-handle {
+            color: #3b82f6;
+        }
+        
+        .content-card[draggable="true"]:hover .drag-hint {
+            opacity: 0.7 !important;
+        }
+        
+        /* 드롭존 스타일 */
+        .slide-drop-zone {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .slide-drop-zone.drag-over {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* 슬라이드 노드 스타일 */
+        .slide-node .tree-content {
+            margin: 2px 4px;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .slide-node .tree-content.selected {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            border-color: #8b5cf6;
+        }
+        
+        /* 슬라이드 번호 배지 */
+        .slide-number {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        /* 펄스 애니메이션 */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        /* 드래그 힌트 */
+        .drag-hint {
+            transition: opacity 0.3s ease;
+        }
+        
+        /* 드래그 핸들 */
+        .drag-handle {
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        /* 빈 슬라이드 스타일 */
+        .slide-drop-zone:not(.border-green-200) {
+            border-style: dashed;
+            background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 5px,
+                rgba(156, 163, 175, 0.1) 5px,
+                rgba(156, 163, 175, 0.1) 10px
+            );
+        }
+        
+        /* 하이라이트 애니메이션 */
+        .slide-node.highlight {
+            animation: slideHighlight 2s ease-in-out;
+        }
+        
+        @keyframes slideHighlight {
+            0%, 100% {
+                background-color: transparent;
+            }
+            25% {
+                background-color: #fef3c7;
+            }
+            50% {
+                background-color: #fde047;
+            }
+            75% {
+                background-color: #fef3c7;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 상단 메뉴 -->
+    <nav class="top-nav bg-white shadow-sm border-b border-gray-200 px-6 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-xl font-bold text-gray-900">
+                    <i class="fas fa-robot text-blue-600 mr-2"></i>AI Agent
+                </h1>
+                <div class="text-sm text-gray-600">
+                    {% if user.is_authenticated %}
+                        {{ user.get_full_name|default:user.username }}님의 통합 관리 시스템
+                    {% else %}
+                        교육 콘텐츠 통합 관리 시스템
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 영역 제어 버튼들 -->
+            <div class="flex items-center space-x-2">
+                <button id="promptToggleBtn" onclick="togglePromptArea()" class="btn-toggle px-3 py-1 rounded text-sm bg-blue-100 text-blue-700 hover:bg-blue-200">
+                    <i class="fas fa-comment-alt mr-1"></i>프롬프트
+                </button>
+                <button onclick="toggleArea('course')" class="btn-toggle px-3 py-1 rounded text-sm bg-green-100 text-green-700 hover:bg-green-200">
+                    <i class="fas fa-sitemap mr-1"></i>코스
+                </button>
+                <button id="manualEditToggleBtn" onclick="toggleManualEditPanel()" class="btn-toggle px-3 py-1 rounded text-sm bg-orange-100 text-orange-700 hover:bg-orange-200">
+                    <i class="fas fa-edit mr-1"></i>수동편집
+                </button>
+                <button id="contentToggleBtn" onclick="toggleContentArea()" class="btn-toggle px-3 py-1 rounded text-sm bg-purple-100 text-purple-700 hover:bg-purple-200">
+                    <i class="fas fa-file-alt mr-1"></i>콘텐츠
+                </button>
+                <button onclick="toggleArea('search')" class="btn-toggle px-3 py-1 rounded text-sm bg-yellow-100 text-yellow-700 hover:bg-yellow-200">
+                    <i class="fas fa-search mr-1"></i>검색
+                </button>
+                
+                <div class="border-l border-gray-300 h-6 mx-2"></div>
+                
+                <button onclick="showStatistics()" class="px-3 py-1 rounded text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-chart-bar mr-1"></i>통계
+                </button>
+                <a href="{% url 'teacher:dashboard' %}" class="px-3 py-1 rounded text-sm bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-home mr-1"></i>대시보드
+                </a>
+                <a href="{% url 'accounts:logout' %}" class="px-3 py-1 rounded text-sm bg-red-100 text-red-700 hover:bg-red-200">
+                    <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 1영역: 드래그 가능한 프롬프트 (플로팅) -->
+    <div id="promptArea" class="fixed top-20 left-1/2 transform -translate-x-1/2 w-2/3 max-w-4xl z-20 prompt-visible">
+        <div class="bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+            <!-- 드래그 가능한 헤더 -->
+            <div class="prompt-header draggable-prompt" id="promptHeader">
+                <div class="flex items-center flex-1">
+                    <i class="fas fa-grip-vertical mr-2"></i>
+                    <span class="font-medium">AI 프롬프트</span>
+                </div>
+                <button class="prompt-minimize-btn" onclick="togglePromptArea()" title="숨기기">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            
+            <!-- 프롬프트 카드 내용 -->
+            <div class="p-6">
+                <!-- 프롬프트 카드 상단 -->
+                <div class="mb-4">
+                    <textarea id="promptInput" rows="4" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              placeholder="AI에게 요청할 내용을 입력하세요... (예: 수학 중1 피타고라스 정리에 대한 객관식 문제 5개 만들어줘)"></textarea>
+                </div>
+                
+                <!-- 프롬프트 카드 하단 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <!-- 파일 첨부 -->
+                        <div class="flex items-center">
+                            <input type="file" id="fileUpload" class="hidden" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.png">
+                            <button onclick="document.getElementById('fileUpload').click()" 
+                                    class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-paperclip mr-1"></i>첨부
+                            </button>
+                            <span id="fileCount" class="ml-2 text-sm text-gray-500"></span>
+                        </div>
+                        
+                        <!-- AI 프로바이더 선택 -->
+                        <div class="flex space-x-1" id="aiProviderButtons">
+                            <button onclick="selectAIProvider('claude', event)" class="ai-provider-btn active px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Claude
+                            </button>
+                            <button onclick="selectAIProvider('gemini', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Gemini
+                            </button>
+                            <button onclick="selectAIProvider('chatgpt', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                ChatGPT
+                            </button>
+                            <button onclick="selectAIProvider('grok', event)" class="ai-provider-btn px-3 py-2 text-sm rounded-lg border border-gray-300">
+                                Grok
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 실행 버튼 -->
+                    <button onclick="executePrompt()" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors">
+                        <i class="fas fa-magic mr-2"></i>생성하기
+                    </button>
+                </div>
+                
+                <!-- 아코디언 설정 영역 -->
+                <div class="mt-4 border-t pt-4">
+                    <button onclick="togglePromptSettings()" 
+                            class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900">
+                        <span><i class="fas fa-cog mr-2"></i>고급 설정</span>
+                        <i id="settingsToggleIcon" class="fas fa-chevron-down transition-transform"></i>
+                    </button>
+                    
+                    <div id="promptSettings" class="prompt-settings mt-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 콘텐츠 타입 선택 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">콘텐츠 타입</label>
+                                <select id="contentTypeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="">선택하세요</option>
+                                    {% for content_type in content_types %}
+                                    <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- 난이도 설정 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">난이도</label>
+                                <select id="difficultySelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="초급">초급</option>
+                                    <option value="중급" selected>중급</option>
+                                    <option value="고급">고급</option>
+                                </select>
+                            </div>
+                            
+                            <!-- 체크박스 설정들 -->
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">AI 최적화 옵션</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeExplanation" checked class="mr-2 rounded">
+                                        <span class="text-sm">해설 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeHints" class="mr-2 rounded">
+                                        <span class="text-sm">힌트 제공</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="includeImages" class="mr-2 rounded">
+                                        <span class="text-sm">이미지 포함</span>
+                                    </label>
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="checkbox" id="multipleVersions" class="mr-2 rounded">
+                                        <span class="text-sm">다양한 버전</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="flex main-container min-h-screen" id="mainContainer" style="padding-top: 64px;">
+        <!-- 2영역: 코스 네비게이션 (좌측) -->
+        <div id="courseArea" class="area-toggle course-area h-screen">
+            <div class="area-header">
+                <h3 class="flex items-center">
+                    <i class="fas fa-sitemap mr-2"></i>코스 구조
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <button onclick="refreshCourseList()" class="text-gray-500 hover:text-gray-700" title="새로고침">
+                        <i class="fas fa-sync-alt text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-gray-200">
+                <!-- 코스 검색 -->
+                <div class="mb-3">
+                    <div class="relative">
+                        <input type="text" id="courseSearchInput" 
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                               placeholder="코스 검색...">
+                        <i class="fas fa-search absolute right-3 top-2.5 text-gray-400"></i>
+                    </div>
+                </div>
+                
+                <!-- 코스 선택 드롭다운 -->
+                <select id="courseSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-blue-500">
+                    <option value="">코스를 선택하세요</option>
+                    {% for course in recent_courses %}
+                    <option value="{{ course.id }}">{{ course.subject_name }} - {{ course.target }}</option>
+                    {% endfor %}
+                </select>
+                
+                <!-- 구조 편집 버튼들 -->
+                <div class="flex space-x-2">
+                    <button onclick="editStructureManually()" 
+                            class="flex-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors">
+                        <i class="fas fa-edit mr-1"></i>수동편집
+                    </button>
+                    <button onclick="editStructureWithAI()" 
+                            class="flex-1 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded transition-colors">
+                        <i class="fas fa-robot mr-1"></i>AI편집
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 트리뷰 -->
+            <div id="courseTreeView" class="p-4 scroll-area">
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-folder-open text-4xl mb-2 opacity-50"></i>
+                    <p class="text-sm">코스를 선택하세요</p>
+                    <p class="text-xs text-gray-400 mt-1">구조를 편집하고 관리할 수 있습니다</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수동편집 패널 -->
+        <div id="manualEditPanel" class="manual-edit-panel min-h-screen">
+            <div class="manual-edit-content">
+                <div class="manual-edit-header">
+                    <div class="flex items-center">
+                        <i class="fas fa-edit mr-2"></i>
+                        <span class="font-semibold">수동 편집</span>
+                    </div>
+                    <button onclick="toggleManualEditPanel()" class="text-gray-600 hover:bg-gray-200 p-1 rounded transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="manual-edit-body" id="manualEditContent">
+                    <div class="text-center py-12 text-gray-500">
+                        <i class="fas fa-hand-pointer text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg font-medium">코스 구조를 선택하세요</p>
+                        <p class="text-sm mt-2 text-gray-400">좌측 트리에서 편집할 항목을 클릭하면<br>수동 편집 폼이 나타납니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3영역: 콘텐츠 생성/수정/미리보기 (중앙) -->
+        <div id="contentArea" class="h-screen area-toggle content-area">
+            <!-- 탭 메뉴 -->
+            <div class="border-b border-gray-200 px-4 bg-gray-50">
+                <nav class="flex space-x-4">
+                    <button onclick="switchContentTab('edit', event)" 
+                            class="content-tab active py-3 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600">
+                        <i class="fas fa-edit mr-2"></i>편집
+                    </button>
+                    <button onclick="switchContentTab('preview', event)" 
+                            class="content-tab py-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-eye mr-2"></i>미리보기
+                    </button>
+                    <button onclick="switchContentTab('play', event)" 
+                            class="content-tab py-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-play mr-2"></i>플레이
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- 콘텐츠 편집 탭 -->
+            <div id="editTab" class="content-tab-content p-4 flex-1 overflow-auto">
+                <div class="mb-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <input type="text" id="contentTitle" 
+                               class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                               placeholder="콘텐츠 제목">
+                        <select id="contentType" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                            <option value="">타입 선택</option>
+                            {% for content_type in content_types %}
+                            <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button onclick="saveContent()" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>저장
+                        </button>
+                        <button onclick="clearContent()" 
+                                class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>초기화
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- HTML 편집기 -->
+                <div class="border border-gray-300 rounded-lg flex-1 flex flex-col">
+                    <div class="bg-gray-50 px-4 py-2 border-b border-gray-300 text-sm text-gray-600 font-medium">
+                        <i class="fas fa-code mr-2"></i>HTML 편집기
+                    </div>
+                    <textarea id="contentEditor" rows="20" 
+                              class="w-full p-4 font-mono text-sm border-0 focus:ring-0 flex-1 resize-none"
+                              placeholder="HTML 콘텐츠를 입력하거나 AI로 생성하세요..."></textarea>
+                </div>
+            </div>
+            
+            <!-- 미리보기 탭 -->
+            <div id="previewTab" class="content-tab-content hidden p-4 flex-1 overflow-auto">
+                <div class="border border-gray-300 rounded-lg p-4 bg-white h-full">
+                    <div id="previewContent" class="prose max-w-none">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-eye text-4xl mb-4 opacity-50"></i>
+                            <p class="text-lg">미리보기할 콘텐츠가 없습니다</p>
+                            <p class="text-sm mt-2 text-gray-400">편집 탭에서 콘텐츠를 작성해보세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 플레이 탭 -->
+            <div id="playTab" class="content-tab-content hidden p-4 flex-1 overflow-auto">
+                <div class="border border-gray-300 rounded-lg p-4 bg-gray-50 h-full">
+                    <div id="playContent" class="prose max-w-none">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-play text-4xl mb-4 opacity-50"></i>
+                            <p class="text-lg">플레이할 콘텐츠가 없습니다</p>
+                            <p class="text-sm mt-2 text-gray-400">인터랙티브 콘텐츠를 작성해보세요</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4영역: 콘텐츠 검색 (우측) -->
+        <div id="searchArea" class="area-toggle search-area h-screen">
+            <!-- 최근 생성된 콘텐츠 (상단) -->
+            <div class="area-header">
+                <h4 class="flex items-center">
+                    <i class="fas fa-clock mr-2"></i>최근 생성
+                </h4>
+                <button onclick="refreshRecentContents()" class="text-gray-500 hover:text-gray-700" title="새로고침">
+                    <i class="fas fa-sync-alt text-sm"></i>
+                </button>
+            </div>
+            <div class="p-4 border-b border-gray-200" style="max-height: 280px;">
+                <div id="recentContents" class="space-y-2 overflow-y-auto" style="max-height: 200px;">
+                    {% if recent_contents %}
+                        {% for content in recent_contents|slice:":5" %}
+                        <div class="content-card p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                             onclick="loadContent({{ content.id }})">
+                            <div class="text-sm font-medium text-gray-800 truncate">{{ content.title }}</div>
+                            <div class="text-xs text-gray-500">{{ content.content_type.type_name }} • {{ content.created_at|date:"m/d" }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-gray-400 py-4">
+                            <i class="fas fa-inbox text-2xl mb-2"></i>
+                            <p class="text-sm">최근 콘텐츠가 없습니다</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 검색 필터 -->
+            <div class="p-4 border-b border-gray-200">
+                <h4 class="font-semibold text-gray-800 mb-3">
+                    <i class="fas fa-search mr-2"></i>콘텐츠 검색
+                </h4>
+                
+                <div class="space-y-3">
+                    <input type="text" id="searchInput" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                           placeholder="제목, 내용 검색...">
+                    
+                    <select id="searchContentType" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                        <option value="">모든 타입</option>
+                        {% for content_type in content_types %}
+                        <option value="{{ content_type.id }}">{{ content_type.type_name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select id="searchCourse" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                        <option value="">모든 코스</option>
+                        {% for course in recent_courses %}
+                        <option value="{{ course.id }}">{{ course.subject_name }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <button onclick="performSearch()" 
+                            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors">
+                        <i class="fas fa-search mr-2"></i>검색
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 검색 결과 -->
+            <div class="p-4" style="height: calc(100vh - 520px); overflow-y: auto;">
+                <div id="searchResults" class="space-y-2">
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-search text-4xl mb-2 opacity-50"></i>
+                        <p class="text-sm">검색 조건을 입력하세요</p>
+                        <p class="text-xs text-gray-400 mt-1">제목이나 내용으로 검색할 수 있습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 text-center max-w-sm mx-4">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-700 font-medium">AI가 작업 중입니다...</p>
+            <p class="text-gray-500 text-sm mt-2">잠시만 기다려주세요</p>
+        </div>
+    </div>
+
+    <!-- 슬라이드 관리 모달 -->
+    <div id="slideModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold" id="slideModalTitle">슬라이드 관리</h3>
+                <button onclick="closeSlideModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="slideModalContent">
+                <!-- 슬라이드 관리 내용이 여기에 로드됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 전역 변수
+        let currentAIProvider = 'claude';
+        let currentContentId = null;
+        let selectedCourseId = null;
+        let isPromptVisible = true;
+        let isManualEditOpen = false;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let structureData = null;
+        let selectedItem = null;
+        let currentChasiId = null;
+        let lastCreatedNodeId = null;
+        
+        // CSRF 토큰
+        const csrfToken = '{{ csrf_token }}';
+        
+        // ========================================
+        // 공통 유틸리티 함수들
+        // ========================================
+        
+        async function apiRequest(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            const config = { ...defaultOptions, ...options };
+            
+            // FormData일 경우 Content-Type 헤더 제거
+            if (options.body instanceof FormData) {
+                delete config.headers['Content-Type'];
+            }
+            
+            try {
+                const response = await fetch(url, config);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return await response.json();
+                } else {
+                    return { success: false, error: '서버 응답이 올바르지 않습니다.' };
+                }
+                
+            } catch (error) {
+                console.error('API 요청 오류:', error);
+                throw error;
+            }
+        }
+        
+        async function submitForm(url, formData) {
+            return await apiRequest(url, {
+                method: 'POST',
+                body: formData
+            });
+        }
+        
+        function showMessage(message, type = 'info') {
+            // 기존 메시지 제거
+            const existingMessages = document.querySelectorAll('.notification-message');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `notification-message fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                type === 'warning' ? 'bg-yellow-500 text-white' :
+                'bg-blue-500 text-white'
+            }`;
+            
+            messageDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${
+                        type === 'success' ? 'check-circle' : 
+                        type === 'error' ? 'exclamation-circle' : 
+                        type === 'warning' ? 'exclamation-triangle' :
+                        'info-circle'
+                    } mr-2"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            // 자동 제거 (5초 후)
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // ========================================
+        // 트리뷰 개선 함수들
+        // ========================================
+        
+        function collapseAllNodes() {
+            // 모든 노드를 닫기
+            document.querySelectorAll('.tree-node').forEach(node => {
+                if (!node.classList.contains('collapsed')) {
+                    node.classList.add('collapsed');
+                }
+            });
+            
+            // 모든 토글 아이콘을 닫힌 상태로
+            document.querySelectorAll('.tree-toggle').forEach(toggle => {
+                toggle.classList.add('collapsed');
+            });
+        }
+        
+        function expandNodePath(nodeElement) {
+            // 특정 노드까지의 경로를 모두 열기
+            let current = nodeElement;
+            while (current) {
+                if (current.classList.contains('tree-node')) {
+                    current.classList.remove('collapsed');
+                    const toggle = current.querySelector('.tree-toggle');
+                    if (toggle) {
+                        toggle.classList.remove('collapsed');
+                    }
+                }
+                current = current.parentElement;
+            }
+        }
+        
+        function highlightNewNode(nodeId, nodeType) {
+            // 생성된 노드 찾기 및 하이라이트
+            setTimeout(() => {
+                const selector = `[data-type="${nodeType}"][data-id="${nodeId}"] .tree-content`;
+                const newNodeContent = document.querySelector(selector);
+                if (newNodeContent) {
+                    // 스크롤하여 보이게 하기
+                    newNodeContent.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    
+                    // 하이라이트 애니메이션 추가
+                    newNodeContent.classList.add('new-node');
+                    
+                    // 애니메이션 완료 후 클래스 제거
+                    setTimeout(() => {
+                        newNodeContent.classList.remove('new-node');
+                    }, 2000);
+                    
+                    // 자동으로 선택
+                    const fakeEvent = { target: newNodeContent };
+                    selectTreeItem('', {}, fakeEvent);
+                }
+            }, 500);
+        }
+
+        // ========================================
+        // 통합된 Chapter 관리자 (개선)
+        // ========================================
+        
+        window.ChapterManager = {
+            create: async function(courseId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/courses/${courseId}/chapters/create/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('대단원이 생성되었습니다.', 'success');
+                        
+                        await loadCourseStructure();
+                        if (response.chapter) {
+                            collapseAllNodes();
+                            highlightNewNode(response.chapter.id, 'chapter');
+                        }
+                        
+                        const form = document.getElementById('chapterCreateForm');
+                        if (form) {
+                            form.reset();
+                        }
+                    } else {
+                        showMessage('대단원 생성에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('대단원 생성에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            update: async function(chapterId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/chapters/${chapterId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('대단원이 수정되었습니다.', 'success');
+                        await loadCourseStructure();
+                        highlightNewNode(chapterId, 'chapter');
+                    } else {
+                        showMessage('대단원 수정에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('대단원 수정에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            delete: async function(chapterId) {
+                if (!confirm('정말 이 대단원을 삭제하시겠습니까?\n하위의 모든 소단원과 차시도 함께 삭제됩니다.')) {
+                    return;
+                }
+
+                try {
+                    const response = await apiRequest(`/teacher/api/chapters/${chapterId}/delete/`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.success) {
+                        showMessage(response.message, 'success');
+                        await loadCourseStructure();
+                    } else {
+                        showMessage('대단원 삭제에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('대단원 삭제에 실패했습니다: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // ========================================
+        // 통합된 Sub_Chapter 관리자 (개선)
+        // ========================================
+        
+        window.SubChapterManager = {
+            create: async function(chapterId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/chapters/${chapterId}/subchapters/create/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('소단원이 생성되었습니다.', 'success');
+                        
+                        await loadCourseStructure();
+                        if (response.subchapter) {
+                            collapseAllNodes();
+                            highlightNewNode(response.subchapter.id, 'subchapter');
+                        }
+                        
+                        const newSubchapterCard = document.getElementById('new-subchapter-card');
+                        if (newSubchapterCard) {
+                            newSubchapterCard.remove();
+                        }
+                    } else {
+                        showMessage('소단원 생성에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('소단원 생성에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            update: async function(subchapterId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/subchapters/${subchapterId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('소단원이 수정되었습니다.', 'success');
+                        await loadCourseStructure();
+                        highlightNewNode(subchapterId, 'subchapter');
+                    } else {
+                        showMessage('소단원 수정에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('소단원 수정에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            delete: async function(subchapterId) {
+                if (!confirm('정말 이 소단원을 삭제하시겠습니까?\n하위의 모든 차시도 함께 삭제됩니다.')) {
+                    return;
+                }
+
+                try {
+                    const response = await apiRequest(`/teacher/api/subchapters/${subchapterId}/delete/`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.success) {
+                        showMessage(response.message, 'success');
+                        await loadCourseStructure();
+                    } else {
+                        showMessage('소단원 삭제에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('소단원 삭제에 실패했습니다: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // ========================================
+        // 통합된 Chasi 관리자 (개선)
+        // ========================================
+        
+        window.ChasiManager = {
+            create: async function(subchapterId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/subchapters/${subchapterId}/chasis/create/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('차시가 생성되었습니다.', 'success');
+                        
+                        await loadCourseStructure();
+                        if (response.chasi) {
+                            collapseAllNodes();
+                            highlightNewNode(response.chasi.id, 'chasi');
+                        }
+                        
+                        const newChasiCard = document.getElementById('new-chasi-card');
+                        if (newChasiCard) {
+                            newChasiCard.remove();
+                        }
+                    } else {
+                        showMessage('차시 생성에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('차시 생성에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            update: async function(chasiId, formData) {
+                try {
+                    const response = await submitForm(`/teacher/api/chasis/${chasiId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('차시가 수정되었습니다.', 'success');
+                        await loadCourseStructure();
+                        highlightNewNode(chasiId, 'chasi');
+                    } else {
+                        showMessage('차시 수정에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('차시 수정에 실패했습니다: ' + error.message, 'error');
+                }
+            },
+
+            delete: async function(chasiId) {
+                if (!confirm('정말 이 차시를 삭제하시겠습니까?\n모든 슬라이드도 함께 삭제됩니다.')) {
+                    return;
+                }
+
+                try {
+                    const response = await apiRequest(`/teacher/api/chasis/${chasiId}/delete/`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.success) {
+                        showMessage(response.message, 'success');
+                        await loadCourseStructure();
+                    } else {
+                        showMessage('차시 삭제에 실패했습니다: ' + response.error, 'error');
+                    }
+                    
+                } catch (error) {
+                    showMessage('차시 삭제에 실패했습니다: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // ========================================
+        // 새로운 슬라이드 관리자
+        // ========================================
+        
+        window.SlideManager = {
+            create: async function(chasiId, slideData) {
+                try {
+                    const formData = new FormData();
+                    Object.keys(slideData).forEach(key => {
+                        formData.append(key, slideData[key]);
+                    });
+
+                    const response = await submitForm(`/teacher/api/agent/chasis/${chasiId}/slides/add/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('슬라이드가 추가되었습니다.', 'success');
+                        return response;
+                    } else {
+                        showMessage('슬라이드 추가에 실패했습니다: ' + response.error, 'error');
+                        return null;
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 추가에 실패했습니다: ' + error.message, 'error');
+                    return null;
+                }
+            },
+
+            delete: async function(slideId, chasiId) {
+                if (!confirm('정말 이 슬라이드를 삭제하시겠습니까?\n연결된 콘텐츠도 함께 삭제됩니다.')) {
+                    return false;
+                }
+
+                try {
+                    const response = await apiRequest(`/teacher/api/agent/slides/${slideId}/delete/`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.success) {
+                        showMessage('슬라이드가 삭제되었습니다.', 'success');
+                        return true;
+                    } else {
+                        showMessage('슬라이드 삭제에 실패했습니다: ' + response.error, 'error');
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 삭제에 실패했습니다: ' + error.message, 'error');
+                    return false;
+                }
+            },
+
+            loadSlides: async function(chasiId) {
+                try {
+                    const response = await apiRequest(`/teacher/api/agent/chasis/${chasiId}/slides/`);
+                    
+                    if (response.success) {
+                        return response.slides;
+                    } else {
+                        showMessage('슬라이드 목록을 불러올 수 없습니다: ' + response.error, 'error');
+                        return [];
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 목록을 불러올 수 없습니다: ' + error.message, 'error');
+                    return [];
+                }
+            },
+
+            detachContent: async function(slideId, chasiId) {
+                if (!confirm('슬라이드에서 콘텐츠 연결을 해제하면 슬라이드가 삭제됩니다.\n계속하시겠습니까?')) {
+                    return false;
+                }
+
+                try {
+                    const formData = new FormData();
+                    formData.append('action', 'detach_content');
+
+                    const response = await submitForm(`/teacher/api/agent/slides/${slideId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('슬라이드가 삭제되었습니다.', 'success');
+                        return true;
+                    } else {
+                        showMessage('슬라이드 삭제에 실패했습니다: ' + response.error, 'error');
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 삭제에 실패했습니다: ' + error.message, 'error');
+                    return false;
+                }
+            },
+
+            attachContent: async function(slideId, contentId, chasiId) {
+                try {
+                    const formData = new FormData();
+                    formData.append('content_id', contentId);
+                    formData.append('action', 'attach_content');
+
+                    const response = await submitForm(`/teacher/api/agent/slides/${slideId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('콘텐츠가 연결되었습니다.', 'success');
+                        return true;
+                    } else {
+                        showMessage('콘텐츠 연결에 실패했습니다: ' + response.error, 'error');
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    showMessage('콘텐츠 연결에 실패했습니다: ' + error.message, 'error');
+                    return false;
+                }
+            },
+
+            update: async function(slideId, slideData) {
+                try {
+                    const formData = new FormData();
+                    Object.keys(slideData).forEach(key => {
+                        formData.append(key, slideData[key]);
+                    });
+
+                    const response = await submitForm(`/teacher/api/agent/slides/${slideId}/edit/`, formData);
+                    
+                    if (response.success) {
+                        showMessage('슬라이드가 수정되었습니다.', 'success');
+                        return response;
+                    } else {
+                        showMessage('슬라이드 수정에 실패했습니다: ' + response.error, 'error');
+                        return null;
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 수정에 실패했습니다: ' + error.message, 'error');
+                    return null;
+                }
+            },
+
+            reorder: async function(chasiId, slideOrders) {
+                try {
+                    const response = await apiRequest(`/teacher/api/agent/chasis/${chasiId}/slides/reorder/`, {
+                        method: 'POST',
+                        body: JSON.stringify({ slide_orders: slideOrders })
+                    });
+                    
+                    if (response.success) {
+                        showMessage('슬라이드 순서가 변경되었습니다.', 'success');
+                        return true;
+                    } else {
+                        showMessage('슬라이드 순서 변경에 실패했습니다: ' + response.error, 'error');
+                        return false;
+                    }
+                    
+                } catch (error) {
+                    showMessage('슬라이드 순서 변경에 실패했습니다: ' + error.message, 'error');
+                    return false;
+                }
+            },
+
+            searchContent: async function(query, contentType, page = 1) {
+                try {
+                    const params = new URLSearchParams({
+                        q: query || '',
+                        content_type: contentType || '',
+                        page: page,
+                        per_page: 20
+                    });
+
+                    const response = await apiRequest(`/teacher/api/agent/contents/search-for-slide/?${params}`);
+                    
+                    if (response.success) {
+                        return response;
+                    } else {
+                        showMessage('콘텐츠 검색에 실패했습니다: ' + response.error, 'error');
+                        return { results: [], total: 0 };
+                    }
+                    
+                } catch (error) {
+                    showMessage('콘텐츠 검색에 실패했습니다: ' + error.message, 'error');
+                    return { results: [], total: 0 };
+                }
+            }
+        };
+
+        // ========================================
+        // 통합 슬라이드 동기화 함수들 (새로 추가)
+        // ========================================
+        
+        async function syncAllSlideViews(chasiId) {
+            console.log(`[syncAllSlideViews] 슬라이드 뷰 동기화 시작: ${chasiId}`);
+            
+            try {
+                // 두 영역 모두 동시에 업데이트
+                await Promise.all([
+                    refreshChasiSlides(chasiId),
+                    loadInlineSlides(chasiId)
+                ]);
+                
+                console.log(`[syncAllSlideViews] 동기화 완료: ${chasiId}`);
+            } catch (error) {
+                console.error(`[syncAllSlideViews] 동기화 실패: ${chasiId}`, error);
+                showMessage('슬라이드 동기화 중 오류가 발생했습니다.', 'warning');
+            }
+        }
+
+        // ========================================
+        // 수정된 슬라이드 관련 함수들
+        // ========================================
+        
+        async function loadChasiSlides(chasiId) {
+            const container = document.getElementById(`slides-container-${chasiId}`);
+            if (!container) {
+                console.warn(`슬라이드 컨테이너를 찾을 수 없습니다: slides-container-${chasiId}`);
+                return;
+            }
+            
+            if (container.dataset.loaded === 'true') {
+                return;
+            }
+            
+            // 로딩 상태 직접 표시 (별도 요소 찾지 않음)
+            container.innerHTML = '<div class="text-center py-2 text-gray-400 text-xs"><i class="fas fa-spinner fa-spin"></i> 로딩 중...</div>';
+            
+            try {
+                const response = await apiRequest(`/teacher/api/chasis/${chasiId}/slides/tree/`);
+                
+                if (response.success) {
+                    renderChasiSlides(chasiId, response.slides);
+                    container.dataset.loaded = 'true';
+                    
+                    const countBadge = document.getElementById(`chasi-${chasiId}-slide-count`);
+                    if (countBadge) {
+                        countBadge.textContent = response.slides.length;
+                    }
+                } else {
+                    container.innerHTML = '<div class="text-center py-2"><span class="text-red-500 text-xs">로드 실패</span></div>';
+                }
+                
+            } catch (error) {
+                container.innerHTML = '<div class="text-center py-2"><span class="text-red-500 text-xs">오류 발생</span></div>';
+                console.error('슬라이드 로드 오류:', error);
+            }
+        }
+
+        async function refreshChasiSlides(chasiId) {
+            const container = document.getElementById(`slides-container-${chasiId}`);
+            if (!container) {
+                console.warn(`슬라이드 컨테이너를 찾을 수 없습니다: slides-container-${chasiId}`);
+                return;
+            }
+            
+            // 로딩 상태로 리셋
+            container.dataset.loaded = 'false';
+            
+            // loadChasiSlides를 호출하면 내부에서 로딩 상태를 처리함
+            await loadChasiSlides(chasiId);
+        }
+
+        async function addSlideToChasi(chasiId) {
+            if (!chasiId) {
+                showMessage('차시 ID가 필요합니다.', 'error');
+                return;
+            }
+            
+            try {
+                const slideData = {
+                    slide_title: '새 슬라이드',
+                    estimated_time: 5,
+                    instructor_notes: ''
+                };
+                
+                const formData = new FormData();
+                Object.keys(slideData).forEach(key => {
+                    formData.append(key, slideData[key]);
+                });
+                
+                const response = await submitForm(`/teacher/api/agent/chasis/${chasiId}/slides/add/`, formData);
+                
+                if (response.success) {
+                    showMessage('새 슬라이드가 추가되었습니다. 콘텐츠를 드래그해서 연결하세요.', 'success');
+                    
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                    
+                    // 새로 생성된 슬라이드 하이라이트
+                    setTimeout(() => {
+                        const newSlide = document.querySelector(`[data-type="slide"][data-id="${response.slide.id}"]`);
+                        if (newSlide) {
+                            newSlide.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            newSlide.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                            
+                            setTimeout(() => {
+                                newSlide.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                            }, 3000);
+                        }
+                    }, 500);
+                    
+                } else {
+                    showMessage('슬라이드 추가에 실패했습니다: ' + (response.error || '알 수 없는 오류'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('슬라이드 추가 중 오류 발생:', error);
+                showMessage('슬라이드 추가 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // ========================================
+        // 인라인 슬라이드 관리 함수들 (동기화 개선)
+        // ========================================
+        
+        async function loadInlineSlides(chasiId) {
+            const container = document.getElementById(`inlineSlideContainer-${chasiId}`);
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="text-center py-4 text-gray-500">
+                    <div class="loading-spinner mx-auto mb-2"></div>
+                    <p class="text-sm">슬라이드를 불러오는 중...</p>
+                </div>
+            `;
+            
+            try {
+                // 트리뷰와 동일한 API 사용하여 데이터 동기화
+                const response = await apiRequest(`/teacher/api/chasis/${chasiId}/slides/tree/`);
+                if (response.success) {
+                    renderInlineSlides(response.slides, chasiId);
+                    
+                    // 트리뷰의 슬라이드 카운트도 동기화
+                    const countBadge = document.getElementById(`chasi-${chasiId}-slide-count`);
+                    if (countBadge) {
+                        countBadge.textContent = response.slides.length;
+                    }
+                } else {
+                    throw new Error(response.error || '슬라이드를 불러올 수 없습니다');
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p class="text-sm">슬라이드를 불러올 수 없습니다: ${error.message}</p>
+                    </div>
+                `;
+                console.error('인라인 슬라이드 로드 오류:', error);
+            }
+        }
+        
+        function renderInlineSlides(slides, chasiId) {
+            const container = document.getElementById(`inlineSlideContainer-${chasiId}`);
+            if (!container) return;
+            
+            if (slides.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg"
+                         ondrop="handleSlideContainerDrop(event, ${chasiId})"
+                         ondragover="handleSlideContainerDragOver(event)"
+                         ondragleave="handleSlideContainerDragLeave(event)">
+                        <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg font-medium">슬라이드가 없습니다</p>
+                        <p class="text-sm mt-2">새 슬라이드를 추가하거나 콘텐츠를 드래그해서 슬라이드를 생성하세요</p>
+                        <button onclick="addNewSlideInline(${chasiId})" 
+                                class="mt-3 btn-modern btn-primary">
+                            <i class="fas fa-plus mr-2"></i>첫 슬라이드 추가
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            slides.forEach((slide, index) => {
+                // 트리뷰와 동일한 데이터 구조 사용
+                const hasContent = slide.has_content;
+                const contentClass = hasContent ? 'border-green-200 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50';
+                const contentIcon = hasContent ? 'fas fa-file-alt text-green-600' : 'fas fa-file-plus text-gray-400';
+                
+                html += `
+                    <div class="slide-item-inline border-2 ${contentClass} rounded-lg p-3 transition-all hover:shadow-md"
+                         data-slide-id="${slide.id}"
+                         ondrop="handleInlineSlideDrop(event, ${slide.id}, ${chasiId})"
+                         ondragover="handleInlineSlideDragOver(event)"
+                         ondragleave="handleInlineSlideDragLeave(event)">
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center flex-1">
+                                <span class="slide-number bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mr-3">
+                                    ${slide.slide_number}
+                                </span>
+                                <div class="flex-1">
+                                    <div class="text-sm font-medium text-gray-800">
+                                        ${slide.slide_title || '제목 없음'}
+                                    </div>
+                                    ${hasContent ? `
+                                        <div class="text-xs text-green-600 mt-1">
+                                            <i class="${contentIcon} mr-1"></i>${slide.content_title || '연결된 콘텐츠'}
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            ${slide.content_type || '타입 미정'} • ${slide.estimated_time || 5}분
+                                        </div>
+                                    ` : `
+                                        <div class="text-xs text-gray-400 mt-1">
+                                            <i class="${contentIcon} mr-1"></i>콘텐츠를 드래그해서 연결하세요
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            예상시간: ${slide.estimated_time || 5}분
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                ${hasContent ? `
+                                    <button onclick="previewSlideContentInline('${slide.content_id || ''}')" 
+                                            class="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 text-xs" 
+                                            title="미리보기">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button onclick="detachSlideContentInline(${slide.id}, ${chasiId})" 
+                                            class="px-2 py-1 bg-orange-100 hover:bg-orange-200 rounded text-orange-700 text-xs" 
+                                            title="콘텐츠 연결 해제">
+                                        <i class="fas fa-unlink"></i>
+                                    </button>
+                                ` : ''}
+                                <button onclick="editSlideInlineForm(${slide.id}, ${chasiId})" 
+                                        class="px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 text-xs" 
+                                        title="편집">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteSlideInline(${slide.id}, ${chasiId})" 
+                                        class="px-2 py-1 bg-red-100 hover:bg-red-200 rounded text-red-700 text-xs" 
+                                        title="삭제">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function addNewSlideInline(chasiId) {
+            if (!chasiId) {
+                showMessage('차시 ID가 필요합니다.', 'error');
+                return;
+            }
+            
+            const slideData = {
+                slide_title: '새 슬라이드',
+                estimated_time: 5,
+                instructor_notes: ''
+            };
+            
+            try {
+                const result = await SlideManager.create(chasiId, slideData);
+                if (result) {
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                    showMessage('새 슬라이드가 추가되었습니다.', 'success');
+                }
+            } catch (error) {
+                showMessage('슬라이드 추가 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteSlideInline(slideId, chasiId) {
+            if (!confirm('정말 이 슬라이드를 삭제하시겠습니까?')) return;
+            
+            try {
+                const success = await SlideManager.delete(slideId, chasiId);
+                if (success) {
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                }
+            } catch (error) {
+                showMessage('슬라이드 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+        
+        async function detachSlideContentInline(slideId, chasiId) {
+            try {
+                const success = await SlideManager.detachContent(slideId, chasiId);
+                if (success) {
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                }
+            } catch (error) {
+                showMessage('콘텐츠 연결 해제 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+        
+        function editSlideInlineForm(slideId, chasiId) {
+            const newTitle = prompt('새 슬라이드 제목을 입력하세요:');
+            if (!newTitle || newTitle.trim() === '') return;
+            
+            SlideManager.update(slideId, { slide_title: newTitle.trim() })
+                .then(result => {
+                    if (result) {
+                        // 두 영역 모두 동기화
+                        syncAllSlideViews(chasiId);
+                    }
+                })
+                .catch(error => {
+                    showMessage('슬라이드 수정 중 오류가 발생했습니다: ' + error.message, 'error');
+                });
+        }
+
+        // 인라인 슬라이드 드래그앤드롭 핸들러들 (동기화 개선)
+        function handleInlineSlideDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            
+            const slideItem = event.target.closest('.slide-item-inline');
+            slideItem.classList.add('border-blue-400', 'bg-blue-100');
+        }
+        
+        function handleInlineSlideDragLeave(event) {
+            const slideItem = event.target.closest('.slide-item-inline');
+            slideItem.classList.remove('border-blue-400', 'bg-blue-100');
+        }
+        
+        async function handleInlineSlideDrop(event, slideId, chasiId) {
+            event.preventDefault();
+            
+            const slideItem = event.target.closest('.slide-item-inline');
+            slideItem.classList.remove('border-blue-400', 'bg-blue-100');
+            
+            try {
+                const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+                const { contentId, contentTitle } = dragData;
+                
+                const success = await SlideManager.attachContent(slideId, contentId, chasiId);
+                if (success) {
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                    showMessage(`"${contentTitle}"가 슬라이드에 연결되었습니다.`, 'success');
+                }
+                
+            } catch (error) {
+                console.error('드롭 처리 오류:', error);
+                showMessage('드래그앤드롭 처리 중 오류가 발생했습니다.', 'error');
+            }
+        }
+        
+        // 빈 슬라이드 컨테이너 드래그 핸들러들
+        function handleSlideContainerDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            
+            const container = event.target.closest('[ondrop]');
+            if (container) {
+                container.classList.add('border-blue-400', 'bg-blue-100');
+            }
+        }
+        
+        function handleSlideContainerDragLeave(event) {
+            const container = event.target.closest('[ondrop]');
+            if (container) {
+                container.classList.remove('border-blue-400', 'bg-blue-100');
+            }
+        }
+        
+        // 빈 슬라이드 컨테이너에 드롭 시 새 슬라이드 생성 (동기화 개선)
+        async function handleSlideContainerDrop(event, chasiId) {
+            event.preventDefault();
+            
+            const container = event.target.closest('[ondrop]');
+            if (container) {
+                container.classList.remove('border-blue-400', 'bg-blue-100');
+            }
+            
+            try {
+                const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+                const { contentId, contentTitle } = dragData;
+                
+                // 새 슬라이드 생성
+                const slideData = {
+                    slide_title: contentTitle,
+                    estimated_time: 5,
+                    instructor_notes: ''
+                };
+                
+                const result = await SlideManager.create(chasiId, slideData);
+                if (result && result.slide) {
+                    // 생성된 슬라이드에 콘텐츠 연결
+                    await SlideManager.attachContent(result.slide.id, contentId, chasiId);
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                    showMessage(`새 슬라이드가 생성되고 "${contentTitle}"가 연결되었습니다.`, 'success');
+                }
+                
+            } catch (error) {
+                console.error('드롭 처리 오류:', error);
+                showMessage('드래그앤드롭 처리 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 트리뷰 슬라이드 드롭 핸들러도 동기화
+        async function handleSlideDrop(event, slideId, chasiId) {
+            event.preventDefault();
+            
+            try {
+                const dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+                const { contentId, contentTitle, contentType } = dragData;
+                
+                console.log('드롭 이벤트:', { slideId, chasiId, contentId, contentTitle });
+                
+                const formData = new FormData();
+                formData.append('content_id', contentId);
+                
+                const response = await submitForm(`/teacher/api/agent/slides/${slideId}/connect-content/`, formData);
+                
+                if (response.success) {
+                    showMessage(response.message, 'success');
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                } else {
+                    showMessage('콘텐츠 연결에 실패했습니다: ' + response.error, 'error');
+                }
+                
+            } catch (error) {
+                console.error('드롭 처리 오류:', error);
+                showMessage('드래그앤드롭 처리 중 오류가 발생했습니다.', 'error');
+            }
+            
+            const dropZone = event.target.closest('.slide-drop-zone');
+            dropZone.classList.remove('border-green-300', 'bg-green-50', 'shadow-lg', 'border-yellow-300', 'bg-yellow-50');
+        }
+        
+        // 미리보기 함수
+        async function previewSlideContentInline(contentId) {
+            if (!contentId) {
+                showMessage('미리보기할 콘텐츠가 없습니다.', 'warning');
+                return;
+            }
+            await previewSlideContent(contentId);
+        }
+
+        // ========================================
+        // 기타 슬라이드 관련 함수들 (동기화 개선)
+        // ========================================
+        
+        async function editSlideInline(slideId, chasiId) {
+            const newTitle = prompt('새 슬라이드 제목을 입력하세요:');
+            if (!newTitle || newTitle.trim() === '') return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('slide_title', newTitle.trim());
+                
+                const response = await submitForm(`/teacher/api/agent/slides/${slideId}/edit/`, formData);
+                
+                if (response.success) {
+                    showMessage('슬라이드 제목이 수정되었습니다.', 'success');
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                } else {
+                    showMessage('슬라이드 수정에 실패했습니다: ' + response.error, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('슬라이드 수정 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteSlideFromTree(slideId, chasiId) {
+            if (!confirm('정말 이 슬라이드를 삭제하시겠습니까?')) return;
+            
+            try {
+                const response = await apiRequest(`/teacher/api/agent/slides/${slideId}/delete/`, {
+                    method: 'POST'
+                });
+                
+                if (response.success) {
+                    showMessage('슬라이드가 삭제되었습니다.', 'success');
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                } else {
+                    showMessage('슬라이드 삭제에 실패했습니다: ' + response.error, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('슬라이드 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        async function detachSlideContent(slideId, chasiId) {
+            if (!confirm('슬라이드에서 콘텐츠 연결을 해제하면 슬라이드가 삭제됩니다.\n계속하시겠습니까?')) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('action', 'detach_content');
+                
+                const response = await submitForm(`/teacher/api/agent/slides/${slideId}/edit/`, formData);
+                
+                if (response.success) {
+                    showMessage('슬라이드가 삭제되었습니다.', 'success');
+                    // 두 영역 모두 동기화
+                    await syncAllSlideViews(chasiId);
+                } else {
+                    showMessage('슬라이드 삭제에 실패했습니다: ' + response.error, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('슬라이드 삭제 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // ========================================
+        // 기존 함수들을 통합된 매니저 사용하도록 수정
+        // ========================================
+        
+        function createChapter(event) {
+            event.preventDefault();
+            
+            if (!selectedCourseId) {
+                alert('코스를 먼저 선택해주세요.');
+                return;
+            }
+            
+            const formData = new FormData(event.target);
+            ChapterManager.create(selectedCourseId, formData);
+        }
+        
+        function saveChapterEdit(event, chapterId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            ChapterManager.update(chapterId, formData);
+        }
+        
+        function deleteChapter(chapterId) {
+            ChapterManager.delete(chapterId);
+        }
+        
+        function createSubchapter(event, chapterId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            SubChapterManager.create(chapterId, formData);
+        }
+        
+        function createChasi(event, subchapterId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            ChasiManager.create(subchapterId, formData);
+        }
+        
+        function saveSubchapterEdit(event, subchapterId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            SubChapterManager.update(subchapterId, formData);
+        }
+        
+        function saveChasiEdit(event, chasiId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            ChasiManager.update(chasiId, formData)
+                .then(() => {
+                    // 차시 편집 완료 후 두 영역 모두 리로드
+                    setTimeout(() => {
+                        syncAllSlideViews(chasiId);
+                    }, 500);
+                });
+        }
+        
+        function deleteSubchapter(subchapterId) {
+            SubChapterManager.delete(subchapterId);
+        }
+        
+        function deleteChasi(chasiId) {
+            ChasiManager.delete(chasiId);
+        }
+
+        function saveCourseEdit(event, courseId) {
+            event.preventDefault();
+            showMessage('코스 수정 기능은 준비 중입니다.', 'info');
+        }
+
+        function renderChasiSlides(chasiId, slides) {
+            const container = document.getElementById(`slides-container-${chasiId}`);
+            
+            if (slides.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-400 py-2 text-xs">
+                        슬라이드가 없습니다
+                        <br>
+                        <button onclick="addSlideToChasi(${chasiId})" 
+                                class="mt-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 text-xs">
+                            <i class="fas fa-plus mr-1"></i>첫 슬라이드 추가
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            slides.forEach(slide => {
+                const hasContent = slide.has_content;
+                const contentClass = hasContent ? 'border-green-200 bg-green-50' : 'border-dashed border-gray-300 bg-gray-50';
+                const contentIcon = hasContent ? 'fas fa-file-alt text-green-600' : 'fas fa-file-plus text-gray-400';
+                
+                html += `
+                    <div class="tree-node slide-node" data-type="slide" data-id="${slide.id}" data-chasi-id="${chasiId}">
+                        <div class="tree-content slide-drop-zone ${contentClass} border-2 p-2 m-1 rounded cursor-pointer"
+                            onclick="selectSlide(${slide.id}, ${chasiId})"
+                            ondrop="handleSlideDrop(event, ${slide.id}, ${chasiId})"
+                            ondragover="handleSlideDragOver(event)"
+                            ondragleave="handleSlideDragLeave(event)">
+                            
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center flex-1">
+                                    <span class="slide-number bg-purple-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs mr-2">
+                                        ${slide.slide_number}
+                                    </span>
+                                    <div class="flex-1">
+                                        <div class="text-xs font-medium text-gray-800 truncate">
+                                            ${slide.slide_title}
+                                        </div>
+                                        ${hasContent ? `
+                                            <div class="text-xs text-green-600 truncate">
+                                                <i class="${contentIcon} mr-1"></i>${slide.content_title}
+                                            </div>
+                                        ` : `
+                                            <div class="text-xs text-gray-400">
+                                                <i class="${contentIcon} mr-1"></i>콘텐츠를 드래그하세요
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                                
+                                <div class="flex space-x-1">
+                                    ${hasContent ? `
+                                        <button onclick="event.stopPropagation(); detachSlideContent(${slide.id}, ${chasiId})" 
+                                                class="px-1 py-0.5 bg-orange-100 hover:bg-orange-200 rounded text-orange-700 text-xs" 
+                                                title="콘텐츠 해제">
+                                            <i class="fas fa-unlink"></i>
+                                        </button>
+                                    ` : ''}
+                                    <button onclick="event.stopPropagation(); editSlideInline(${slide.id}, ${chasiId})" 
+                                            class="px-1 py-0.5 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 text-xs" 
+                                            title="슬라이드 편집">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); deleteSlideFromTree(${slide.id}, ${chasiId})" 
+                                            class="px-1 py-0.5 bg-red-100 hover:bg-red-200 rounded text-red-700 text-xs" 
+                                            title="슬라이드 삭제">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function selectSlide(slideId, chasiId) {
+            document.querySelectorAll('.slide-node .tree-content.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            const slideNode = document.querySelector(`[data-type="slide"][data-id="${slideId}"] .tree-content`);
+            if (slideNode) {
+                slideNode.classList.add('selected');
+            }
+            
+            selectedItem = { 
+                type: 'slide', 
+                data: { id: slideId, chasi_id: chasiId } 
+            };
+            
+            console.log('슬라이드 선택:', slideId);
+        }
+
+        // ========================================
+        // 슬라이드 관리 관련 함수들
+        // ========================================
+        
+        function openSlideManager(chasiId, chasiTitle) {
+            // 수동편집 패널이 닫혀있으면 열기
+            if (!isManualEditOpen) {
+                toggleManualEditPanel();
+            }
+            
+            // 차시 데이터 로드 및 폼 표시
+            loadChasiForEdit(chasiId);
+            
+            showMessage(`${chasiTitle}의 슬라이드 관리 모드로 전환되었습니다.`, 'info');
+        }
+        
+        function closeSlideModal() {
+            document.getElementById('slideModal').classList.add('hidden');
+            currentChasiId = null;
+        }
+        
+        async function loadSlideManagerContent(chasiId) {
+            const modalContent = document.getElementById('slideModalContent');
+            
+            modalContent.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-gray-600">슬라이드를 불러오는 중...</p>
+                </div>
+            `;
+            
+            try {
+                const slides = await SlideManager.loadSlides(chasiId);
+                renderSlideManager(slides, chasiId);
+            } catch (error) {
+                modalContent.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p>슬라이드를 불러올 수 없습니다: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderSlideManager(slides, chasiId) {
+            const modalContent = document.getElementById('slideModalContent');
+            
+            let html = `
+                <div class="mb-4">
+                    <button onclick="addNewSlide(${chasiId})" 
+                            class="btn-modern btn-primary">
+                        <i class="fas fa-plus mr-2"></i>새 슬라이드 추가
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+            `;
+            
+            if (slides.length === 0) {
+                html += `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-images text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg">슬라이드가 없습니다</p>
+                        <p class="text-sm mt-2">새 슬라이드를 추가해보세요</p>
+                    </div>
+                `;
+            } else {
+                slides.forEach((slide, index) => {
+                    html += `
+                        <div class="slide-item" data-slide-id="${slide.id}">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center flex-1">
+                                    <div class="slide-number">${slide.slide_number}</div>
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-gray-800">
+                                            ${slide.slide_title || '제목 없음'}
+                                        </h4>
+                                        <p class="text-sm text-gray-600">
+                                            ${slide.content ? slide.content.title : '콘텐츠 없음'}
+                                        </p>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            타입: ${slide.content_type || '미정'} • 
+                                            예상시간: ${slide.estimated_time}분
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="slide-actions">
+                                    ${slide.content ? `
+                                        <button onclick="detachSlideContent(${slide.id}, ${chasiId})" 
+                                                class="btn-small bg-orange-500 text-white" title="콘텐츠 연결 해제">
+                                            <i class="fas fa-unlink"></i>
+                                        </button>
+                                    ` : `
+                                        <button onclick="attachSlideContent(${slide.id}, ${chasiId})" 
+                                                class="btn-small bg-green-500 text-white" title="콘텐츠 연결">
+                                            <i class="fas fa-link"></i>
+                                        </button>
+                                    `}
+                                    <button onclick="editSlide(${slide.id}, ${chasiId})" 
+                                            class="btn-small btn-edit" title="슬라이드 편집">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button onclick="deleteSlide(${slide.id}, ${chasiId})" 
+                                            class="btn-small btn-delete" title="슬라이드 삭제">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += `</div>`;
+            modalContent.innerHTML = html;
+        }
+        
+        async function addNewSlide(chasiId) {
+            const slideData = {
+                slide_title: '새 슬라이드',
+                estimated_time: 5,
+                instructor_notes: ''
+            };
+            
+            const result = await SlideManager.create(chasiId, slideData);
+            if (result) {
+                await loadSlideManagerContent(chasiId);
+            }
+        }
+        
+        async function deleteSlide(slideId, chasiId) {
+            const success = await SlideManager.delete(slideId, chasiId);
+            if (success) {
+                await loadSlideManagerContent(chasiId);
+            }
+        }
+        
+        async function attachSlideContent(slideId, chasiId) {
+            showContentSelector(slideId, chasiId);
+        }
+        
+        function showContentSelector(slideId, chasiId) {
+            const prompt = window.prompt('연결할 콘텐츠 ID를 입력하세요:');
+            if (prompt) {
+                const contentId = parseInt(prompt);
+                if (!isNaN(contentId)) {
+                    SlideManager.attachContent(slideId, contentId, chasiId)
+                        .then(success => {
+                            if (success) {
+                                loadSlideManagerContent(chasiId);
+                            }
+                        });
+                } else {
+                    showMessage('올바른 콘텐츠 ID를 입력하세요.', 'error');
+                }
+            }
+        }
+        
+        function editSlide(slideId, chasiId) {
+            showSlideEditModal(slideId, chasiId);
+        }
+        
+        async function showSlideEditModal(slideId, chasiId) {
+            try {
+                const response = await apiRequest(`/teacher/api/agent/slides/${slideId}/detail/`);
+                if (!response.success) {
+                    showMessage('슬라이드 정보를 불러올 수 없습니다.', 'error');
+                    return;
+                }
+                
+                const slide = response.slide;
+                
+                const editModal = `
+                    <div id="slideEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60">
+                        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold">슬라이드 편집</h3>
+                                <button onclick="closeSlideEditModal()" class="text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            
+                            <form id="slideEditForm" onsubmit="saveSlideEdit(event, ${slideId}, ${chasiId})">
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">슬라이드 제목</label>
+                                        <input type="text" name="slide_title" 
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                               value="${slide.slide_title || ''}" required>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">예상 시간 (분)</label>
+                                            <input type="number" name="estimated_time" 
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                   value="${slide.estimated_time || 5}" min="1" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">슬라이드 번호</label>
+                                            <input type="number" name="slide_number" 
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                                   value="${slide.slide_number}" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">강사 노트</label>
+                                        <textarea name="instructor_notes" rows="4"
+                                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                  placeholder="이 슬라이드에 대한 강사 노트를 입력하세요...">${slide.instructor_notes || ''}</textarea>
+                                    </div>
+                                    
+                                    ${slide.content ? `
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">연결된 콘텐츠</h4>
+                                        <div class="bg-white p-3 rounded border">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <p class="font-medium text-gray-800">${slide.content.title}</p>
+                                                    <p class="text-sm text-gray-600">${slide.content_type ? slide.content_type.name : ''}</p>
+                                                </div>
+                                                <div class="flex space-x-2">
+                                                    <button type="button" onclick="previewSlideContent(${slide.content.id})" 
+                                                            class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                                                        <i class="fas fa-eye mr-1"></i>미리보기
+                                                    </button>
+                                                    <button type="button" onclick="detachSlideContentFromEdit(${slideId}, ${chasiId})" 
+                                                            class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+                                                        <i class="fas fa-unlink mr-1"></i>연결해제
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ` : `
+                                    <div class="bg-yellow-50 p-4 rounded-lg">
+                                        <p class="text-sm text-yellow-800">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                                            이 슬라이드에는 콘텐츠가 연결되어 있지 않습니다.
+                                        </p>
+                                        <button type="button" onclick="attachSlideContentFromEdit(${slideId}, ${chasiId})" 
+                                                class="mt-2 px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                                            <i class="fas fa-link mr-1"></i>콘텐츠 연결
+                                        </button>
+                                    </div>
+                                    `}
+                                </div>
+                                
+                                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                                    <button type="button" onclick="closeSlideEditModal()" 
+                                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                                        취소
+                                    </button>
+                                    <button type="submit" 
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <i class="fas fa-save mr-2"></i>저장
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', editModal);
+                
+            } catch (error) {
+                showMessage('슬라이드 편집 모달을 열 수 없습니다: ' + error.message, 'error');
+            }
+        }
+        
+        function closeSlideEditModal() {
+            const modal = document.getElementById('slideEditModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        async function saveSlideEdit(event, slideId, chasiId) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const slideData = {
+                slide_title: formData.get('slide_title'),
+                estimated_time: formData.get('estimated_time'),
+                instructor_notes: formData.get('instructor_notes')
+            };
+            
+            const result = await SlideManager.update(slideId, slideData);
+            if (result) {
+                closeSlideEditModal();
+                await loadSlideManagerContent(chasiId);
+            }
+        }
+        
+        async function detachSlideContentFromEdit(slideId, chasiId) {
+            const success = await SlideManager.detachContent(slideId, chasiId);
+            if (success) {
+                closeSlideEditModal();
+                await loadSlideManagerContent(chasiId);
+            }
+        }
+        
+        function attachSlideContentFromEdit(slideId, chasiId) {
+            closeSlideEditModal();
+            showContentSelector(slideId, chasiId);
+        }
+        
+        async function previewSlideContent(contentId) {
+            try {
+                const response = await apiRequest(`/teacher/api/contents/${contentId}/detail/`);
+                if (response.success) {
+                    const content = response.content;
+                    
+                    const previewModal = `
+                        <div id="contentPreviewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-70">
+                            <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold">콘텐츠 미리보기</h3>
+                                    <button onclick="closeContentPreviewModal()" class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium text-gray-800">${content.title}</h4>
+                                    <p class="text-sm text-gray-600">${content.content_type} • ${content.created_at}</p>
+                                </div>
+                                
+                                <div class="border rounded-lg p-4 bg-white max-h-96 overflow-y-auto">
+                                    ${content.page || '<p class="text-gray-500">내용이 없습니다.</p>'}
+                                </div>
+                                
+                                ${content.answer ? `
+                                <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                                    <h5 class="font-medium text-blue-800 mb-2">정답/해설</h5>
+                                    <div class="text-sm text-blue-700">${content.answer}</div>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="flex justify-end mt-4">
+                                    <button onclick="closeContentPreviewModal()" 
+                                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                                        닫기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.insertAdjacentHTML('beforeend', previewModal);
+                } else {
+                    showMessage('콘텐츠를 불러올 수 없습니다.', 'error');
+                }
+            } catch (error) {
+                showMessage('콘텐츠 미리보기 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+        
+        function closeContentPreviewModal() {
+            const modal = document.getElementById('contentPreviewModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // ========================================
+        // 수동편집 패널 관리
+        // ========================================
+        
+        function toggleManualEditPanel() {
+            const mainContainer = document.getElementById('mainContainer');
+            const manualEditPanel = document.getElementById('manualEditPanel');
+            const contentArea = document.getElementById('contentArea');
+            const manualEditToggleBtn = document.getElementById('manualEditToggleBtn');
+            const contentToggleBtn = document.getElementById('contentToggleBtn');
+            
+            isManualEditOpen = !isManualEditOpen;
+            
+            if (isManualEditOpen) {
+                mainContainer.classList.add('manual-edit-open');
+                manualEditPanel.classList.add('open');
+                contentArea.style.display = 'none';
+                
+                manualEditToggleBtn.classList.remove('bg-orange-100', 'text-orange-700');
+                manualEditToggleBtn.classList.add('bg-orange-500', 'text-white');
+                manualEditToggleBtn.innerHTML = '<i class="fas fa-edit mr-1"></i>수동편집 (열림)';
+                
+                contentToggleBtn.classList.remove('bg-purple-100', 'text-purple-700');
+                contentToggleBtn.classList.add('bg-gray-300', 'text-gray-600');
+                contentToggleBtn.innerHTML = '<i class="fas fa-file-alt mr-1"></i>콘텐츠 (숨김)';
+                
+                if (selectedItem) {
+                    loadManualEditForm(selectedItem.type, selectedItem.data);
+                }
+            } else {
+                mainContainer.classList.remove('manual-edit-open');
+                manualEditPanel.classList.remove('open');
+                contentArea.style.display = 'flex';
+                contentArea.style.flexDirection = 'column';
+                
+                manualEditToggleBtn.classList.remove('bg-orange-500', 'text-white');
+                manualEditToggleBtn.classList.add('bg-orange-100', 'text-orange-700');
+                manualEditToggleBtn.innerHTML = '<i class="fas fa-edit mr-1"></i>수동편집';
+                
+                contentToggleBtn.classList.remove('bg-gray-300', 'text-gray-600');
+                contentToggleBtn.classList.add('bg-purple-100', 'text-purple-700');
+                contentToggleBtn.innerHTML = '<i class="fas fa-file-alt mr-1"></i>콘텐츠';
+            }
+        }
+        
+        function toggleContentArea() {
+            if (isManualEditOpen) {
+                toggleManualEditPanel();
+            } else {
+                toggleArea('content');
+            }
+        }
+        
+        function loadManualEditForm(type, data) {
+            const content = document.getElementById('manualEditContent');
+            
+            let formHtml = '';
+            
+            switch(type) {
+                case 'chapter':
+                    formHtml = generateChapterEditForm(data);
+                    break;
+                case 'subchapter':
+                    formHtml = generateSubchapterEditForm(data);
+                    break;
+                case 'chasi':
+                    formHtml = generateChasiEditForm(data);
+                    break;
+                case 'course':
+                    formHtml = generateCourseEditForm(data);
+                    break;
+                default:
+                    formHtml = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-info-circle text-4xl mb-4 opacity-50"></i>
+                            <p>해당 항목은 편집할 수 없습니다.</p>
+                        </div>
+                    `;
+            }
+            
+            content.innerHTML = formHtml;
+        }
+        
+        function generateCourseEditForm(data) {
+            return `
+                <div class="structure-form">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-book mr-2 text-purple-600"></i>코스 정보 편집
+                    </h3>
+                    <form id="courseEditForm" onsubmit="saveCourseEdit(event, ${data.id})">
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">과목명</label>
+                                <input type="text" name="subject_name" class="form-input" 
+                                       value="${data.subject_name || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">대상</label>
+                                <input type="text" name="target" class="form-input" 
+                                       value="${data.target || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">설명</label>
+                                <textarea name="description" class="form-input" rows="3">${data.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save mr-2"></i>저장
+                            </button>
+                            <button type="button" onclick="loadCourseStructureManagement()" class="btn-modern btn-secondary">
+                                <i class="fas fa-sitemap mr-2"></i>구조 관리
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="structure-form">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">
+                        <i class="fas fa-plus mr-2 text-blue-600"></i>대단원 추가
+                    </h4>
+                    <form id="chapterCreateForm" onsubmit="createChapter(event)">
+                        <div class="form-group">
+                            <label class="form-label">대단원명</label>
+                            <input type="text" name="chapter_title" class="form-input" placeholder="예: 문학의 갈래와 성격" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">순서</label>
+                            <input type="number" name="chapter_order" class="form-input" value="1" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">설명</label>
+                            <textarea name="description" class="form-input" rows="2" placeholder="대단원 설명 (선택사항)"></textarea>
+                        </div>
+                        <button type="submit" class="btn-modern btn-primary w-full">
+                            <i class="fas fa-plus mr-2"></i>대단원 추가
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+        
+        function generateChapterEditForm(data) {
+            return `
+                <div class="structure-form">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-bookmark mr-2 text-blue-600"></i>대단원 편집
+                    </h3>
+                    <form id="chapterEditForm" onsubmit="saveChapterEdit(event, ${data.id})">
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">대단원명</label>
+                                <input type="text" name="chapter_title" class="form-input" 
+                                       value="${data.title || data.chapter_title || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">순서</label>
+                                <input type="number" name="chapter_order" class="form-input" 
+                                       value="${data.order || data.chapter_order || 1}" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">설명</label>
+                                <textarea name="description" class="form-input" rows="3">${data.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save mr-2"></i>저장
+                            </button>
+                            <button type="button" onclick="deleteChapter(${data.id})" class="btn-modern btn-secondary" style="background: #ef4444; color: white;">
+                                <i class="fas fa-trash mr-2"></i>삭제
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="structure-form">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">
+                        <i class="fas fa-plus mr-2 text-green-600"></i>소단원 추가
+                    </h4>
+                    <form id="subchapterCreateForm" onsubmit="createSubchapter(event, ${data.id})">
+                        <div class="form-group">
+                            <label class="form-label">소단원명</label>
+                            <input type="text" name="sub_chapter_title" class="form-input" placeholder="예: 문학의 갈래" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">순서</label>
+                            <input type="number" name="sub_chapter_order" class="form-input" value="1" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">설명</label>
+                            <textarea name="description" class="form-input" rows="2" placeholder="소단원 설명 (선택사항)"></textarea>
+                        </div>
+                        <button type="submit" class="btn-modern btn-primary w-full">
+                            <i class="fas fa-plus mr-2"></i>소단원 추가
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+        
+        function generateSubchapterEditForm(data) {
+            return `
+                <div class="structure-form">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-file-alt mr-2 text-green-600"></i>소단원 편집
+                    </h3>
+                    <form id="subchapterEditForm" onsubmit="saveSubchapterEdit(event, ${data.id})">
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">소단원명</label>
+                                <input type="text" name="sub_chapter_title" class="form-input" 
+                                       value="${data.title || data.sub_chapter_title || ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">순서</label>
+                                <input type="number" name="sub_chapter_order" class="form-input" 
+                                       value="${data.order || data.sub_chapter_order || 1}" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">설명</label>
+                                <textarea name="description" class="form-input" rows="3">${data.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save mr-2"></i>저장
+                            </button>
+                            <button type="button" onclick="deleteSubchapter(${data.id})" class="btn-modern btn-secondary" style="background: #ef4444; color: white;">
+                                <i class="fas fa-trash mr-2"></i>삭제
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="structure-form">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">
+                        <i class="fas fa-plus mr-2 text-purple-600"></i>차시 추가
+                    </h4>
+                    <form id="chasiCreateForm" onsubmit="createChasi(event, ${data.id})">
+                        <div class="form-group">
+                            <label class="form-label">차시명</label>
+                            <input type="text" name="chasi_title" class="form-input" placeholder="예: 문학의 갈래 이해하기" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="form-group">
+                                <label class="form-label">순서</label>
+                                <input type="number" name="chasi_order" class="form-input" value="1" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">수업시간(분)</label>
+                                <input type="number" name="duration_minutes" class="form-input" value="45" min="1" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">학습목표</label>
+                            <textarea name="learning_objectives" class="form-input" rows="2" placeholder="이 차시의 학습목표를 입력하세요"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">설명</label>
+                            <textarea name="description" class="form-input" rows="2" placeholder="차시 설명 (선택사항)"></textarea>
+                        </div>
+                        <button type="submit" class="btn-modern btn-primary w-full">
+                            <i class="fas fa-plus mr-2"></i>차시 추가
+                        </button>
+                    </form>
+                </div>
+            `;
+        }
+        
+        function generateChasiEditForm(data) {
+            return `
+                <div class="structure-form">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                        <i class="fas fa-clock mr-2 text-purple-600"></i>차시 편집
+                    </h3>
+                    <form id="chasiEditForm" onsubmit="saveChasiEdit(event, ${data.id})">
+                        <div class="form-section">
+                            <div class="form-group">
+                                <label class="form-label">차시명</label>
+                                <input type="text" name="chasi_title" class="form-input" 
+                                       value="${data.title || data.chasi_title || ''}" required>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="form-group">
+                                    <label class="form-label">순서</label>
+                                    <input type="number" name="chasi_order" class="form-input" 
+                                           value="${data.order || data.chasi_order || 1}" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">수업시간(분)</label>
+                                    <input type="number" name="duration_minutes" class="form-input" 
+                                           value="${data.duration_minutes || 45}" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">학습목표</label>
+                                <textarea name="learning_objectives" class="form-input" rows="3">${data.learning_objectives || ''}</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">설명</label>
+                                <textarea name="description" class="form-input" rows="3">${data.description || ''}</textarea>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn-modern btn-primary">
+                                <i class="fas fa-save mr-2"></i>저장
+                            </button>
+                            <button type="button" onclick="deleteChasi(${data.id})" class="btn-modern btn-secondary" style="background: #ef4444; color: white;">
+                                <i class="fas fa-trash mr-2"></i>삭제
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="structure-form">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-md font-semibold text-gray-800">
+                            <i class="fas fa-images mr-2 text-indigo-600"></i>슬라이드 관리
+                        </h4>
+                        <button onclick="addNewSlideInline(${data.id})" class="btn-modern btn-primary text-sm">
+                            <i class="fas fa-plus mr-2"></i>새 슬라이드 추가
+                        </button>
+                    </div>
+                    <div id="inlineSlideContainer-${data.id}" class="space-y-2">
+                        <div class="text-center py-4 text-gray-500">
+                            <div class="loading-spinner mx-auto mb-2"></div>
+                            <p class="text-sm">슬라이드를 불러오는 중...</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ========================================
+        // 드래그 앤 드롭 기능
+        // ========================================
+        
+        function initDragAndDrop() {
+            const promptArea = document.getElementById('promptArea');
+            const promptHeader = document.getElementById('promptHeader');
+            
+            promptHeader.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+            
+            promptHeader.addEventListener('touchstart', startDrag);
+            document.addEventListener('touchmove', drag);
+            document.addEventListener('touchend', endDrag);
+        }
+        
+        function startDrag(e) {
+            isDragging = true;
+            const promptArea = document.getElementById('promptArea');
+            const rect = promptArea.getBoundingClientRect();
+            
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            dragOffset.x = clientX - rect.left;
+            dragOffset.y = clientY - rect.top;
+            
+            promptArea.style.transform = 'none';
+            promptArea.style.left = rect.left + 'px';
+            promptArea.style.top = rect.top + 'px';
+            promptArea.style.marginLeft = '0';
+            promptArea.style.marginTop = '0';
+            promptArea.style.right = 'auto';
+            
+            e.preventDefault();
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            const promptArea = document.getElementById('promptArea');
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            let newX = clientX - dragOffset.x;
+            let newY = clientY - dragOffset.y;
+            
+            const maxX = window.innerWidth - promptArea.offsetWidth;
+            const maxY = window.innerHeight - promptArea.offsetHeight;
+            
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+            
+            promptArea.style.left = newX + 'px';
+            promptArea.style.top = newY + 'px';
+            
+            e.preventDefault();
+        }
+        
+        function endDrag() {
+            isDragging = false;
+        }
+
+        // ========================================
+        // 영역 제어 함수들
+        // ========================================
+        
+        function toggleArea(areaName) {
+            const area = document.getElementById(areaName + 'Area');
+            if (area) {
+                area.classList.toggle('area-hidden');
+            }
+        }
+        
+        function togglePromptArea() {
+            const promptArea = document.getElementById('promptArea');
+            const toggleBtn = document.getElementById('promptToggleBtn');
+            
+            isPromptVisible = !isPromptVisible;
+            
+            if (isPromptVisible) {
+                promptArea.classList.remove('prompt-hidden');
+                promptArea.classList.add('prompt-visible');
+                toggleBtn.classList.remove('bg-gray-300', 'text-gray-600');
+                toggleBtn.classList.add('bg-blue-100', 'text-blue-700');
+                toggleBtn.innerHTML = '<i class="fas fa-comment-alt mr-1"></i>프롬프트';
+            } else {
+                promptArea.classList.remove('prompt-visible');
+                promptArea.classList.add('prompt-hidden');
+                toggleBtn.classList.remove('bg-blue-100', 'text-blue-700');
+                toggleBtn.classList.add('bg-gray-300', 'text-gray-600');
+                toggleBtn.innerHTML = '<i class="fas fa-comment-alt mr-1"></i>프롬프트 (숨김)';
+            }
+        }
+        
+        // ========================================
+        // 프롬프트 관련 함수들
+        // ========================================
+        
+        function selectAIProvider(provider, event) {
+            currentAIProvider = provider;
+            
+            document.querySelectorAll('.ai-provider-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                document.querySelector(`button[onclick*="${provider}"]`).classList.add('active');
+            }
+        }
+        
+        function togglePromptSettings() {
+            const settings = document.getElementById('promptSettings');
+            const icon = document.getElementById('settingsToggleIcon');
+            
+            settings.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+        
+        function executePrompt() {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                showMessage('프롬프트를 입력해주세요.', 'warning');
+                return;
+            }
+            
+            const contentTypeId = document.getElementById('contentTypeSelect').value;
+            if (!contentTypeId) {
+                showMessage('콘텐츠 타입을 선택해주세요.', 'warning');
+                return;
+            }
+            
+            const title = prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '');
+            
+            showLoading(true);
+            
+            setTimeout(() => {
+                const mockContent = {
+                    id: Date.now(),
+                    title: title,
+                    page: `<div class="generated-content p-6 max-w-4xl mx-auto">
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                            <h3 class="text-lg font-semibold text-blue-800 mb-2">${title}</h3>
+                            <p class="text-sm text-blue-600">AI 프롬프트: ${prompt}</p>
+                            <p class="text-xs text-blue-500 mt-1">생성된 시간: ${new Date().toLocaleString()} | 사용된 AI: ${currentAIProvider}</p>
+                        </div>
+                        
+                        <div class="prose max-w-none">
+                            <h4 class="text-lg font-medium mb-4">생성된 콘텐츠</h4>
+                            <div class="bg-white border rounded-lg p-4 shadow-sm">
+                                <p class="text-gray-700 mb-3">여기에 AI가 생성한 실제 콘텐츠가 표시됩니다.</p>
+                                <p class="text-gray-600 mb-3">실제 운영 환경에서는 선택한 AI 프로바이더(${currentAIProvider})가 다음과 같은 고품질 콘텐츠를 생성합니다:</p>
+                                
+                                <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                    <li>교육 목표에 맞는 맞춤형 문제</li>
+                                    <li>난이도별 차별화된 콘텐츠</li>
+                                    <li>상세한 해설과 힌트</li>
+                                    <li>시각적 자료 및 인터랙티브 요소</li>
+                                </ul>
+                                
+                                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                    <p class="text-sm text-yellow-800">
+                                        <i class="fas fa-lightbulb mr-1"></i>
+                                        이것은 데모 버전입니다. 실제 AI 연동 시 훨씬 더 정교하고 실용적인 콘텐츠가 생성됩니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`,
+                    content_type: document.getElementById('contentTypeSelect').selectedOptions[0].textContent
+                };
+                
+                loadGeneratedContent(mockContent);
+                document.getElementById('promptInput').value = '';
+                showMessage('콘텐츠가 성공적으로 생성되었습니다!', 'success');
+                showLoading(false);
+            }, 2000);
+        }
+        
+        function handleFileUpload() {
+            const files = document.getElementById('fileUpload').files;
+            const fileCount = document.getElementById('fileCount');
+            
+            if (files.length > 0) {
+                fileCount.textContent = `${files.length}개 파일 선택됨`;
+                fileCount.className = 'ml-2 text-sm text-blue-600';
+            } else {
+                fileCount.textContent = '';
+                fileCount.className = 'ml-2 text-sm text-gray-500';
+            }
+        }
+        
+        // ========================================
+        // 코스 네비게이션 함수들
+        // ========================================
+        
+        function searchCourses() {
+            const query = document.getElementById('courseSearchInput').value.trim();
+            const courseSelect = document.getElementById('courseSelect');
+            
+            if (query.length < 2) {
+                Array.from(courseSelect.options).forEach(option => {
+                    option.style.display = '';
+                });
+                return;
+            }
+            
+            Array.from(courseSelect.options).forEach(option => {
+                if (option.value === '') {
+                    option.style.display = '';
+                } else if (option.textContent.toLowerCase().includes(query.toLowerCase())) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+        
+        function refreshCourseList() {
+            showMessage('코스 목록을 새로고침했습니다.', 'info');
+        }
+        
+        function updateCourseSelect(courses) {
+            const select = document.getElementById('courseSelect');
+            select.innerHTML = '<option value="">코스를 선택하세요</option>';
+            
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course.id;
+                option.textContent = `${course.subject_name} - ${course.target}`;
+                select.appendChild(option);
+            });
+        }
+        
+        function loadCourseStructure() {
+            return new Promise((resolve, reject) => {
+                const courseId = document.getElementById('courseSelect').value;
+                if (!courseId) {
+                    document.getElementById('courseTreeView').innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-folder-open text-4xl mb-2 opacity-50"></i>
+                            <p class="text-sm">코스를 선택하세요</p>
+                            <p class="text-xs text-gray-400 mt-1">구조를 편집하고 관리할 수 있습니다</p>
+                        </div>
+                    `;
+                    resolve();
+                    return;
+                }
+                
+                selectedCourseId = courseId;
+                
+                document.getElementById('courseTreeView').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="loading-spinner mx-auto mb-4"></div>
+                        <p class="text-sm">코스 구조를 불러오는 중...</p>
+                    </div>
+                `;
+                
+                $.ajax({
+                    url: `/teacher/api/courses/${courseId}/structure/`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            structureData = response.structure;
+                            renderCourseTree(response.structure);
+                            resolve();
+                        } else {
+                            document.getElementById('courseTreeView').innerHTML = `
+                                <div class="text-center text-gray-500 py-8">
+                                    <i class="fas fa-exclamation-triangle text-4xl mb-2 text-yellow-500"></i>
+                                    <p class="text-sm">코스 구조를 불러올 수 없습니다</p>
+                                </div>
+                            `;
+                            reject(new Error(response.error || '구조를 불러올 수 없습니다'));
+                        }
+                    },
+                    error: function() {
+                        showMessage('코스 구조를 불러올 수 없습니다.', 'error');
+                        document.getElementById('courseTreeView').innerHTML = `
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-exclamation-circle text-4xl mb-2 text-red-500"></i>
+                                <p class="text-sm">서버 오류가 발생했습니다</p>
+                            </div>
+                        `;
+                        reject(new Error('서버 오류'));
+                    }
+                });
+            });
+        }
+
+        function renderCourseTree(structure) {
+            const treeView = document.getElementById('courseTreeView');
+            let html = `<div class="tree-node" data-type="course" data-id="${structure.course.id}">
+                        <div class="tree-content" onclick="selectTreeItem('course', ${JSON.stringify(structure.course).replace(/"/g, '&quot;')}, event)">
+                            <i class="fas fa-book tree-icon text-purple-600"></i>
+                            <span class="tree-text font-semibold">${structure.course.subject_name}</span>
+                        </div>
+                        <div class="tree-children">`;
+            
+            if (structure.chapters && structure.chapters.length > 0) {
+                structure.chapters.forEach(chapter => {
+                    html += `<div class="tree-node" data-type="chapter" data-id="${chapter.id}">
+                            <div class="tree-content" onclick="selectTreeItem('chapter', ${JSON.stringify(chapter).replace(/"/g, '&quot;')}, event)">
+                                <i class="fas fa-chevron-down tree-toggle" onclick="event.stopPropagation(); toggleTreeNode(this)"></i>
+                                <i class="fas fa-folder tree-icon text-blue-600"></i>
+                                <span class="tree-text">${chapter.order}. ${chapter.title}</span>
+                                <span class="tree-badge">${chapter.subchapters ? chapter.subchapters.length : 0}</span>
+                            </div>
+                            <div class="tree-children">`;
+                    
+                    if (chapter.subchapters && chapter.subchapters.length > 0) {
+                        chapter.subchapters.forEach(subchapter => {
+                            html += `<div class="tree-node" data-type="subchapter" data-id="${subchapter.id}">
+                                    <div class="tree-content" onclick="selectTreeItem('subchapter', ${JSON.stringify(subchapter).replace(/"/g, '&quot;')}, event)">
+                                        <i class="fas fa-chevron-down tree-toggle" onclick="event.stopPropagation(); toggleTreeNode(this)"></i>
+                                        <i class="fas fa-folder-open tree-icon text-green-600"></i>
+                                        <span class="tree-text">${subchapter.order}. ${subchapter.title}</span>
+                                        <span class="tree-badge">${subchapter.chasis ? subchapter.chasis.length : 0}</span>
+                                    </div>
+                                    <div class="tree-children">`;
+                            
+                            if (subchapter.chasis && subchapter.chasis.length > 0) {
+                                subchapter.chasis.forEach(chasi => {
+                                    html += `<div class="tree-node" data-type="chasi" data-id="${chasi.id}">
+                                            <div class="tree-content" onclick="selectTreeItem('chasi', ${JSON.stringify(chasi).replace(/"/g, '&quot;')}, event)">
+                                                <i class="fas fa-chevron-down tree-toggle" onclick="event.stopPropagation(); toggleTreeNode(this); loadChasiSlides(${chasi.id})"></i>
+                                                <i class="fas fa-book-reader tree-icon text-purple-600"></i>
+                                                <span class="tree-text">${chasi.order}. ${chasi.title}</span>
+                                                <span class="tree-badge" id="chasi-${chasi.id}-slide-count">${chasi.slide_count || 0}</span>
+                                                <button onclick="event.stopPropagation(); addSlideToChasi(${chasi.id})" 
+                                                        class="ml-2 px-1 py-0.5 text-xs bg-green-100 hover:bg-green-200 rounded text-green-700" 
+                                                        title="슬라이드 추가">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <div class="tree-children" id="slides-container-${chasi.id}">
+                                                <div class="text-center text-gray-400 py-2 text-xs" id="slides-loading-${chasi.id}">
+                                                    클릭하여 슬라이드 로드
+                                                </div>
+                                            </div>
+                                            </div>`;
+                                });
+                            }
+                            
+                            html += `</div></div>`;
+                        });
+                    }
+                    
+                    html += `</div></div>`;
+                });
+            }
+            
+            html += `</div></div>`;
+            treeView.innerHTML = html;
+        }
+        
+        function toggleTreeNode(toggle) {
+            const treeNode = toggle.closest('.tree-node');
+            treeNode.classList.toggle('collapsed');
+            toggle.classList.toggle('collapsed');
+        }
+        
+        function selectTreeItem(type, data, event) {
+            // 이전 선택 제거
+            document.querySelectorAll('.tree-content.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // 새 선택 추가
+            if (event && event.target) {
+                const treeContent = event.target.closest('.tree-content');
+                if (treeContent) {
+                    treeContent.classList.add('selected');
+                }
+            }
+            
+            selectedItem = { type, data };
+            
+            // 수동편집 패널이 열려있다면 편집 폼 로드
+            if (isManualEditOpen) {
+                loadManualEditForm(type, data);
+                
+                // 차시인 경우 슬라이드도 함께 로드 (동기화)
+                if (type === 'chasi') {
+                    setTimeout(() => {
+                        syncAllSlideViews(data.id);
+                    }, 100);
+                }
+            }
+            
+            // 차시를 클릭한 경우의 추가 처리
+            if (type === 'chasi') {
+                // 더블클릭으로 수동편집 패널 열기
+                if (event && event.detail === 2) {
+                    if (!isManualEditOpen) {
+                        toggleManualEditPanel();
+                    }
+                    return;
+                }
+                
+                // 차시 선택 시 우클릭 메뉴 표시를 위한 이벤트 추가
+                if (event && event.target) {
+                    const treeContent = event.target.closest('.tree-content');
+                    if (treeContent) {
+                        treeContent.addEventListener('contextmenu', function(e) {
+                            e.preventDefault();
+                            showChasiContextMenu(e, data);
+                        });
+                    }
+                }
+            }
+        }
+        
+        function showChasiContextMenu(event, chasiData) {
+            const existingMenu = document.getElementById('chasiContextMenu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            const contextMenu = `
+                <div id="chasiContextMenu" class="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50"
+                     style="left: ${event.pageX}px; top: ${event.pageY}px;">
+                    <button onclick="openSlideManager(${chasiData.id}, '${chasiData.title || chasiData.chasi_title}')" 
+                            class="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">
+                        <i class="fas fa-images mr-2 text-blue-600"></i>슬라이드 관리
+                    </button>
+                    <button onclick="editChasiFromContext(${chasiData.id})" 
+                            class="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm">
+                        <i class="fas fa-edit mr-2 text-green-600"></i>차시 편집
+                    </button>
+                    <hr class="my-1">
+                    <button onclick="deleteChasiFromContext(${chasiData.id})" 
+                            class="w-full px-4 py-2 text-left hover:bg-gray-100 text-sm text-red-600">
+                        <i class="fas fa-trash mr-2"></i>차시 삭제
+                    </button>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', contextMenu);
+            
+            setTimeout(() => {
+                document.addEventListener('click', function closeContextMenu() {
+                    const menu = document.getElementById('chasiContextMenu');
+                    if (menu) {
+                        menu.remove();
+                    }
+                    document.removeEventListener('click', closeContextMenu);
+                }, 100);
+            }, 100);
+        }
+        
+        function editChasiFromContext(chasiId) {
+            const menu = document.getElementById('chasiContextMenu');
+            if (menu) {
+                menu.remove();
+            }
+            
+            if (!isManualEditOpen) {
+                toggleManualEditPanel();
+            }
+            
+            loadChasiForEdit(chasiId);
+        }
+        
+        function deleteChasiFromContext(chasiId) {
+            const menu = document.getElementById('chasiContextMenu');
+            if (menu) {
+                menu.remove();
+            }
+            
+            ChasiManager.delete(chasiId);
+        }
+        
+        async function loadChasiForEdit(chasiId) {
+            try {
+                const response = await apiRequest(`/teacher/api/chasis/${chasiId}/detail/`);
+                if (response.success) {
+                    loadManualEditForm('chasi', response);
+                    // 차시 로드와 함께 슬라이드도 동기화
+                    setTimeout(() => {
+                        syncAllSlideViews(chasiId);
+                    }, 100);
+                } else {
+                    showMessage('차시 정보를 불러올 수 없습니다.', 'error');
+                }
+            } catch (error) {
+                showMessage('차시 정보 로드 중 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+        
+        function editStructureManually() {
+            if (!selectedCourseId) {
+                showMessage('먼저 코스를 선택해주세요.', 'warning');
+                return;
+            }
+            
+            if (!isManualEditOpen) {
+                toggleManualEditPanel();
+            }
+            
+            if (structureData && structureData.course) {
+                loadManualEditForm('course', structureData.course);
+            }
+        }
+        
+        function editStructureWithAI() {
+            if (!selectedCourseId) {
+                showMessage('먼저 코스를 선택해주세요.', 'warning');
+                return;
+            }
+            
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                showMessage('구조 수정을 위한 프롬프트를 입력해주세요.', 'warning');
+                return;
+            }
+            
+            showMessage('AI 구조 편집 기능은 준비 중입니다.', 'info');
+        }
+        
+        // ========================================
+        // 콘텐츠 편집 함수들
+        // ========================================
+        
+        function switchContentTab(tabName, event) {
+            // 탭 버튼 업데이트
+            document.querySelectorAll('.content-tab').forEach(tab => {
+                tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            if (event && event.target) {
+                event.target.classList.add('active', 'border-blue-500', 'text-blue-600');
+                event.target.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                const targetTab = document.querySelector(`button[onclick*="${tabName}"]`);
+                if (targetTab) {
+                    targetTab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                    targetTab.classList.remove('border-transparent', 'text-gray-500');
+                }
+            }
+            
+            // 탭 콘텐츠 업데이트
+            document.querySelectorAll('.content-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            document.getElementById(tabName + 'Tab').classList.remove('hidden');
+            
+            // 미리보기나 플레이 탭일 때 콘텐츠 업데이트
+            if (tabName === 'preview') {
+                updatePreview();
+            } else if (tabName === 'play') {
+                updatePlayContent();
+            }
+        }
+        
+        function updatePreview() {
+            const content = document.getElementById('contentEditor').value;
+            const previewContent = document.getElementById('previewContent');
+            
+            if (content.trim()) {
+                previewContent.innerHTML = content;
+            } else {
+                previewContent.innerHTML = `
+                    <div class="text-center text-gray-500 py-12">
+                        <i class="fas fa-eye text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg">미리보기할 콘텐츠가 없습니다</p>
+                        <p class="text-sm mt-2 text-gray-400">편집 탭에서 콘텐츠를 작성해보세요</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function updatePlayContent() {
+            const content = document.getElementById('contentEditor').value;
+            const playContent = document.getElementById('playContent');
+            
+            if (content.trim()) {
+                playContent.innerHTML = content;
+            } else {
+                playContent.innerHTML = `
+                    <div class="text-center text-gray-500 py-12">
+                        <i class="fas fa-play text-4xl mb-4 opacity-50"></i>
+                        <p class="text-lg">플레이할 콘텐츠가 없습니다</p>
+                        <p class="text-sm mt-2 text-gray-400">인터랙티브 콘텐츠를 작성해보세요</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function saveContent() {
+            const title = document.getElementById('contentTitle').value.trim();
+            const contentTypeId = document.getElementById('contentType').value;
+            const content = document.getElementById('contentEditor').value.trim();
+            
+            if (!title) {
+                showMessage('제목을 입력해주세요.', 'warning');
+                return;
+            }
+            
+            if (!contentTypeId) {
+                showMessage('콘텐츠 타입을 선택해주세요.', 'warning');
+                return;
+            }
+            
+            if (!content) {
+                showMessage('콘텐츠 내용을 입력해주세요.', 'warning');
+                return;
+            }
+            
+            showMessage('콘텐츠가 저장되었습니다.', 'success');
+            currentContentId = Date.now();
+        }
+        
+        function clearContent() {
+            if (confirm('편집 중인 내용을 모두 지우시겠습니까?')) {
+                document.getElementById('contentTitle').value = '';
+                document.getElementById('contentType').value = '';
+                document.getElementById('contentEditor').value = '';
+                currentContentId = null;
+                updatePreview();
+                updatePlayContent();
+                showMessage('콘텐츠가 초기화되었습니다.', 'info');
+            }
+        }
+
+        async function previewContent(contentId) {
+            console.log(`[previewContent] 미리보기 요청 - contentId: ${contentId}`);
+            
+            try {
+                const response = await fetch(`/teacher/api/contents/${contentId}/preview/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('[previewContent] 미리보기 데이터:', data);
+                
+                return data;
+                
+            } catch (error) {
+                console.error('[previewContent] 오류:', error);
+                showMessage(`미리보기 로드 중 오류: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function showContentDetails(contentId) {
+            console.log(`[showContentDetails] 상세 정보 표시 - contentId: ${contentId}`);
+            
+            try {
+                const response = await fetch(`/teacher/api/contents/${contentId}/detail/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.content) {
+                    const content = data.content;
+                    
+                    const detailModal = `
+                        <div id="contentDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-semibold">콘텐츠 상세 정보</h3>
+                                    <button onclick="closeContentDetailModal()" class="text-gray-400 hover:text-gray-600">
+                                        <i class="fas fa-times text-xl"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">제목</label>
+                                        <p class="text-gray-900">${content.title}</p>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">콘텐츠 타입</label>
+                                            <p class="text-gray-600">${content.content_type}</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">생성일</label>
+                                            <p class="text-gray-600">${content.created_at}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">미리보기</label>
+                                        <div class="bg-gray-50 p-3 rounded border text-sm text-gray-700">
+                                            ${content.preview}
+                                        </div>
+                                    </div>
+                                    
+                                    ${content.answer ? `
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">정답/해설</label>
+                                        <div class="bg-blue-50 p-3 rounded border text-sm text-blue-700">
+                                            ${content.answer}
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                                    <button onclick="closeContentDetailModal()" 
+                                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                                        닫기
+                                    </button>
+                                    <button onclick="loadContent(${content.id}); closeContentDetailModal();" 
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        편집하기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.insertAdjacentHTML('beforeend', detailModal);
+                } else {
+                    showMessage('콘텐츠 정보를 불러올 수 없습니다.', 'error');
+                }
+                
+            } catch (error) {
+                console.error('[showContentDetails] 오류:', error);
+                showMessage(`상세 정보 로드 중 오류: ${error.message}`, 'error');
+            }
+        }
+
+        function closeContentDetailModal() {
+            const modal = document.getElementById('contentDetailModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function loadGeneratedContent(content) {
+            console.log('[loadGeneratedContent] 콘텐츠 로드:', content);
+            
+            document.getElementById('contentTitle').value = content.title || '';
+            document.getElementById('contentEditor').value = content.page || '';
+            currentContentId = content.id || null;
+            
+            const contentTypeSelect = document.getElementById('contentType');
+            if (content.content_type && contentTypeSelect) {
+                if (content.content_type_id) {
+                    contentTypeSelect.value = content.content_type_id;
+                } else {
+                    for (let option of contentTypeSelect.options) {
+                        if (option.textContent.trim() === content.content_type.trim()) {
+                            option.selected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            const answerField = document.getElementById('contentAnswer');
+            if (answerField && content.answer) {
+                answerField.value = content.answer;
+            }
+            
+            if (content.meta_data) {
+                console.log('[loadGeneratedContent] 메타데이터:', content.meta_data);
+            }
+            
+            if (content.tags) {
+                console.log('[loadGeneratedContent] 태그:', content.tags);
+            }
+            
+            updatePreview();
+            updatePlayContent();
+            
+            console.log('[loadGeneratedContent] 콘텐츠 로드 완료');
+        }
+        
+        async function loadContent(contentId) {
+            console.log(`[loadContent] 시작 - contentId: ${contentId}`);
+            
+            if (!contentId) {
+                showMessage('콘텐츠 ID가 필요합니다.', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                console.log(`[loadContent] API 호출: /teacher/api/contents/${contentId}/detail/`);
+                
+                const response = await fetch(`/teacher/api/contents/${contentId}/detail/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`[loadContent] 응답 상태: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('[loadContent] 응답 데이터:', data);
+                
+                if (data.success && data.content) {
+                    loadGeneratedContent(data.content);
+                    showMessage(`"${data.content.title}" 콘텐츠를 불러왔습니다.`, 'success');
+                    
+                    switchContentTab('edit');
+                    
+                } else {
+                    throw new Error(data.error || '콘텐츠를 불러올 수 없습니다.');
+                }
+                
+            } catch (error) {
+                console.error('[loadContent] 오류:', error);
+                showMessage(`콘텐츠 로드 중 오류가 발생했습니다: ${error.message}`, 'error');
+                
+                document.getElementById('contentTitle').value = '';
+                document.getElementById('contentType').value = '';
+                document.getElementById('contentEditor').value = '';
+                currentContentId = null;
+                
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // ========================================
+        // 검색 관련 함수들
+        // ========================================
+        
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            const contentType = document.getElementById('searchContentType').value;
+            const courseId = document.getElementById('searchCourse').value;
+            
+            console.log('검색 시작:', { query, contentType, courseId });
+            
+            document.getElementById('searchResults').innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-sm">검색 중...</p>
+                </div>
+            `;
+            
+            try {
+                const searchParams = new URLSearchParams();
+                if (query) searchParams.append('q', query);
+                if (contentType) searchParams.append('content_type', contentType);
+                if (courseId) searchParams.append('course_id', courseId);
+                
+                console.log('API 호출 URL:', `/teacher/api/contents/search/?${searchParams}`);
+                
+                const response = await fetch(`/teacher/api/contents/search/?${searchParams}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('응답 상태:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('검색 결과:', data);
+                
+                if (data.success) {
+                    renderSearchResults(data.results);
+                    showMessage(`${data.results.length}개의 콘텐츠를 찾았습니다.`, 'success');
+                } else {
+                    throw new Error(data.error || '검색에 실패했습니다.');
+                }
+                
+            } catch (error) {
+                console.error('검색 오류:', error);
+                showMessage(`검색 중 오류가 발생했습니다: ${error.message}`, 'error');
+                
+                document.getElementById('searchResults').innerHTML = `
+                    <div class="text-center text-red-500 py-8">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                        <p class="text-sm">검색 중 오류가 발생했습니다</p>
+                        <p class="text-xs text-gray-400 mt-1">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function refreshRecentContents() {
+            showMessage('최근 콘텐츠 목록을 새로고침했습니다.', 'info');
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-search text-4xl mb-2 opacity-50"></i>
+                        <p class="text-sm">검색 결과가 없습니다</p>
+                        <p class="text-xs text-gray-400 mt-1">다른 검색어를 시도해보세요</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            results.forEach(content => {
+                const ownerClass = content.is_mine ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50';
+                const ownerBadge = content.is_mine ? 
+                    '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">내 콘텐츠</span>' :
+                    '<span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">공개 콘텐츠</span>';
+                
+                html += `
+                    <div class="content-card p-3 border rounded-lg cursor-move transition-all hover:shadow-md ${ownerClass}"
+                        draggable="true"
+                        data-content-id="${content.id}"
+                        data-content-title="${content.title}"
+                        data-content-type="${content.content_type}"
+                        ondragstart="handleContentDragStart(event)"
+                        ondragend="handleContentDragEnd(event)"
+                        onclick="loadContent(${content.id})">
+                        
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm font-medium text-gray-800 truncate flex-1">${content.title}</div>
+                            <div class="drag-handle text-gray-400 hover:text-gray-600 ml-2">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-gray-500 mb-2">
+                            ${content.content_type} • ${content.created_at}
+                            ${content.chapter_name ? ` • ${content.chapter_name}` : ''}
+                        </div>
+                        
+                        <div class="text-xs text-gray-600 line-clamp-2 mb-2">${content.preview || ''}</div>
+                        
+                        <div class="flex items-center justify-between">
+                            ${ownerBadge}
+                            <span class="text-xs text-gray-400">
+                                <i class="fas fa-clock mr-1"></i>${content.estimated_time || 5}분
+                            </span>
+                        </div>
+                        
+                        <div class="drag-hint text-xs text-blue-600 mt-1 opacity-0 transition-opacity">
+                            <i class="fas fa-mouse-pointer mr-1"></i>슬라이드로 드래그하세요
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function updateRecentContents(contents) {
+            const container = document.getElementById('recentContents');
+            
+            let html = '';
+            contents.forEach(content => {
+                html += `
+                    <div class="content-card p-2 border border-gray-200 rounded-lg cursor-move transition-colors hover:bg-gray-50"
+                        draggable="true"
+                        data-content-id="${content.id}"
+                        data-content-title="${content.title}"
+                        data-content-type="${content.content_type}"
+                        ondragstart="handleContentDragStart(event)"
+                        ondragend="handleContentDragEnd(event)"
+                        onclick="loadContent(${content.id})">
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-800 truncate">${content.title}</div>
+                                <div class="text-xs text-gray-500">${content.content_type} • ${content.created_at}</div>
+                            </div>
+                            <div class="drag-handle text-gray-400 ml-2">
+                                <i class="fas fa-grip-vertical text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // 드래그 시작
+        function handleContentDragStart(event) {
+            const contentCard = event.target.closest('.content-card');
+            const contentId = contentCard.dataset.contentId;
+            const contentTitle = contentCard.dataset.contentTitle;
+            const contentType = contentCard.dataset.contentType;
+            
+            event.dataTransfer.setData('application/json', JSON.stringify({
+                contentId: contentId,
+                contentTitle: contentTitle,
+                contentType: contentType
+            }));
+            
+            event.dataTransfer.effectAllowed = 'copy';
+            
+            contentCard.classList.add('opacity-50', 'scale-95');
+            
+            const dragHint = contentCard.querySelector('.drag-hint');
+            if (dragHint) {
+                dragHint.classList.remove('opacity-0');
+                dragHint.classList.add('opacity-100');
+            }
+            
+            document.querySelectorAll('.slide-drop-zone').forEach(zone => {
+                if (!zone.classList.contains('border-green-200')) {
+                    zone.classList.add('border-blue-300', 'bg-blue-50');
+                    zone.style.animation = 'pulse 1s infinite';
+                }
+            });
+            
+            // 인라인 슬라이드 드롭존도 활성화
+            document.querySelectorAll('.slide-item-inline').forEach(zone => {
+                if (!zone.classList.contains('border-green-200')) {
+                    zone.classList.add('border-blue-300', 'bg-blue-50');
+                    zone.style.animation = 'pulse 1s infinite';
+                }
+            });
+            
+            console.log('드래그 시작:', { contentId, contentTitle, contentType });
+        }
+
+        // 드래그 종료
+        function handleContentDragEnd(event) {
+            const contentCard = event.target.closest('.content-card');
+            
+            contentCard.classList.remove('opacity-50', 'scale-95');
+            
+            const dragHint = contentCard.querySelector('.drag-hint');
+            if (dragHint) {
+                dragHint.classList.add('opacity-0');
+                dragHint.classList.remove('opacity-100');
+            }
+            
+            document.querySelectorAll('.slide-drop-zone').forEach(zone => {
+                zone.classList.remove('border-blue-300', 'bg-blue-50', 'border-yellow-300', 'bg-yellow-50');
+                zone.style.animation = '';
+            });
+            
+            // 인라인 슬라이드 드롭존도 비활성화
+            document.querySelectorAll('.slide-item-inline').forEach(zone => {
+                zone.classList.remove('border-blue-300', 'bg-blue-50', 'border-yellow-300', 'bg-yellow-50');
+                zone.style.animation = '';
+            });
+            
+            console.log('드래그 종료');
+        }
+
+        // 슬라이드 드롭존에 드래그 오버
+        function handleSlideDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            
+            const dropZone = event.target.closest('.slide-drop-zone');
+            
+            if (dropZone.classList.contains('border-green-200')) {
+                dropZone.classList.remove('border-green-200', 'bg-green-50');
+                dropZone.classList.add('border-yellow-300', 'bg-yellow-50');
+            } else {
+                dropZone.classList.remove('border-blue-300', 'bg-blue-50');
+                dropZone.classList.add('border-green-300', 'bg-green-50', 'shadow-lg');
+            }
+        }
+
+        // 슬라이드 드롭존에서 드래그 떠남
+        function handleSlideDragLeave(event) {
+            const dropZone = event.target.closest('.slide-drop-zone');
+            
+            if (dropZone.classList.contains('border-green-200')) {
+                dropZone.classList.remove('border-yellow-300', 'bg-yellow-50');
+                dropZone.classList.add('border-green-200', 'bg-green-50');
+            } else {
+                dropZone.classList.remove('border-green-300', 'bg-green-50', 'shadow-lg');
+                dropZone.classList.add('border-blue-300', 'bg-blue-50');
+            }
+        }
+
+        function updateRecentContents_07191030() {
+            console.log('최근 콘텐츠 목록이 업데이트되었습니다.');
+        }
+        
+        // ========================================
+        // 통계 및 기타 함수들
+        // ========================================
+        
+        function showStatistics() {
+            const mockStats = {
+                courses: { total: 5 },
+                contents: { total: 23, ai_generated: 15 },
+                students: { total: 120 }
+            };
+            
+            displayStatistics(mockStats);
+        }
+        
+        function displayStatistics(stats) {
+            const modal = `
+                <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="this.remove()">
+                    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">AI Agent 통계</h3>
+                            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-4 bg-blue-50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-600">${stats.courses.total}</div>
+                                <div class="text-sm text-blue-700">총 코스</div>
+                            </div>
+                            <div class="text-center p-4 bg-green-50 rounded-lg">
+                                <div class="text-2xl font-bold text-green-600">${stats.contents.total}</div>
+                                <div class="text-sm text-green-700">총 콘텐츠</div>
+                            </div>
+                            <div class="text-center p-4 bg-purple-50 rounded-lg">
+                                <div class="text-2xl font-bold text-purple-600">${stats.contents.ai_generated}</div>
+                                <div class="text-sm text-purple-700">AI 생성</div>
+                            </div>
+                            <div class="text-center p-4 bg-orange-50 rounded-lg">
+                                <div class="text-2xl font-bold text-orange-600">${stats.students.total}</div>
+                                <div class="text-sm text-orange-700">총 학생</div>
+                            </div>
+                        </div>
+                        <button onclick="this.closest('.fixed').remove()" 
+                                class="mt-4 w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            닫기
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modal);
+        }
+        
+        function loadStatistics() {
+            // 페이지 로드 시 기본 통계 로드 (필요시)
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+        
+        // 디바운스 함수
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // ========================================
+        // 페이지 로드 시 초기화
+        // ========================================
+        
+        $(document).ready(function() {
+            console.log('AI Agent 초기화 중...');
+            
+            try {
+                // 이벤트 리스너 등록
+                $('#courseSelect').change(loadCourseStructure);
+                $('#courseSearchInput').on('input', searchCourses);
+                $('#contentEditor').on('input', updatePreview);
+                $('#fileUpload').change(handleFileUpload);
+                
+                // 검색 이벤트
+                $('#searchInput').on('input', debounce(performSearch, 500));
+                $('#searchContentType, #searchCourse').change(performSearch);
+                
+                // 드래그 이벤트 등록
+                initDragAndDrop();
+                
+                // 초기 데이터 로드
+                loadStatistics();
+                
+                // 초기 탭 설정
+                updatePreview();
+                updatePlayContent();
+                
+                console.log('AI Agent 초기화 완료');
+                showMessage('AI Agent가 성공적으로 로드되었습니다.', 'success');
+                
+            } catch (error) {
+                console.error('초기화 중 오류 발생:', error);
+                showMessage('초기화 중 오류가 발생했습니다.', 'error');
+            }
+        });
+        
+        // 에러 핸들링
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript 오류:', e.error);
+            showMessage('오류가 발생했습니다. 페이지를 새로고침해주세요.', 'error');
+        });
+        
+        // 언로드 시 경고 (편집 중인 내용이 있을 때)
+        window.addEventListener('beforeunload', function(e) {
+            const content = document.getElementById('contentEditor').value.trim();
+            if (content && !currentContentId) {
+                e.preventDefault();
+                e.returnValue = '저장하지 않은 내용이 있습니다. 정말 나가시겠습니까?';
+            }
+        });
+    </script>
+</body>
+</html>
