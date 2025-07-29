@@ -1,0 +1,3363 @@
+{% extends 'teacher/base.html' %}
+{% load static %}
+
+{% block title %}문항 배치저장 - AI 도구{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+<style>
+/* 스크롤바 스타일링 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Firefox 스크롤바 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* 상단 헤더 스타일 */
+.page-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #e2e8f0;
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.page-header.hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-title h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+}
+
+.header-title p {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-back-btn {
+    color: #64748b;
+    transition: all 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 6px;
+}
+
+.header-back-btn:hover {
+    color: #1e293b;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.main-container {
+    display: flex;
+    height: calc(100vh - 0px);
+    position: relative;
+    padding: 0;
+    margin-top: 20px;
+    gap: 5px;
+    background: #f1f5f9;
+}
+
+/* 트리 패널 */
+.tree-panel {
+    width: 33.333%;
+    min-width: 300px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.tree-panel.expanded {
+    width: 40%;
+}
+
+/* 콘텐츠 패널 - 가운데 */
+.content-panel {
+    width: 33.333%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.content-panel.hidden {
+    width: 0;
+    overflow: hidden;
+    border-right: none;
+}
+
+/* 미리보기 패널 - 우측 */
+.preview-panel {
+    width: 33.333%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.preview-panel.expanded {
+    width: 60%;
+}
+
+.panel-header {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #e5e7eb;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.panel-header h3, .panel-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: #374151;
+}
+
+.content-body {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: #f8fafc;
+}
+
+.preview-tabs {
+    display: flex;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.preview-tab.active {
+    background: white;
+    color: #1e293b;
+    border-bottom-color: #3b82f6;
+}
+
+.preview-tab:hover:not(.active) {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.preview-content {
+    flex: 1;
+    overflow-y: auto;
+    background: white;
+}
+
+.preview-tab-content {
+    display: none;
+    padding: 1.5rem;
+    height: 100%;
+}
+
+.preview-tab-content.active {
+    display: block;
+}
+
+.preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: #9ca3af;
+}
+
+.preview-placeholder i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+/* 파일 업로드 영역 */
+.upload-area {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    background: white;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.upload-area.dragover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.upload-area.processing {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+/* 진행 상황 */
+.progress-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #10b981;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+}
+
+/* 결과 로그 */
+.result-log {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.log-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.log-item.success {
+    background: #f0fdf4;
+    border-left-color: #10b981;
+    color: #065f46;
+}
+
+.log-item.error {
+    background: #fef2f2;
+    border-left-color: #ef4444;
+    color: #991b1b;
+}
+
+.log-item.info {
+    background: #f8fafc;
+    border-left-color: #6b7280;
+    color: #374151;
+}
+
+/* 트리 스타일 */
+.tree-view {
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.tree-item {
+    position: relative;
+    margin: 2px 0;
+    transition: all 0.2s ease;
+}
+
+.tree-children {
+    margin-left: 24px;
+    border-left: 1px solid #e2e8f0;
+    padding-left: 12px;
+    margin-top: 4px;
+}
+
+.tree-toggle {
+    cursor: pointer;
+    user-select: none;
+    margin-right: 8px;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    font-size: 12px;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.tree-toggle:hover {
+    background: #e2e8f0;
+    color: #374151;
+}
+
+.tree-toggle.collapsed {
+    transform: rotate(-90deg);
+}
+
+.tree-content {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin: 1px 2px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.tree-content:hover {
+    background: #f8fafc;
+    transform: translateX(2px);
+}
+
+.tree-content.selected {
+    background: #e0e7ff;
+    border-color: #6366f1;
+}
+
+.tree-content.updated {
+    background: #dcfce7;
+    border-color: #22c55e;
+    animation: pulse 1s ease-in-out;
+}
+
+.tree-content.processing {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    animation: processing 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes processing {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+.tree-icon {
+    margin-right: 10px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    width: 18px;
+    text-align: center;
+}
+
+.tree-text {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+
+.tree-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    min-width: 20px;
+    height: 20px;
+}
+
+.badge-updated {
+    animation: badgeBounce 0.8s ease-in-out;
+    background: #22c55e !important;
+    color: white !important;
+}
+
+@keyframes badgeBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* 버튼 스타일 */
+.btn-modern {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+/* 폼 입력 */
+.form-input {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 파일 미리보기 */
+.file-preview {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.preview-item {
+    padding: 0.6rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.875rem;
+    transition: background 0.2s ease;
+}
+
+.preview-item:hover {
+    background: #f8fafc;
+}
+
+.preview-item:last-child {
+    border-bottom: none;
+}
+
+/* 처리 중 표시 */
+.processing-indicator {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+    color: #6b7280;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.processing-indicator i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    animation: spin 1s linear infinite;
+    color: #3b82f6;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 완료 표시 */
+.completion-indicator {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+    background: #f0fdf4;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #22c55e;
+}
+
+.completion-indicator i {
+    font-size: 3rem;
+    color: #22c55e;
+    margin-bottom: 1rem;
+    animation: checkmark 0.6s ease-in-out;
+}
+
+@keyframes checkmark {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* 슬라이드 미리보기 스타일 */
+.slide-preview {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+.slide-preview h4 {
+    margin: 0 0 0.5rem 0;
+    color: #374151;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.slide-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.slide-content {
+    color: #4b5563;
+    line-height: 1.5;
+    min-height: 100px;
+}
+
+.type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* 편집 영역 스타일 */
+.edit-section {
+    margin-bottom: 1.5rem;
+}
+
+.edit-section h5 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+/* CodeMirror 컨테이너 */
+.editor-container {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    margin-bottom: 1rem;
+}
+
+.editor-header {
+    background: #f8fafc;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.CodeMirror {
+    height: auto;
+    min-height: 200px;
+    max-height: 500px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+}
+
+.answer-section {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* 아코디언 스타일 */
+.accordion {
+    margin-top: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.accordion-header:hover {
+    background: #f1f5f9;
+}
+
+.accordion-header h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
+.accordion-icon {
+    transition: transform 0.2s ease;
+    color: #6b7280;
+}
+
+.accordion-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 1rem;
+    background: white;
+    display: none;
+}
+
+.accordion-content.show {
+    display: block;
+}
+
+.meta-field {
+    margin-bottom: 1rem;
+}
+
+.meta-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.25rem;
+}
+
+.meta-field input,
+.meta-field textarea,
+.meta-field select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.meta-field textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* 토글 버튼 */
+.panel-toggle {
+    background: #64748b;
+    color: white;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+}
+
+.panel-toggle:hover {
+    background: #475569;
+}
+
+/* 저장 성공 하이라이트 */
+.save-highlight {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    padding: 2px 4px;
+    animation: saveSuccess 2s ease-in-out;
+}
+
+@keyframes saveSuccess {
+    0% {
+        background: #22c55e;
+        color: white;
+        transform: scale(1.05);
+    }
+    50% {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    100% {
+        background: #dcfce7;
+        color: #15803d;
+        transform: scale(1);
+    }
+}
+
+/* 편집기 툴바 스타일 - 고급 편집기 */
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    border-right: 1px solid #e2e8f0;
+}
+
+.toolbar-group:last-child {
+    border-right: none;
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #374151;
+    font-size: 14px;
+}
+
+.toolbar-btn:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+    transform: translateY(-1px);
+}
+
+.toolbar-btn.active {
+    background: #3b82f6;
+    color: white;
+    border-color: #2563eb;
+}
+
+.toolbar-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toolbar-btn.disabled:hover {
+    transform: none;
+    background: white;
+    border-color: #d1d5db;
+}
+
+/* 이미지 삽입 모드 스타일 */
+.insert-mode {
+    cursor: crosshair !important;
+}
+
+.insert-mode * {
+    cursor: crosshair !important;
+}
+
+/* 이미지 플레이스홀더 */
+.image-placeholder {
+    display: inline-block;
+    position: relative;
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.image-placeholder:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.image-placeholder.block {
+    display: block;
+    width: 100%;
+    padding: 40px 20px;
+    margin: 10px 0;
+}
+
+.image-placeholder.inline {
+    display: inline-block;
+    width: 120px;
+    height: 80px;
+    padding: 20px 10px;
+    margin: 0 5px;
+    line-height: 40px;
+}
+
+/* 이미지 컨테이너 */
+.image-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.image-container.block {
+    display: block;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.image-container:hover img {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 이미지 컨트롤 버튼 */
+.image-controls {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    display: none;
+    gap: 4px;
+}
+
+.image-container:hover .image-controls {
+    display: flex;
+}
+
+.image-control-btn {
+    width: 24px;
+    height: 24px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s ease;
+}
+
+.image-control-btn.edit {
+    background: #3b82f6;
+}
+
+.image-control-btn:hover {
+    transform: scale(1.1);
+}
+
+/* 크기 조절 박스 */
+.resize-box {
+    position: absolute;
+    border: 2px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.resize-info {
+    position: absolute;
+    top: -30px;
+    right: 0;
+    background: #1f2937;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* 테이블 스타일 */
+.content-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.content-table th,
+.content-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+}
+
+.content-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+}
+
+.content-table tr:last-child td {
+    border-bottom: none;
+}
+
+.content-table th:last-child,
+.content-table td:last-child {
+    border-right: none;
+}
+
+.content-table tr:hover {
+    background: #f8fafc;
+}
+
+/* SVG 컨테이너 */
+.svg-container {
+    display: inline-block;
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+}
+
+/* 로딩 상태 */
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e2e8f0;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* 상태 메시지 */
+.status-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 3000;
+    animation: slideIn 0.3s ease;
+}
+
+.status-message.success {
+    background: #10b981;
+}
+
+.status-message.error {
+    background: #ef4444;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+#editablePreview[contenteditable="true"] {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+    .tree-panel, .content-panel, .preview-panel {
+        min-width: 250px;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .header-right {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+        margin-top: 120px;
+    }
+    
+    .tree-panel, .content-panel, .preview-panel {
+        width: 100% !important;
+        max-height: 400px;
+    }
+    
+    .restore-panel-btn {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 상단 헤더 (스크롤 시 숨김/보이기) -->
+<div class="page-header" id="pageHeader">
+    <div class="header-content">
+        <div class="header-left">
+            <a href="{% url 'teacher:dashboard' %}" class="header-back-btn">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <div class="header-title">
+                <h1>문항 배치저장</h1>
+                <p>JSON 파일을 업로드하여 문항을 차시에 자동 배치합니다</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <!-- 코스 선택 드롭다운 -->
+            <div class="flex items-center space-x-3">
+                <label for="courseSelect" class="text-sm font-medium text-slate-700 whitespace-nowrap">대상 코스:</label>
+                <select id="courseSelect" class="form-input min-w-48 bg-white">
+                    <option value="">전체 코스</option>
+                    {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.subject_name }} ({{ course.target }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button onclick="refreshTree()" class="btn-modern btn-secondary">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+            <button onclick="downloadSample()" class="btn-modern btn-secondary">
+                <i class="fas fa-download"></i>
+                샘플 파일
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 메인 컨테이너 (3패널 레이아웃) -->
+<div class="main-container">
+    <!-- 트리 패널 -->
+    <div class="tree-panel" id="treePanel">
+        <div class="panel-header">
+            <div class="flex items-center">
+                <i class="fas fa-sitemap mr-3 text-lg"></i>
+                <h3>코스 구조</h3>
+            </div>
+            <div class="text-xs opacity-80">
+                <span id="treeItemCount">0</span> 항목
+            </div>
+        </div>
+        <div class="tree-view" id="courseTree">
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>코스 구조를 로딩 중...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 콘텐츠 패널 -->
+    <div class="content-panel" id="contentPanel">
+        <div class="panel-header">
+            <h2>
+                <i class="fas fa-upload mr-3"></i>문항 배치 처리
+            </h2>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleContentPanel()" class="panel-toggle" id="contentToggle">
+                    <i class="fas fa-eye-slash"></i>
+                    숨기기
+                </button>
+            </div>
+        </div>
+        
+        <div class="content-body">
+            <!-- 파일 업로드 영역 -->
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                    <h3 class="text-lg font-bold text-gray-700 mb-2">JSON 파일을 업로드하세요</h3>
+                    <p class="text-gray-500 mb-4">여러 파일을 선택하거나 드래그하여 한번에 업로드할 수 있습니다</p>
+                    <input type="file" id="fileInput" accept=".json" multiple class="hidden">
+                    <button onclick="document.getElementById('fileInput').click()" class="btn-modern btn-primary">
+                        <i class="fas fa-file-upload"></i>
+                        파일 선택 (다중 선택 가능)
+                    </button>
+                </div>
+            </div>
+
+            <!-- 파일 목록 미리보기 -->
+            <div class="file-preview" id="filePreview">
+                <h4 class="font-bold text-gray-800 mb-4">
+                    <i class="fas fa-eye mr-2"></i>업로드된 파일 목록
+                </h4>
+                <div id="previewContent"></div>
+                <div class="mt-6 flex gap-3">
+                    <button onclick="startProcessing()" class="btn-modern btn-success">
+                        <i class="fas fa-play"></i>
+                        전체 처리 시작
+                    </button>
+                    <button onclick="resetUpload()" class="btn-modern btn-secondary">
+                        <i class="fas fa-times"></i>
+                        취소
+                    </button>
+                </div>
+            </div>
+
+            <!-- 진행 상황 -->
+            <div class="progress-container" id="progressContainer">
+                <h4 class="font-bold text-gray-800 mb-4">
+                    <i class="fas fa-tasks mr-2"></i>처리 진행 상황
+                </h4>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="flex justify-between text-sm text-gray-600 mb-4">
+                    <span id="progressText">0 / 0 처리됨</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="text-center">
+                    <button onclick="pauseProcessing()" class="btn-modern btn-secondary" id="pauseBtn">
+                        <i class="fas fa-pause"></i>
+                        일시정지
+                    </button>
+                    <button onclick="stopProcessing()" class="btn-modern btn-danger" id="stopBtn">
+                        <i class="fas fa-stop"></i>
+                        중단
+                    </button>
+                </div>
+            </div>
+
+            <!-- 처리 중 표시 -->
+            <div class="processing-indicator" id="processingIndicator">
+                <i class="fas fa-cog"></i>
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">문항을 처리하고 있습니다...</h3>
+                <p class="text-sm" id="currentProcessing">항목 처리 중</p>
+            </div>
+
+            <!-- 완료 표시 -->
+            <div class="completion-indicator" id="completionIndicator">
+                <i class="fas fa-check-circle"></i>
+                <h3 class="text-lg font-bold text-green-700 mb-2">처리가 완료되었습니다!</h3>
+                <p class="text-sm text-green-600" id="completionSummary">모든 문항이 성공적으로 처리되었습니다.</p>
+            </div>
+
+            <!-- 결과 로그 -->
+            <div class="result-log" id="resultLog">
+                <h4 class="font-bold text-gray-800 mb-4">
+                    <i class="fas fa-list mr-2"></i>처리 결과
+                </h4>
+                <div id="logContent"></div>
+                <div class="mt-4 text-center">
+                    <button onclick="exportResults()" class="btn-modern btn-secondary">
+                        <i class="fas fa-download"></i>
+                        결과 내보내기
+                    </button>
+                    <button onclick="clearLog()" class="btn-modern btn-secondary">
+                        <i class="fas fa-trash"></i>
+                        로그 지우기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 미리보기 패널 -->
+    <div class="preview-panel" id="previewPanel">
+        <div class="panel-header flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-eye mr-3 text-lg"></i>
+                <h3>문항 미리보기</h3>
+            </div>
+            <button onclick="showContentPanel()" class="panel-toggle" id="restoreBtn" style="display: none;">
+                <i class="fas fa-eye"></i>
+                복구
+            </button>
+        </div>
+        
+        <!-- 미리보기 탭 -->
+        <div class="preview-tabs">
+            <button class="preview-tab active" onclick="switchPreviewTab('render')" data-tab="render">
+                <i class="fas fa-eye mr-1"></i>렌더링
+            </button>
+            <button class="preview-tab" onclick="switchPreviewTab('html')" data-tab="html">
+                <i class="fas fa-code mr-1"></i>HTML 편집
+            </button>
+            <button class="preview-tab" onclick="switchPreviewTab('edit')" data-tab="edit">
+                <i class="fas fa-edit mr-1"></i>고급 편집
+            </button>
+        </div>
+        
+        <div class="preview-content">
+            <!-- 렌더링 탭 -->
+            <div class="preview-tab-content active" id="renderTab">
+                <div class="preview-placeholder">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <h4 class="text-lg font-semibold mb-2">문항을 선택해주세요</h4>
+                    <p class="text-sm">좌측 트리에서 문항을 클릭하면<br>여기에 미리보기가 표시됩니다</p>
+                </div>
+            </div>
+            
+            <!-- HTML 편집 탭 -->
+            <div class="preview-tab-content" id="htmlTab">
+                <div class="edit-section">
+                    <h5>HTML 콘텐츠</h5>
+                    <div class="editor-container">
+                        <div class="editor-header">
+                            <span>HTML 에디터</span>
+                            <button onclick="formatHtmlCode()" class="btn-modern btn-secondary text-xs ml-auto">
+                                <i class="fas fa-magic"></i>
+                                정렬
+                            </button>
+                        </div>
+                        <div id="htmlEditorContainer"></div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="updatePreviewFromHtml()" class="btn-modern btn-primary text-sm">
+                            <i class="fas fa-sync"></i>
+                            미리보기 업데이트
+                        </button>
+                        <button onclick="saveHtmlContent()" class="btn-modern btn-success text-sm">
+                            <i class="fas fa-save"></i>
+                            저장
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 정답 섹션 -->
+                <div class="answer-section">
+                    <h5>정답 데이터 (JSON)</h5>
+                    <div class="editor-container">
+                        <div class="editor-header">
+                            <span>정답 에디터</span>
+                            <button onclick="formatAnswerCode()" class="btn-modern btn-secondary text-xs ml-auto">
+                                <i class="fas fa-magic"></i>
+                                정렬
+                            </button>
+                        </div>
+                        <div id="answerEditorContainer"></div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="validateAnswerJson()" class="btn-modern btn-secondary text-sm">
+                            <i class="fas fa-check"></i>
+                            JSON 검증
+                        </button>
+                        <button onclick="saveAnswerData()" class="btn-modern btn-success text-sm">
+                            <i class="fas fa-save"></i>
+                            저장
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 메타데이터 아코디언 -->
+                <div class="accordion">
+                    <div class="accordion-header" onclick="toggleAccordion()">
+                        <h6>태그 및 메타데이터</h6>
+                        <i class="fas fa-chevron-down accordion-icon" id="accordionIcon"></i>
+                    </div>
+                    <div class="accordion-content" id="accordionContent">
+                        <div class="meta-field">
+                            <label for="tagsInput">태그 (쉼표로 구분)</label>
+                            <input type="text" id="tagsInput" placeholder="예: 수학, 기하, 도형">
+                        </div>
+                        <div class="meta-field">
+                            <label for="difficultyInput">난이도</label>
+                            <select id="difficultyInput" class="form-input">
+                                <option value="">선택하세요</option>
+                                <option value="1">쉬움</option>
+                                <option value="2">보통</option>
+                                <option value="3">어려움</option>
+                            </select>
+                        </div>
+                        <div class="meta-field">
+                            <label for="estimatedTimeInput">예상 소요시간 (분)</label>
+                            <input type="number" id="estimatedTimeInput" placeholder="예: 5">
+                        </div>
+                        <div class="meta-field">
+                            <label for="instructionsInput">학습 지시사항</label>
+                            <textarea id="instructionsInput" placeholder="학습자를 위한 지시사항을 입력하세요"></textarea>
+                        </div>
+                        <div class="mt-3">
+                            <button onclick="saveMetadata()" class="btn-modern btn-success text-sm">
+                                <i class="fas fa-save"></i>
+                                메타데이터 저장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 고급 편집 탭 -->
+            <div class="preview-tab-content" id="editTab">
+                <div class="edit-section">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h5>고급 편집기</h5>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleEditMode()" class="btn-modern btn-secondary text-xs" id="editModeBtn">
+                                <i class="fas fa-edit"></i>
+                                편집모드 켜기
+                            </button>
+                            <button onclick="resetEditor()" class="btn-modern btn-secondary text-xs">
+                                <i class="fas fa-refresh"></i>
+                                초기화
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 편집기 툴바 -->
+                    <div class="editor-toolbar">
+                        <!-- 이미지 그룹 -->
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="insertImageBlock" title="블록 이미지 삽입">
+                                <i class="fas fa-image"></i>
+                            </button>
+                            <button class="toolbar-btn" id="insertImageInline" title="인라인 이미지 삽입">
+                                <i class="fas fa-images"></i>
+                            </button>
+                        </div>
+
+                        <!-- 테이블 그룹 -->
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="insertTable" title="테이블 삽입">
+                                <i class="fas fa-table"></i>
+                            </button>
+                        </div>
+
+                        <!-- SVG 그룹 -->
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="insertSVG" title="SVG 삽입">
+                                <i class="fas fa-shapes"></i>
+                            </button>
+                        </div>
+
+                        <!-- 편집 도구 -->
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="clearFormat" title="서식 지우기">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                            <button class="toolbar-btn" id="undoBtn" title="실행 취소">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <button class="toolbar-btn" id="redoBtn" title="다시 실행">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                        </div>
+
+                        <!-- 저장 그룹 -->
+                        <div class="toolbar-group">
+                            <button class="toolbar-btn" id="saveAdvancedContent" title="저장">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="editablePreview" class="slide-content border border-gray-200 rounded-lg p-4 min-h-96">
+                        <div class="preview-placeholder">
+                            <i class="fas fa-edit"></i>
+                            <h4 class="text-lg font-semibold mb-2">편집할 문항을 선택해주세요</h4>
+                            <p class="text-sm">편집모드를 켜고 텍스트를 클릭하여 수정할 수 있습니다</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 숨겨진 파일 입력 -->
+<input type="file" id="imageUpload" accept="image/*" style="display: none;">
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/xml-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.7/beautify-html.min.js"></script>
+
+<script>
+// 전역 변수
+let uploadedFiles = [];
+let allUploadedData = [];
+let isProcessing = false;
+let isPaused = false;
+let currentIndex = 0;
+let processResults = [];
+let courseStructure = {};
+let selectedCourseId = null;
+let filteredCourseStructure = [];
+let currentSlideData = null;
+let isEditMode = false;
+let currentEditingImage = null;
+let isContentPanelHidden = false;
+let htmlEditor = null;
+let answerEditor = null;
+let lastScrollY = 0;
+
+// 고급 편집기 전역 변수
+let isInsertMode = false;
+let insertType = '';
+let isResizing = false;
+let resizeStartX = 0;
+let resizeStartY = 0;
+let resizeBox = null;
+let currentImagePlaceholder = null;
+let uploadedAttachments = new Set(); // 업로드된 첨부파일 ID 추적
+
+// 변경 추적을 위한 변수들
+let originalHtmlContent = '';
+let originalAnswerContent = '';
+let changedElements = new Set();
+
+// CSRF 토큰
+const csrfToken = '{{ csrf_token }}';
+
+// 페이지 로드 시 초기화
+$(document).ready(function() {
+    initializeEventHandlers();
+    initializeEditors();
+    initializeScrollHandler();
+    initializeRestoreButton();
+    initializeAdvancedEditor();
+    loadCourseStructure();
+});
+
+function initializeRestoreButton() {
+    // 페이지 로드 시 복구 버튼 숨김
+    const restoreBtn = document.getElementById('restoreBtn');
+    const toggleBtn = document.getElementById('contentToggle');
+    if (restoreBtn) {
+        restoreBtn.style.display = 'none';
+    }
+    if (toggleBtn) {
+        toggleBtn.style.display = 'block';
+    }
+}
+
+function initializeScrollHandler() {
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        const header = document.getElementById('pageHeader');
+        
+        if (currentScrollY > lastScrollY && currentScrollY > 100) {
+            // 스크롤 다운 시 헤더 숨김
+            header.classList.add('hidden');
+        } else {
+            // 스크롤 업 시 헤더 보임
+            header.classList.remove('hidden');
+        }
+        
+        lastScrollY = currentScrollY;
+    });
+}
+
+function initializeEditors() {
+    // HTML 에디터 초기화
+    if (document.getElementById('htmlEditorContainer')) {
+        htmlEditor = CodeMirror(document.getElementById('htmlEditorContainer'), {
+            mode: 'xml',
+            theme: 'material',
+            lineNumbers: true,
+            lineWrapping: true,
+            autoCloseTags: true,
+            matchBrackets: true,
+            indentUnit: 2,
+            smartIndent: true,
+            value: '',
+            styleActiveLine: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Ctrl-S": function(cm) {
+                    saveHtmlContent();
+                },
+                "Ctrl-Alt-F": function(cm) {
+                    formatHtmlCode();
+                }
+            }
+        });
+        
+        // 에디터 변경 감지
+        htmlEditor.on('change', function(cm, change) {
+            if (originalHtmlContent && cm.getValue() !== originalHtmlContent) {
+                markContentAsChanged('html');
+            }
+        });
+    }
+    
+    // 정답 에디터 초기화
+    if (document.getElementById('answerEditorContainer')) {
+        answerEditor = CodeMirror(document.getElementById('answerEditorContainer'), {
+            mode: 'javascript',
+            theme: 'material',
+            lineNumbers: true,
+            lineWrapping: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentUnit: 2,
+            smartIndent: true,
+            value: '{}',
+            styleActiveLine: true,
+            foldGutter: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Ctrl-S": function(cm) {
+                    saveAnswerData();
+                },
+                "Ctrl-Alt-F": function(cm) {
+                    formatAnswerCode();
+                }
+            }
+        });
+        
+        // 에디터 변경 감지
+        answerEditor.on('change', function(cm, change) {
+            if (originalAnswerContent && cm.getValue() !== originalAnswerContent) {
+                markContentAsChanged('answer');
+            }
+        });
+    }
+}
+
+function initializeAdvancedEditor() {
+    // 고급 편집기 툴바 이벤트
+    $('#insertImageBlock').on('click', () => toggleInsertMode('image-block'));
+    $('#insertImageInline').on('click', () => toggleInsertMode('image-inline'));
+    $('#insertTable').on('click', insertTable);
+    $('#insertSVG').on('click', insertSVG);
+    $('#clearFormat').on('click', clearFormat);
+    $('#undoBtn').on('click', () => document.execCommand('undo'));
+    $('#redoBtn').on('click', () => document.execCommand('redo'));
+    $('#saveAdvancedContent').on('click', saveAdvancedContent);
+    
+    // 편집 영역 고급 이벤트
+    $('#editablePreview').on('click', handleAdvancedEditorClick);
+    $('#editablePreview').on('mousedown', handleAdvancedMouseDown);
+    $('#editablePreview').on('mousemove', handleAdvancedMouseMove);
+    $('#editablePreview').on('mouseup', handleAdvancedMouseUp);
+    
+    // ESC 키로 삽입 모드 취소
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && isInsertMode) {
+            cancelInsertMode();
+        }
+    });
+}
+
+function markContentAsChanged(type) {
+    changedElements.add(type);
+    // 시각적 표시는 저장 완료 후에만 적용
+}
+
+function initializeEventHandlers() {
+    // 파일 입력 변경 (멀티 파일)
+    $('#fileInput').on('change', handleFileSelect);
+    
+    // 코스 선택 변경
+    $('#courseSelect').on('change', function() {
+        selectedCourseId = $(this).val() || null;
+        filterCourseStructure();
+        renderCourseTree();
+    });
+    
+    // 드래그 앤 드롭 (멀티 파일)
+    const uploadArea = document.getElementById('uploadArea');
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        
+        const files = Array.from(e.dataTransfer.files).filter(file => file.name.endsWith('.json'));
+        if (files.length > 0) {
+            handleFiles(files);
+        } else {
+            alert('JSON 파일만 업로드 가능합니다.');
+        }
+    });
+    
+    // 이미지 업로드 이벤트 수정
+    $('#imageUpload').off('change').on('change', function(e) {
+        const file = e.target.files[0];
+        if (file && currentImagePlaceholder) {
+            uploadAdvancedImage(file, currentImagePlaceholder);
+        } else if (file && currentEditingImage) {
+            uploadImage(file, currentEditingImage);
+        }
+        $(this).val('');
+    });
+}
+
+function hideContentPanel() {
+    const contentPanel = document.getElementById('contentPanel');
+    const treePanel = document.getElementById('treePanel');
+    const previewPanel = document.getElementById('previewPanel');
+    const toggleBtn = document.getElementById('contentToggle');
+    const restoreBtn = document.getElementById('restoreBtn');
+    
+    isContentPanelHidden = true;
+    contentPanel.classList.add('hidden');
+    treePanel.classList.add('expanded');
+    previewPanel.classList.add('expanded');
+    
+    toggleBtn.innerHTML = '<i class="fas fa-eye"></i> 보이기';
+    toggleBtn.style.display = 'none'; // 숨기기 버튼 숨김
+    restoreBtn.style.display = 'block'; // 복구 버튼 표시
+}
+
+function showContentPanel() {
+    const contentPanel = document.getElementById('contentPanel');
+    const treePanel = document.getElementById('treePanel');
+    const previewPanel = document.getElementById('previewPanel');
+    const toggleBtn = document.getElementById('contentToggle');
+    const restoreBtn = document.getElementById('restoreBtn');
+    
+    isContentPanelHidden = false;
+    contentPanel.classList.remove('hidden');
+    treePanel.classList.remove('expanded');
+    previewPanel.classList.remove('expanded');
+    
+    toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i> 숨기기';
+    toggleBtn.style.display = 'block'; // 숨기기 버튼 표시
+    restoreBtn.style.display = 'none'; // 복구 버튼 숨김
+}
+
+function toggleContentPanel() {
+    if (isContentPanelHidden) {
+        showContentPanel();
+    } else {
+        hideContentPanel();
+    }
+}
+
+// 고급 편집기 함수들
+function toggleInsertMode(type) {
+    if (isInsertMode && insertType === type) {
+        cancelInsertMode();
+    } else {
+        activateInsertMode(type);
+    }
+}
+
+function activateInsertMode(type) {
+    cancelInsertMode(); // 기존 모드 취소
+    
+    isInsertMode = true;
+    insertType = type;
+    
+    $('#editablePreview').addClass('insert-mode');
+    
+    // 해당 버튼 활성화
+    const buttonId = type === 'image-block' ? '#insertImageBlock' : '#insertImageInline';
+    $(buttonId).addClass('active');
+    
+    showAdvancedStatusMessage('클릭하여 이미지를 삽입하세요. ESC로 취소할 수 있습니다.', 'success');
+}
+
+function cancelInsertMode() {
+    isInsertMode = false;
+    insertType = '';
+    
+    $('#editablePreview').removeClass('insert-mode');
+    $('.toolbar-btn.active').removeClass('active');
+    
+    // 크기 조절 박스 제거
+    if (resizeBox) {
+        $(resizeBox).remove();
+        resizeBox = null;
+    }
+}
+
+function handleAdvancedEditorClick(e) {
+    if (isInsertMode && insertType.startsWith('image-')) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const isBlock = insertType === 'image-block';
+        insertImagePlaceholder(e, isBlock);
+        
+        cancelInsertMode();
+    }
+}
+
+function insertImagePlaceholder(e, isBlock) {
+    const placeholder = $(`
+        <div class="image-placeholder ${isBlock ? 'block' : 'inline'}">
+            <i class="fas fa-image" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+            <div>클릭하여 이미지 선택</div>
+        </div>
+    `);
+    
+    if (isBlock) {
+        // 블록 이미지: 클릭한 위치에 가장 가까운 블록 요소 다음에 삽입
+        const target = $(e.target).closest('div, p, h1, h2, h3, h4, h5, h6');
+        if (target.length > 0) {
+            target.after(placeholder);
+        } else {
+            $('#editablePreview').append(placeholder);
+        }
+    } else {
+        // 인라인 이미지: 클릭한 위치에 삽입
+        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+        if (range) {
+            range.insertNode(placeholder[0]);
+        } else {
+            $('#editablePreview').append(placeholder);
+        }
+    }
+    
+    // 플레이스홀더 클릭 이벤트
+    placeholder.on('click', function(e) {
+        e.preventDefault();
+        currentImagePlaceholder = this;
+        $('#imageUpload').click();
+    });
+}
+
+function uploadAdvancedImage(file, placeholder) {
+    // 파일 유효성 검사
+    if (!file.type.startsWith('image/')) {
+        showAdvancedStatusMessage('이미지 파일만 선택할 수 있습니다.', 'error');
+        return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB 제한
+        showAdvancedStatusMessage('파일 크기는 5MB를 초과할 수 없습니다.', 'error');
+        return;
+    }
+    
+    // 로딩 상태 표시
+    $(placeholder).html(`
+        <div class="loading-spinner"></div>
+        <div style="margin-top: 8px;">업로드 중...</div>
+    `);
+    
+    // 파일 업로드
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    $.ajax({
+        url: "{% url 'super_agent:api_upload_temporary_file' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                uploadedAttachments.add(response.attachment_id);
+                replaceWithAdvancedImage(placeholder, response.file_url, response.attachment_id);
+                showAdvancedStatusMessage('이미지가 성공적으로 업로드되었습니다.', 'success');
+            } else {
+                showAdvancedStatusMessage(response.error || '업로드에 실패했습니다.', 'error');
+                $(placeholder).remove();
+            }
+        },
+        error: function() {
+            showAdvancedStatusMessage('네트워크 오류가 발생했습니다.', 'error');
+            $(placeholder).remove();
+        }
+    });
+}
+
+function replaceWithAdvancedImage(placeholder, imageUrl, attachmentId) {
+    const isBlock = $(placeholder).hasClass('block');
+    
+    const imageContainer = $(`
+        <div class="image-container ${isBlock ? 'block' : 'inline'}" data-attachment-id="${attachmentId}">
+            <img src="${imageUrl}" alt="Uploaded image" style="${isBlock ? '' : 'width: 120px; height: auto;'}">
+            <div class="image-controls">
+                <button class="image-control-btn edit" onclick="editAdvancedImage(this)" title="이미지 교체">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="image-control-btn delete" onclick="deleteAdvancedImage(this)" title="이미지 삭제">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `);
+    
+    $(placeholder).replaceWith(imageContainer);
+    currentImagePlaceholder = null;
+}
+
+// 기존 이미지에 컨트롤 추가
+function addControlsToExistingImages() {
+    $('#editablePreview img').each(function() {
+        if (!$(this).parent().hasClass('image-container')) {
+            wrapImageWithContainer(this);
+        }
+    });
+}
+
+function wrapImageWithContainer(img) {
+    const $img = $(img);
+    const isBlock = $img.css('display') === 'block' || 
+                   $img.parent().is('div') ||
+                   $img.css('width') === '100%';
+    
+    const container = $(`
+        <div class="image-container ${isBlock ? 'block' : 'inline'}">
+            <div class="image-controls">
+                <button class="image-control-btn edit" onclick="editAdvancedImage(this)" title="이미지 교체">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="image-control-btn delete" onclick="deleteAdvancedImage(this)" title="이미지 삭제">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `);
+    
+    $img.wrap(container);
+}
+
+window.editAdvancedImage = function(button) {
+    const container = $(button).closest('.image-container')[0];
+    currentImagePlaceholder = container;
+    $('#imageUpload').click();
+};
+
+window.deleteAdvancedImage = function(button) {
+    if (!confirm('이미지를 삭제하시겠습니까?')) return;
+    
+    const container = $(button).closest('.image-container');
+    const attachmentId = container.data('attachment-id');
+    
+    if (attachmentId) {
+        // 서버에서 파일 삭제
+        $.ajax({
+            url: "{% url 'super_agent:api_delete_temporary_file' %}",
+            type: 'POST',
+            data: JSON.stringify({ attachment_id: attachmentId }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            success: function(response) {
+                if (response.success) {
+                    uploadedAttachments.delete(parseInt(attachmentId));
+                    showAdvancedStatusMessage('이미지가 삭제되었습니다.', 'success');
+                }
+            },
+            error: function() {
+                console.error('Delete error');
+            }
+        });
+    }
+    
+    container.remove();
+};
+
+// 마우스 이벤트 처리 (크기 조절)
+function handleAdvancedMouseDown(e) {
+    if (isInsertMode && insertType.startsWith('image-')) {
+        e.preventDefault();
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        
+        createResizeBox(e.clientX, e.clientY);
+    }
+}
+
+function handleAdvancedMouseMove(e) {
+    if (isResizing && resizeBox) {
+        updateResizeBox(e.clientX, e.clientY);
+    }
+}
+
+function handleAdvancedMouseUp(e) {
+    if (isResizing && resizeBox) {
+        finalizeResize(e);
+        isResizing = false;
+    }
+}
+
+function createResizeBox(x, y) {
+    resizeBox = $(`
+        <div class="resize-box" style="left: ${x}px; top: ${y}px; width: 0px; height: 0px;">
+            <div class="resize-info"></div>
+        </div>
+    `)[0];
+    
+    $('body').append(resizeBox);
+}
+
+function updateResizeBox(currentX, currentY) {
+    const width = Math.abs(currentX - resizeStartX);
+    const height = Math.abs(currentY - resizeStartY);
+    const left = Math.min(currentX, resizeStartX);
+    const top = Math.min(currentY, resizeStartY);
+    
+    $(resizeBox).css({
+        left: left + 'px',
+        top: top + 'px',
+        width: width + 'px',
+        height: height + 'px'
+    });
+    
+    // 상대적 크기 계산
+    const editorRect = $('#editablePreview')[0].getBoundingClientRect();
+    const relativeWidth = Math.round((width / editorRect.width) * 100);
+    const relativeHeight = Math.round((height / editorRect.height) * 100);
+    
+    $(resizeBox).find('.resize-info').text(`${relativeWidth}% × ${relativeHeight}%`);
+}
+
+function finalizeResize(e) {
+    const width = Math.abs(e.clientX - resizeStartX);
+    const height = Math.abs(e.clientY - resizeStartY);
+    
+    if (width > 20 && height > 20) {
+        const editorRect = $('#editablePreview')[0].getBoundingClientRect();
+        const relativeWidth = Math.round((width / editorRect.width) * 100);
+        const relativeHeight = Math.round((height / editorRect.height) * 100);
+        
+        // 크기가 지정된 이미지 플레이스홀더 생성
+        const placeholder = $(`
+            <div class="image-placeholder ${insertType === 'image-block' ? 'block' : 'inline'}" 
+                 style="width: ${relativeWidth}%; height: ${Math.max(relativeHeight, 10)}%;">
+                <i class="fas fa-image" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
+                <div>클릭하여 이미지 선택</div>
+                <div style="font-size: 12px; opacity: 0.7;">${relativeWidth}% × ${relativeHeight}%</div>
+            </div>
+        `);
+        
+        // 편집 영역에 추가
+        $('#editablePreview').append(placeholder);
+        
+        // 플레이스홀더 클릭 이벤트
+        placeholder.on('click', function(e) {
+            e.preventDefault();
+            currentImagePlaceholder = this;
+            $('#imageUpload').click();
+        });
+    }
+    
+    $(resizeBox).remove();
+    resizeBox = null;
+}
+
+function insertTable() {
+    const rows = prompt('행 수를 입력하세요:', '3');
+    const cols = prompt('열 수를 입력하세요:', '3');
+    
+    if (!rows || !cols || isNaN(rows) || isNaN(cols)) return;
+    
+    const rowCount = parseInt(rows);
+    const colCount = parseInt(cols);
+    
+    if (rowCount < 1 || colCount < 1 || rowCount > 20 || colCount > 10) {
+        showAdvancedStatusMessage('행은 1-20개, 열은 1-10개까지 가능합니다.', 'error');
+        return;
+    }
+    
+    let tableHTML = '<table class="content-table"><thead><tr>';
+    
+    // 헤더 생성
+    for (let i = 0; i < colCount; i++) {
+        tableHTML += `<th>헤더 ${i + 1}</th>`;
+    }
+    tableHTML += '</tr></thead><tbody>';
+    
+    // 바디 생성
+    for (let i = 0; i < rowCount - 1; i++) {
+        tableHTML += '<tr>';
+        for (let j = 0; j < colCount; j++) {
+            tableHTML += `<td>내용 ${i + 1}-${j + 1}</td>`;
+        }
+        tableHTML += '</tr>';
+    }
+    tableHTML += '</tbody></table>';
+    
+    insertHTMLAtCursor(tableHTML);
+    showAdvancedStatusMessage('테이블이 삽입되었습니다.', 'success');
+}
+
+function insertSVG() {
+    const svgOptions = [
+        { name: '원', svg: '<svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#3b82f6" stroke="#1e40af" stroke-width="2"/></svg>' },
+        { name: '사각형', svg: '<svg width="100" height="80" viewBox="0 0 100 80"><rect x="10" y="10" width="80" height="60" fill="#10b981" stroke="#059669" stroke-width="2" rx="5"/></svg>' },
+        { name: '삼각형', svg: '<svg width="100" height="80" viewBox="0 0 100 80"><polygon points="50,10 90,70 10,70" fill="#f59e0b" stroke="#d97706" stroke-width="2"/></svg>' },
+        { name: '화살표', svg: '<svg width="100" height="50" viewBox="0 0 100 50"><path d="M10 25 L70 25 M60 15 L70 25 L60 35" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>' }
+    ];
+    
+    const choice = prompt(`SVG를 선택하세요:\n${svgOptions.map((opt, i) => `${i + 1}. ${opt.name}`).join('\n')}\n번호를 입력하세요:`, '1');
+    
+    if (!choice || isNaN(choice)) return;
+    
+    const index = parseInt(choice) - 1;
+    if (index < 0 || index >= svgOptions.length) {
+        showAdvancedStatusMessage('올바른 번호를 선택해주세요.', 'error');
+        return;
+    }
+    
+    const svgHTML = `<div class="svg-container">${svgOptions[index].svg}</div>`;
+    insertHTMLAtCursor(svgHTML);
+    showAdvancedStatusMessage('SVG가 삽입되었습니다.', 'success');
+}
+
+function insertHTMLAtCursor(html) {
+    if ($('#editablePreview').is('[contenteditable]')) {
+        document.execCommand('insertHTML', false, html);
+    } else {
+        $('#editablePreview').append(html);
+    }
+}
+
+function clearFormat() {
+    if ($('#editablePreview').is('[contenteditable]')) {
+        document.execCommand('removeFormat');
+        showAdvancedStatusMessage('서식이 제거되었습니다.', 'success');
+    }
+}
+
+function saveAdvancedContent() {
+    const content = $('#editablePreview').html();
+    
+    // HTML 에디터 업데이트
+    if (htmlEditor) {
+        htmlEditor.setValue(content);
+    }
+    
+    // 임시 첨부파일들을 최종 확정
+    if (uploadedAttachments.size > 0 && currentSlideData && currentSlideData.content) {
+        finalizeAttachments(Array.from(uploadedAttachments), currentSlideData.content.id);
+    }
+    
+    // 기존 저장 함수 호출
+    saveHtmlContent();
+}
+
+function finalizeAttachments(attachmentIds, contentId) {
+    $.ajax({
+        url: "{% url 'super_agent:api_finalize_attachments' 0 %}".replace('0', contentId),
+        type: 'POST',
+        data: JSON.stringify({ attachment_ids: attachmentIds }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                uploadedAttachments.clear();
+                console.log('첨부파일 확정 완료:', response.updated_count);
+            }
+        },
+        error: function() {
+            console.error('첨부파일 확정 오류');
+        }
+    });
+}
+
+function showAdvancedStatusMessage(message, type) {
+    const statusDiv = $(`<div class="status-message ${type}">${message}</div>`);
+    $('body').append(statusDiv);
+    
+    setTimeout(() => {
+        statusDiv.remove();
+    }, 3000);
+}
+
+function resetEditor() {
+    if (!confirm('편집기를 초기화하시겠습니까? 저장하지 않은 변경사항은 사라집니다.')) return;
+    
+    $('#editablePreview').html(`
+        <div class="preview-placeholder">
+            <i class="fas fa-edit"></i>
+            <h4 class="text-lg font-semibold mb-2">편집할 문항을 선택해주세요</h4>
+            <p class="text-sm">편집모드를 켜고 텍스트를 클릭하여 수정할 수 있습니다</p>
+        </div>
+    `);
+    
+    cancelInsertMode();
+    uploadedAttachments.clear();
+    showAdvancedStatusMessage('편집기가 초기화되었습니다.', 'success');
+}
+
+// 나머지 기존 함수들...
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    if (files.length > 0) {
+        handleFiles(files);
+    }
+}
+
+function handleFiles(files) {
+    const jsonFiles = files.filter(file => file.name.endsWith('.json'));
+    
+    if (jsonFiles.length === 0) {
+        alert('JSON 파일만 업로드 가능합니다.');
+        return;
+    }
+
+    if (jsonFiles.length !== files.length) {
+        alert(`${files.length - jsonFiles.length}개 파일이 JSON이 아니어서 제외되었습니다.`);
+    }
+
+    uploadedFiles = [];
+    allUploadedData = [];
+    
+    let processedCount = 0;
+    const totalFiles = jsonFiles.length;
+
+    jsonFiles.forEach((file, index) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        $.ajax({
+            url: "{% url 'super_agent:api_batch_upload' %}",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            success: function(response) {
+                processedCount++;
+                
+                if (response.success) {
+                    uploadedFiles.push({
+                        name: file.name,
+                        data: response.data,
+                        success: true
+                    });
+                    allUploadedData = allUploadedData.concat(response.data);
+                } else {
+                    uploadedFiles.push({
+                        name: file.name,
+                        error: response.error,
+                        success: false
+                    });
+                }
+                
+                if (processedCount === totalFiles) {
+                    showFilePreview();
+                }
+            },
+            error: function() {
+                processedCount++;
+                uploadedFiles.push({
+                    name: file.name,
+                    error: '업로드 실패',
+                    success: false
+                });
+                
+                if (processedCount === totalFiles) {
+                    showFilePreview();
+                }
+            }
+        });
+    });
+}
+
+function showFilePreview() {
+    $('#uploadArea').hide();
+    $('#filePreview').show();
+    
+    const successFiles = uploadedFiles.filter(f => f.success);
+    const errorFiles = uploadedFiles.filter(f => !f.success);
+    const totalItems = allUploadedData.length;
+    
+    const content = $('#previewContent');
+    content.html(`
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div class="text-sm text-blue-600 font-medium">업로드된 파일</div>
+                <div class="text-2xl font-bold text-blue-800">${successFiles.length}</div>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div class="text-sm text-green-600 font-medium">총 문항 수</div>
+                <div class="text-2xl font-bold text-green-800">${totalItems}</div>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                <div class="text-sm text-red-600 font-medium">오류 파일</div>
+                <div class="text-2xl font-bold text-red-800">${errorFiles.length}</div>
+            </div>
+        </div>
+        
+        <div class="max-h-60 overflow-y-auto">
+            <h5 class="font-semibold text-gray-700 mb-3">파일 목록</h5>
+            ${uploadedFiles.map((file, index) => `
+                <div class="flex items-center justify-between p-3 border rounded-lg mb-2 transition-all hover:shadow-sm ${file.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+                    <div class="flex items-center">
+                        <i class="fas fa-${file.success ? 'check-circle text-green-500' : 'exclamation-circle text-red-500'} mr-3"></i>
+                        <span class="font-medium">${file.name}</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        ${file.success ? `${file.data.length}개 문항` : file.error}
+                    </div>
+                </div>
+            `).join('')}
+            
+            ${totalItems > 0 ? `
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg border">
+                    <h6 class="font-semibold text-gray-700 mb-2">문항 미리보기 (처음 3개)</h6>
+                    ${allUploadedData.slice(0, 3).map((item, index) => `
+                        <div class="text-sm p-2 border-b last:border-b-0 hover:bg-white transition-colors">
+                            <strong>${index + 1}.</strong> ${item.course} - ${item.chasi} (${item.type})
+                        </div>
+                    `).join('')}
+                    ${allUploadedData.length > 3 ? `<div class="text-sm text-gray-500 p-2">... 외 ${allUploadedData.length - 3}개</div>` : ''}
+                </div>
+            ` : ''}
+        </div>
+    `);
+}
+
+function startProcessing() {
+    if (!allUploadedData || allUploadedData.length === 0) {
+        alert('처리할 데이터가 없습니다.');
+        return;
+    }
+
+    isProcessing = true;
+    isPaused = false;
+    currentIndex = 0;
+    processResults = [];
+
+    $('#filePreview').hide();
+    $('#progressContainer').show();
+    $('#processingIndicator').show();
+    $('#completionIndicator').hide();
+    
+    updateProgress();
+    processNextItem();
+}
+
+function processNextItem() {
+    if (!isProcessing || isPaused) {
+        return;
+    }
+    
+    if (currentIndex >= allUploadedData.length) {
+        finishProcessing();
+        return;
+    }
+
+    const item = allUploadedData[currentIndex];
+    $('#currentProcessing').text(`${currentIndex + 1}/${allUploadedData.length}: ${item.course} - ${item.chasi}`);
+
+    $.ajax({
+        url: "{% url 'super_agent:api_batch_process_item' %}",
+        type: 'POST',
+        data: JSON.stringify({ 
+            item: item,
+            selected_course_id: selectedCourseId 
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            processResults.push({
+                item: item,
+                response: response,
+                success: response.success
+            });
+
+            addLogItem(response, item);
+            
+            if (response.success) {
+                setTimeout(() => {
+                    updateTreeItem(response.chasi_id, response.action, response.title, response.slide_id);
+                }, 200);
+            }
+
+            currentIndex++;
+            updateProgress();
+            
+            setTimeout(processNextItem, 300);
+        },
+        error: function() {
+            processResults.push({
+                item: item,
+                success: false,
+                error: '네트워크 오류'
+            });
+
+            addLogItem({ success: false, error: '네트워크 오류' }, item);
+            currentIndex++;
+            updateProgress();
+            
+            setTimeout(processNextItem, 300);
+        }
+    });
+}
+
+function finishProcessing() {
+    isProcessing = false;
+    
+    $('#processingIndicator').hide();
+    $('#progressContainer').hide();
+    
+    // 완료 상태 표시
+    const successCount = processResults.filter(r => r.success).length;
+    const totalCount = processResults.length;
+    
+    $('#completionSummary').text(`${successCount}/${totalCount} 문항이 성공적으로 처리되었습니다.`);
+    $('#completionIndicator').show();
+    
+    // 5초 후 완료 표시 숨김
+    setTimeout(() => {
+        $('#completionIndicator').hide();
+    }, 5000);
+}
+
+function pauseProcessing() {
+    isPaused = !isPaused;
+    const btn = $('#pauseBtn');
+    if (isPaused) {
+        btn.html('<i class="fas fa-play"></i> 재개');
+    } else {
+        btn.html('<i class="fas fa-pause"></i> 일시정지');
+        if (isProcessing) {
+            processNextItem();
+        }
+    }
+}
+
+function stopProcessing() {
+    isProcessing = false;
+    isPaused = false;
+    
+    $('#processingIndicator').hide();
+    $('#progressContainer').hide();
+    $('#pauseBtn').html('<i class="fas fa-pause"></i> 일시정지');
+    
+    const processedCount = currentIndex;
+    const totalCount = allUploadedData.length;
+    
+    $('#completionSummary').text(`처리가 중단되었습니다. ${processedCount}/${totalCount} 문항이 처리되었습니다.`);
+    $('#completionIndicator').show();
+}
+
+function updateProgress() {
+    const percent = allUploadedData.length > 0 ? Math.round((currentIndex / allUploadedData.length) * 100) : 0;
+    
+    $('#progressFill').css('width', percent + '%');
+    $('#progressText').text(`${currentIndex} / ${allUploadedData.length} 처리됨`);
+    $('#progressPercent').text(percent + '%');
+}
+
+function addLogItem(response, item) {
+    let solutionPreview = '';
+    if (response.success && item.answer && item.answer.solution) {
+        // 유니코드 디코딩 처리
+        let solutionText = item.answer.solution;
+        if (typeof solutionText === 'string' && solutionText.includes('\\u')) {
+            try {
+                solutionText = JSON.parse('"' + solutionText + '"');
+            } catch (e) {
+                // 디코딩 실패 시 원본 사용
+            }
+        }
+        solutionPreview = solutionText.length > 50 ? 
+            solutionText.substring(0, 50) + '...' : 
+            solutionText;
+    }
+    
+    const logItem = $(`
+        <div class="log-item ${response.success ? 'success' : 'error'}">
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <strong>${item.course} - ${item.chasi}</strong>
+                    <div class="text-xs mt-1">${response.message || response.error || '처리됨'}</div>
+                    ${solutionPreview ? `<div class="text-xs mt-1 text-gray-600 italic">해설: ${solutionPreview}</div>` : ''}
+                </div>
+                <div class="text-xs ml-2">
+                    <i class="fas fa-${response.success ? 'check-circle text-green-500' : 'exclamation-circle text-red-500'}"></i>
+                </div>
+            </div>
+        </div>
+    `);
+    
+    $('#logContent').prepend(logItem);
+    $('#resultLog').show();
+    $('#logContent').scrollTop(0);
+}
+
+function updateTreeItem(chasiId, action, title, slideId) {
+    const chasiElement = $(`.tree-item[data-type="chasi"][data-id="${chasiId}"] .tree-content`);
+    if (chasiElement.length > 0) {
+        chasiElement.addClass('processing');
+        
+        setTimeout(() => {
+            chasiElement.removeClass('processing').addClass('updated');
+            
+            // 새로운 슬라이드 추가
+            if (action === 'created' && slideId) {
+                addNewSlideToTree(chasiId, slideId, title);
+            }
+            
+            // 슬라이드 카운트 업데이트
+            const badge = chasiElement.find('.tree-badge');
+            if (badge.length > 0 && action === 'created') {
+                const currentCount = parseInt(badge.text()) || 0;
+                badge.text(currentCount + 1);
+                badge.addClass('badge-updated');
+                setTimeout(() => {
+                    badge.removeClass('badge-updated');
+                }, 1000);
+            }
+            
+            setTimeout(() => {
+                chasiElement.removeClass('updated');
+            }, 3000);
+        }, 500);
+    }
+}
+
+function addNewSlideToTree(chasiId, slideId, title) {
+    const chasiItem = $(`.tree-item[data-type="chasi"][data-id="${chasiId}"]`);
+    let childrenContainer = chasiItem.find('> .tree-children');
+    
+    // children 컨테이너가 없으면 생성
+    if (childrenContainer.length === 0) {
+        childrenContainer = $('<div class="tree-children"></div>');
+        chasiItem.append(childrenContainer);
+        
+        // toggle 버튼도 추가
+        const toggleBtn = chasiItem.find('.tree-content');
+        if (toggleBtn.find('.tree-toggle').length === 0) {
+            toggleBtn.prepend('<i class="fas fa-chevron-down tree-toggle"></i>');
+        }
+    }
+    
+    // 새 슬라이드 요소 생성
+    const newSlide = $(`
+        <div class="tree-item" data-type="slide" data-id="${slideId}">
+            <div class="tree-content">
+                <span style="width: 20px; display: inline-block;"></span>
+                <i class="fas fa-file-alt tree-icon text-orange-600"></i>
+                <span class="tree-text">${title}</span>
+                <span class="type-badge">new</span>
+            </div>
+        </div>
+    `);
+    
+    childrenContainer.append(newSlide);
+    
+    // 애니메이션 후 일반 스타일로 변경
+    setTimeout(() => {
+        newSlide.find('.type-badge').text('slide');
+    }, 1000);
+}
+
+function filterCourseStructure() {
+    if (!selectedCourseId) {
+        filteredCourseStructure = courseStructure;
+    } else {
+        filteredCourseStructure = courseStructure.filter(course => 
+            course.id.toString() === selectedCourseId
+        );
+    }
+}
+
+function resetUpload() {
+    uploadedFiles = [];
+    allUploadedData = [];
+    isProcessing = false;
+    isPaused = false;
+    currentIndex = 0;
+    processResults = [];
+    
+    $('#filePreview').hide();
+    $('#progressContainer').hide();
+    $('#processingIndicator').hide();
+    $('#completionIndicator').hide();
+    $('#uploadArea').show();
+    $('#fileInput').val('');
+}
+
+function loadCourseStructure() {
+    $.ajax({
+        url: "{% url 'super_agent:api_courses_structure' %}",
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                courseStructure = response.courses;
+                filterCourseStructure();
+                renderCourseTree();
+            } else {
+                $('#courseTree').html('<div class="text-center py-8 text-red-500">구조를 불러올 수 없습니다.</div>');
+            }
+        },
+        error: function() {
+            $('#courseTree').html('<div class="text-center py-8 text-red-500">네트워크 오류가 발생했습니다.</div>');
+        }
+    });
+}
+
+function renderCourseTree() {
+    const tree = $('#courseTree');
+    tree.empty();
+    
+    if (filteredCourseStructure.length === 0) {
+        tree.html('<div class="text-center py-8 text-gray-500">선택된 코스가 없습니다.</div>');
+        return;
+    }
+    
+    let totalItems = 0;
+    filteredCourseStructure.forEach(course => {
+        const courseElement = createCourseElement(course);
+        tree.append(courseElement);
+        totalItems += countTreeItems(course);
+    });
+    
+    $('#treeItemCount').text(totalItems);
+}
+
+function countTreeItems(course) {
+    let count = 1; // 코스 자체
+    if (course.chapters) {
+        course.chapters.forEach(chapter => {
+            count += 1; // 챕터
+            if (chapter.subchapters) {
+                chapter.subchapters.forEach(subchapter => {
+                    count += 1; // 서브챕터
+                    if (subchapter.chasis) {
+                        count += subchapter.chasis.length; // 차시들
+                        subchapter.chasis.forEach(chasi => {
+                            if (chasi.slides) {
+                                count += chasi.slides.length; // 슬라이드들
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+    return count;
+}
+
+function createCourseElement(course) {
+    const hasChapters = course.chapters && course.chapters.length > 0;
+    
+    const element = $(`
+        <div class="tree-item" data-type="course" data-id="${course.id}">
+            <div class="tree-content">
+                ${hasChapters ? '<i class="fas fa-chevron-down tree-toggle"></i>' : '<span style="width: 20px; display: inline-block;"></span>'}
+                <i class="fas fa-book tree-icon text-purple-600"></i>
+                <span class="tree-text font-semibold">${course.subject_name}</span>
+                <span class="tree-badge">${course.chapters.length}</span>
+            </div>
+            ${hasChapters ? '<div class="tree-children"></div>' : ''}
+        </div>
+    `);
+    
+    if (hasChapters) {
+        const childrenContainer = element.find('.tree-children');
+        course.chapters.forEach(chapter => {
+            childrenContainer.append(createChapterElement(chapter));
+        });
+    }
+    
+    return element;
+}
+
+function createChapterElement(chapter) {
+    const hasSubchapters = chapter.subchapters && chapter.subchapters.length > 0;
+    
+    const element = $(`
+        <div class="tree-item" data-type="chapter" data-id="${chapter.id}">
+            <div class="tree-content">
+                ${hasSubchapters ? '<i class="fas fa-chevron-down tree-toggle"></i>' : '<span style="width: 20px; display: inline-block;"></span>'}
+                <i class="fas fa-folder tree-icon text-blue-600"></i>
+                <span class="tree-text">${chapter.order}. ${chapter.title}</span>
+                <span class="tree-badge">${chapter.subchapters.length}</span>
+            </div>
+            ${hasSubchapters ? '<div class="tree-children"></div>' : ''}
+        </div>
+    `);
+    
+    if (hasSubchapters) {
+        const childrenContainer = element.find('.tree-children');
+        chapter.subchapters.forEach(subchapter => {
+            childrenContainer.append(createSubchapterElement(subchapter));
+        });
+    }
+    
+    return element;
+}
+
+function createSubchapterElement(subchapter) {
+    const hasChasis = subchapter.chasis && subchapter.chasis.length > 0;
+    
+    const element = $(`
+        <div class="tree-item" data-type="subchapter" data-id="${subchapter.id}">
+            <div class="tree-content">
+                ${hasChasis ? '<i class="fas fa-chevron-down tree-toggle"></i>' : '<span style="width: 20px; display: inline-block;"></span>'}
+                <i class="fas fa-folder-open tree-icon text-green-600"></i>
+                <span class="tree-text">${subchapter.order}. ${subchapter.title}</span>
+                <span class="tree-badge">${subchapter.chasis.length}</span>
+            </div>
+            ${hasChasis ? '<div class="tree-children"></div>' : ''}
+        </div>
+    `);
+    
+    if (hasChasis) {
+        const childrenContainer = element.find('.tree-children');
+        subchapter.chasis.forEach(chasi => {
+            childrenContainer.append(createChasiElement(chasi));
+        });
+    }
+    
+    return element;
+}
+
+function createChasiElement(chasi) {
+    const hasSlides = chasi.slides && chasi.slides.length > 0;
+    
+    const element = $(`
+        <div class="tree-item" data-type="chasi" data-id="${chasi.id}">
+            <div class="tree-content">
+                ${hasSlides ? '<i class="fas fa-chevron-down tree-toggle"></i>' : '<span style="width: 20px; display: inline-block;"></span>'}
+                <i class="fas fa-book-reader tree-icon text-purple-600"></i>
+                <span class="tree-text">${chasi.order}. ${chasi.title}</span>
+                <span class="tree-badge">${chasi.slides.length}</span>
+            </div>
+            ${hasSlides ? '<div class="tree-children"></div>' : ''}
+        </div>
+    `);
+    
+    if (hasSlides) {
+        const childrenContainer = element.find('.tree-children');
+        chasi.slides.forEach(slide => {
+            childrenContainer.append(createSlideElement(slide));
+        });
+    }
+    
+    return element;
+}
+
+function createSlideElement(slide) {
+    return $(`
+        <div class="tree-item" data-type="slide" data-id="${slide.id}" data-content-id="${slide.content_id || ''}">
+            <div class="tree-content">
+                <span style="width: 20px; display: inline-block;"></span>
+                <i class="fas fa-file-alt tree-icon text-orange-600"></i>
+                <span class="tree-text">${slide.slide_number}. ${slide.title}</span>
+                <span class="type-badge">${slide.content_type}</span>
+            </div>
+        </div>
+    `);
+}
+
+// 트리 토글 이벤트
+$(document).on('click', '.tree-toggle', function(e) {
+    e.stopPropagation();
+    const treeItem = $(this).closest('.tree-item');
+    const children = treeItem.find('> .tree-children');
+    
+    if (children.is(':visible')) {
+        children.hide();
+        $(this).addClass('collapsed');
+    } else {
+        children.show();
+        $(this).removeClass('collapsed');
+    }
+});
+
+// 트리 아이템 클릭 이벤트 (미리보기)
+$(document).on('click', '.tree-content', function(e) {
+    if ($(e.target).hasClass('tree-toggle')) {
+        return;
+    }
+    
+    // 기존 선택 해제
+    $('.tree-content').removeClass('selected');
+    $(this).addClass('selected');
+    
+    const treeItem = $(this).closest('.tree-item');
+    const itemType = treeItem.data('type');
+    const itemId = treeItem.data('id');
+    
+    if (itemType === 'slide') {
+        loadSlidePreview(itemId, treeItem.data('content-id'));
+    } else {
+        showDefaultPreview(itemType, treeItem.find('.tree-text').text());
+    }
+});
+
+function loadSlidePreview(slideId, contentId) {
+    // 미리보기 로딩 표시
+    showLoadingPreview();
+    
+    // 실제 슬라이드 데이터 가져오기
+    $.ajax({
+        url: `{% url 'super_agent:api_slide_preview' 0 %}`.replace('0', slideId),
+        type: 'GET',
+        success: function(response) {
+            if (response.success) {
+                currentSlideData = response.slide;
+                displaySlidePreview(response.slide);
+            } else {
+                showErrorPreview('슬라이드를 불러올 수 없습니다.');
+            }
+        },
+        error: function() {
+            showErrorPreview('네트워크 오류가 발생했습니다.');
+        }
+    });
+}
+
+function showLoadingPreview() {
+    $('#renderTab').html(`
+        <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+            <p>미리보기를 로딩 중...</p>
+        </div>
+    `);
+}
+
+function showErrorPreview(message) {
+    $('#renderTab').html(`
+        <div class="text-center py-8 text-red-500">
+            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+            <p>${message}</p>
+        </div>
+    `);
+}
+
+function displaySlidePreview(slide) {
+    // 렌더링 탭 업데이트
+    const renderContent = slide.content && slide.content.page ? slide.content.page : '<p>콘텐츠가 없습니다.</p>';
+    
+    $('#renderTab').html(`
+        <div class="slide-preview">
+            <h4>${slide.title}</h4>
+            <div class="slide-meta">
+                <span class="type-badge">${slide.content_type || 'unknown'}</span>
+                <span>차시: ${slide.chasi.title}</span>
+                <span>예상시간: ${slide.estimated_time}분</span>
+            </div>
+            <div class="slide-content" id="slideContentArea">
+                ${renderContent}
+            </div>
+        </div>
+    `);
+    
+    // 원본 데이터 저장
+    originalHtmlContent = renderContent;
+    originalAnswerContent = slide.content && slide.content.answer ? 
+        JSON.stringify(slide.content.answer, null, 2) : '{}';
+    
+    // 변경 추적 초기화
+    changedElements.clear();
+    
+    // HTML 에디터 업데이트
+    if (htmlEditor) {
+        htmlEditor.setValue(renderContent);
+    }
+    
+    // 정답 에디터 업데이트
+    if (answerEditor) {
+        answerEditor.setValue(originalAnswerContent);
+    }
+    
+    // 편집 가능한 미리보기 업데이트
+    $('#editablePreview').html(renderContent);
+    
+    // 기존 이미지에 컨트롤 추가
+    setTimeout(() => {
+        addControlsToExistingImages();
+    }, 100);
+    
+    // 메타데이터 폼 업데이트
+    if (slide.content) {
+        $('#tagsInput').val(slide.content.tags || '');
+        $('#difficultyInput').val(slide.content.difficulty || '');
+        $('#estimatedTimeInput').val(slide.estimated_time || '');
+        $('#instructionsInput').val(slide.content.instructions || '');
+    }
+}
+
+function showDefaultPreview(itemType, itemText) {
+    const typeIcons = {
+        course: 'fas fa-book',
+        chapter: 'fas fa-folder', 
+        subchapter: 'fas fa-folder-open',
+        chasi: 'fas fa-book-reader'
+    };
+    
+    const typeNames = {
+        course: '코스',
+        chapter: '챕터',
+        subchapter: '서브챕터', 
+        chasi: '차시'
+    };
+    
+    $('#renderTab').html(`
+        <div class="preview-placeholder">
+            <i class="${typeIcons[itemType] || 'fas fa-file'} text-3xl text-gray-400 mb-4"></i>
+            <h4 class="text-lg font-semibold mb-2">${typeNames[itemType] || '항목'} 선택됨</h4>
+            <p class="text-sm text-gray-600 mb-4">${itemText}</p>
+            <p class="text-xs text-gray-500">문항을 클릭하면 상세 미리보기를 볼 수 있습니다</p>
+        </div>
+    `);
+    
+    // 에디터 초기화
+    if (htmlEditor) htmlEditor.setValue('');
+    if (answerEditor) answerEditor.setValue('{}');
+    $('#editablePreview').html(`
+        <div class="preview-placeholder">
+            <i class="fas fa-edit"></i>
+            <h4 class="text-lg font-semibold mb-2">편집할 문항을 선택해주세요</h4>
+            <p class="text-sm">편집모드를 켜고 텍스트를 클릭하여 수정할 수 있습니다</p>
+        </div>
+    `);
+    currentSlideData = null;
+    originalHtmlContent = '';
+    originalAnswerContent = '';
+    changedElements.clear();
+}
+
+// 미리보기 탭 전환
+function switchPreviewTab(tabName) {
+    $('.preview-tab').removeClass('active');
+    $('.preview-tab-content').removeClass('active');
+    
+    $(`.preview-tab[data-tab="${tabName}"]`).addClass('active');
+    $(`#${tabName}Tab`).addClass('active');
+    
+    // 에디터 리프레시
+    setTimeout(() => {
+        if (tabName === 'html' && htmlEditor) {
+            htmlEditor.refresh();
+        } else if (tabName === 'html' && answerEditor) {
+            answerEditor.refresh();
+        }
+    }, 100);
+}
+
+// 편집 모드 토글 (수정됨)
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    const btn = $('#editModeBtn');
+    const editablePreview = $('#editablePreview');
+    
+    if (isEditMode) {
+        btn.html('<i class="fas fa-eye"></i> 편집모드 끄기');
+        btn.removeClass('btn-secondary').addClass('btn-primary');
+        editablePreview.attr('contenteditable', 'true');
+        
+        // 고급 편집기 기능 활성화
+        setTimeout(() => {
+            addControlsToExistingImages();
+        }, 100);
+    } else {
+        btn.html('<i class="fas fa-edit"></i> 편집모드 켜기');
+        btn.removeClass('btn-primary').addClass('btn-secondary');
+        editablePreview.removeAttr('contenteditable');
+        
+        cancelInsertMode();
+    }
+}
+
+function updatePreviewFromHtml() {
+    if (!htmlEditor) return;
+    
+    const htmlContent = htmlEditor.getValue();
+    $('#slideContentArea').html(htmlContent);
+    $('#editablePreview').html(htmlContent);
+    
+    if (isEditMode) {
+        $('#editablePreview').attr('contenteditable', 'true');
+        setTimeout(() => {
+            addControlsToExistingImages();
+        }, 100);
+    }
+}
+
+function saveHtmlContent() {
+    if (!currentSlideData || !htmlEditor) {
+        alert('저장할 데이터가 없습니다.');
+        return;
+    }
+    
+    const newHtmlContent = htmlEditor.getValue();
+    
+    // 실제 저장 API 호출
+    $.ajax({
+        url: `{% url 'super_agent:api_content_update' 0 %}`.replace('0', currentSlideData.content.id),
+        type: 'POST',
+        data: JSON.stringify({
+            page: newHtmlContent
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                // 저장 성공 시 하이라이트 표시
+                highlightSavedContent('html');
+                originalHtmlContent = newHtmlContent;
+                changedElements.delete('html');
+                
+                // 미리보기 업데이트
+                updatePreviewFromHtml();
+                
+                alert('HTML 콘텐츠가 성공적으로 저장되었습니다.');
+            } else {
+                alert('저장 중 오류가 발생했습니다: ' + (response.error || '알 수 없는 오류'));
+            }
+        },
+        error: function() {
+            alert('네트워크 오류가 발생했습니다.');
+        }
+    });
+}
+
+function validateAnswerJson() {
+    if (!answerEditor) return;
+    
+    try {
+        const json = answerEditor.getValue();
+        JSON.parse(json);
+        alert('JSON 형식이 올바릅니다.');
+    } catch (e) {
+        alert('JSON 형식이 올바르지 않습니다: ' + e.message);
+    }
+}
+
+function saveAnswerData() {
+    if (!currentSlideData || !answerEditor) {
+        alert('저장할 데이터가 없습니다.');
+        return;
+    }
+    
+    try {
+        const answerJson = answerEditor.getValue();
+        const parsedAnswer = JSON.parse(answerJson); // 유효성 검사
+        
+        // 실제 저장 API 호출
+        $.ajax({
+            url: `{% url 'super_agent:api_content_update' 0 %}`.replace('0', currentSlideData.content.id),
+            type: 'POST',
+            data: JSON.stringify({
+                answer: answerJson
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            success: function(response) {
+                if (response.success) {
+                    // 저장 성공 시 하이라이트 표시
+                    highlightSavedContent('answer');
+                    originalAnswerContent = answerJson;
+                    changedElements.delete('answer');
+                    
+                    alert('정답 데이터가 성공적으로 저장되었습니다.');
+                } else {
+                    alert('저장 중 오류가 발생했습니다: ' + (response.error || '알 수 없는 오류'));
+                }
+            },
+            error: function() {
+                alert('네트워크 오류가 발생했습니다.');
+            }
+        });
+    } catch (e) {
+        alert('JSON 형식이 올바르지 않습니다: ' + e.message);
+    }
+}
+
+function highlightSavedContent(type) {
+    let targetElement;
+    
+    if (type === 'html') {
+        targetElement = $('.CodeMirror').first();
+    } else if (type === 'answer') {
+        targetElement = $('.CodeMirror').last();
+    }
+    
+    if (targetElement.length > 0) {
+        targetElement.addClass('save-highlight');
+        setTimeout(() => {
+            targetElement.removeClass('save-highlight');
+        }, 3000);
+    }
+}
+
+function toggleAccordion() {
+    const content = $('#accordionContent');
+    const icon = $('#accordionIcon');
+    
+    if (content.hasClass('show')) {
+        content.removeClass('show').slideUp();
+        icon.removeClass('rotated');
+    } else {
+        content.addClass('show').slideDown();
+        icon.addClass('rotated');
+    }
+}
+
+function saveMetadata() {
+    if (!currentSlideData) {
+        alert('저장할 데이터가 없습니다.');
+        return;
+    }
+    
+    const metadata = {
+        tags: $('#tagsInput').val().split(',').map(tag => tag.trim()).filter(tag => tag),
+        difficulty: $('#difficultyInput').val(),
+        estimated_time: parseInt($('#estimatedTimeInput').val()) || 5,
+        instructions: $('#instructionsInput').val()
+    };
+    
+    // 실제 저장 API 호출
+    $.ajax({
+        url: `{% url 'super_agent:api_content_update' 0 %}`.replace('0', currentSlideData.content.id),
+        type: 'POST',
+        data: JSON.stringify({
+            meta_data: metadata,
+            tags: metadata.tags
+        }),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                alert('메타데이터가 성공적으로 저장되었습니다.');
+            } else {
+                alert('저장 중 오류가 발생했습니다: ' + (response.error || '알 수 없는 오류'));
+            }
+        },
+        error: function() {
+            alert('네트워크 오류가 발생했습니다.');
+        }
+    });
+}
+
+function refreshTree() {
+    loadCourseStructure();
+}
+
+function downloadSample() {
+    const sampleData = [
+        {
+            "course": "진로와 직업 ㉮",
+            "chasi": "2. 자기 개발",
+            "type": "ox",
+            "page": "<div>강점은 뛰어난 능력이나 좋은 태도와 같은 긍정적인 특성입니다.</div>",
+            "answer": {"answer": "1", "solution": "강점은 남보다 뛰어나거나 잘하는 점을 의미합니다."}
+        },
+        {
+            "course": "진로와 직업 ㉮", 
+            "chasi": "2. 자기 개발",
+            "type": "choice",
+            "page": "<div>커피나 음료를 만드는 직업을 무엇이라고 부를까요?</div>",
+            "answer": {"answer": "1", "solution": "바리스타는 커피 전문가입니다."}
+        },
+        {
+            "course": "진로와 직업 ㉮", 
+            "chasi": "2. 자기 개발",
+            "type": "drag-1",
+            "page": "<div>빈칸 채우기 형태의 드래그 문제</div>",
+            "answer": {"zone1": "1", "solution": "드래그 문제 해설"}
+        },
+        {
+            "course": "진로와 직업 ㉮", 
+            "chasi": "2. 자기 개발",
+            "type": "drag-2",
+            "page": "<div>순서 배열 형태의 드래그 문제</div>",
+            "answer": {"order1": "2", "order2": "1", "order3": "3", "solution": "순서 문제 해설"}
+        }
+    ];
+    
+    const dataStr = JSON.stringify(sampleData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sample_questions.json';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportResults() {
+    if (processResults.length === 0) {
+        alert('내보낼 결과가 없습니다.');
+        return;
+    }
+    
+    const dataStr = JSON.stringify(processResults, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'batch_process_results.json';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function clearLog() {
+    $('#logContent').empty();
+    processResults = [];
+    $('#resultLog').hide();
+}
+
+// 코드 포맷팅 함수들
+function formatHtmlCode() {
+    if (!htmlEditor) return;
+    
+    try {
+        const currentCode = htmlEditor.getValue();
+        const formattedCode = html_beautify(currentCode, {
+            indent_size: 2,
+            indent_char: ' ',
+            max_preserve_newlines: 2,
+            preserve_newlines: true,
+            wrap_line_length: 0,
+            indent_inner_html: true,
+            wrap_attributes: 'auto',
+            wrap_attributes_indent_size: 2,
+            end_with_newline: false
+        });
+        
+        htmlEditor.setValue(formattedCode);
+        
+        // 포맷팅 완료 시각 피드백
+        const editorContainer = htmlEditor.getWrapperElement();
+        editorContainer.style.transition = 'box-shadow 0.3s ease';
+        editorContainer.style.boxShadow = '0 0 10px rgba(34, 197, 94, 0.3)';
+        setTimeout(() => {
+            editorContainer.style.boxShadow = '';
+        }, 1000);
+        
+    } catch (error) {
+        alert('HTML 코드 정렬 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+function formatAnswerCode() {
+    if (!answerEditor) return;
+    
+    try {
+        const currentCode = answerEditor.getValue();
+        const parsed = JSON.parse(currentCode); // 유효성 검사
+        const formattedCode = JSON.stringify(parsed, null, 2);
+        
+        answerEditor.setValue(formattedCode);
+        
+        // 포맷팅 완료 시각 피드백
+        const editorContainer = answerEditor.getWrapperElement();
+        editorContainer.style.transition = 'box-shadow 0.3s ease';
+        editorContainer.style.boxShadow = '0 0 10px rgba(34, 197, 94, 0.3)';
+        setTimeout(() => {
+            editorContainer.style.boxShadow = '';
+        }, 1000);
+        
+    } catch (error) {
+        alert('JSON 코드 정렬 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+// 기존 이미지 업로드 함수 (레거시 지원)
+function uploadImage(file, currentEditingImage) {
+    // 레거시 이미지 업로드 지원
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    $.ajax({
+        url: "{% url 'super_agent:api_upload_temporary_file' %}",
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        success: function(response) {
+            if (response.success) {
+                if (currentEditingImage) {
+                    $(currentEditingImage).attr('src', response.file_url);
+                    uploadedAttachments.add(response.attachment_id);
+                    showAdvancedStatusMessage('이미지가 성공적으로 교체되었습니다.', 'success');
+                }
+            } else {
+                showAdvancedStatusMessage(response.error || '업로드에 실패했습니다.', 'error');
+            }
+        },
+        error: function() {
+            showAdvancedStatusMessage('네트워크 오류가 발생했습니다.', 'error');
+        }
+    });
+}
+</script>
+
+{% endblock %}
