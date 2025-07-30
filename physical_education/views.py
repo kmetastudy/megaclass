@@ -71,8 +71,11 @@ def get_student_number_from_id(student_id):
 def teacher_dashboard(request):
     """체육 교사 대시보드 뷰"""
     teacher_id = request.user.teacher.id
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Q
+    from collections import defaultdict
 
-    # 통계 데이터 계산
+    # 기본 통계 데이터 계산
     total_sessions = PAPSSession.objects.filter(teacher_id=teacher_id).count()
 
     # 진행 중인 측정회차 (완료되지 않은 회차)
@@ -81,8 +84,6 @@ def teacher_dashboard(request):
     ).count()
 
     # 이번 달 측정회차
-    from datetime import datetime
-
     current_month = datetime.now().month
     current_year = datetime.now().year
 
@@ -95,13 +96,77 @@ def teacher_dashboard(request):
     # 총 측정 기록 수 (참여 학생 수로 사용)
     total_records = PAPSRecord.objects.filter(measured_by_teacher_id=teacher_id).count()
 
-    # 최근 측정회차 5개
+    # 담당 학급 정보 조회
+    teacher_classes = ClassTeacher.objects.filter(
+        teacher=request.user.teacher
+    ).select_related('class_instance')
+    
+    class_info = []
+    for ct in teacher_classes:
+        student_count = Student.objects.filter(school_class=ct.class_instance).count()
+        # 해당 학급 학생들의 최근 측정 기록 수
+        class_students = Student.objects.filter(school_class=ct.class_instance)
+        recent_records = PAPSRecord.objects.filter(
+            student_id__in=[s.id for s in class_students],
+            measured_by_teacher_id=teacher_id,
+            created_at__gte=datetime.now() - timedelta(days=30)
+        ).count()
+        
+        class_info.append({
+            "class": ct.class_instance,
+            "role": ct.get_role_display(),
+            "student_count": student_count,
+            "recent_records": recent_records,
+        })
+
+    # 월별 측정 추이 데이터 (최근 6개월)
+    monthly_data = []
+    for i in range(6):
+        target_date = datetime.now() - timedelta(days=30*i)
+        month_records = PAPSRecord.objects.filter(
+            measured_by_teacher_id=teacher_id,
+            created_at__year=target_date.year,
+            created_at__month=target_date.month
+        ).count()
+        monthly_data.append({
+            "month": target_date.strftime("%Y-%m"),
+            "count": month_records
+        })
+    monthly_data.reverse()
+
+    # 종목별 측정 현황
+    activity_stats = []
+    activities = PAPSActivity.objects.all()
+    for activity in activities[:8]:  # 상위 8개 종목만
+        activity_count = PAPSRecord.objects.filter(
+            measured_by_teacher_id=teacher_id,
+            activity_id=activity.id
+        ).count()
+        activity_stats.append({
+            "name": activity.get_name_display(),
+            "count": activity_count
+        })
+
+    # 최근 7일 활동 데이터
+    daily_activity = []
+    for i in range(7):
+        target_date = datetime.now().date() - timedelta(days=i)
+        day_records = PAPSRecord.objects.filter(
+            measured_by_teacher_id=teacher_id,
+            created_at__date=target_date
+        ).count()
+        daily_activity.append({
+            "date": target_date.strftime("%m-%d"),
+            "count": day_records
+        })
+    daily_activity.reverse()
+
+    # 최근 측정회차 5개 (진행률 제거)
     recent_sessions = PAPSSession.objects.filter(teacher_id=teacher_id).order_by(
         "-created_at"
     )[:5]
 
-    # 각 측정회차별 진행률 계산
-    session_progress = []
+    session_info = []
     for session in recent_sessions:
         # 해당 회차의 총 활동 수 (활성 상태인 것만)
         total_activities = PAPSSessionActivity.objects.filter(
@@ -112,19 +177,27 @@ def teacher_dashboard(request):
         # 측정 완료된 기록 수 (활성 종목에 대한 기록만)
         completed_records = PAPSRecord.objects.active_for_session(session.id).count()
 
-        # 진행률 계산 (임시로 간단한 계산)
-        progress_percentage = (
-            min(100, (completed_records * 10)) if total_activities > 0 else 0
-        )
+        # 측정된 종목 이름들
+        activity_ids = PAPSSessionActivity.objects.filter(
+            session_id=session.id,
+            is_active=True
+        ).values_list('activity_id', flat=True)
+        
+        activity_names = []
+        for activity_id in activity_ids:
+            try:
+                activity = PAPSActivity.objects.get(id=activity_id)
+                activity_names.append(activity.get_name_display())
+            except PAPSActivity.DoesNotExist:
+                pass
 
-        session_progress.append(
-            {
-                "session": session,
-                "progress": progress_percentage,
-                "total_activities": total_activities,
-                "completed_records": completed_records,
-            }
-        )
+        session_info.append({
+            "session": session,
+            "total_activities": total_activities,
+            "completed_records": completed_records,
+            "activity_names": activity_names[:3],  # 최대 3개만 표시
+            "activity_count": len(activity_names)
+        })
 
     context = {
         "user": request.user,
@@ -134,7 +207,11 @@ def teacher_dashboard(request):
             "this_month_sessions": this_month_sessions,
             "total_records": total_records,
         },
-        "recent_sessions": session_progress,
+        "class_info": class_info,
+        "monthly_data": monthly_data,
+        "activity_stats": activity_stats,
+        "daily_activity": daily_activity,
+        "recent_sessions": session_info,
     }
     return render(request, "physical_education/teachers/dashboard.html", context)
 
