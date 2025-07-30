@@ -9,7 +9,10 @@ PAPS (Physical Activity Promotion System) 핵심 로직 구현
 
 import math
 from decimal import Decimal, ROUND_UP
-from typing import Dict, Any, Optional, Tuple, Union
+from typing import Dict, Any, Optional, Tuple, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .models import PAPSActivity
 
 
 # ==================== 유틸리티 함수 ====================
@@ -136,9 +139,6 @@ def calculate_exercise_intensity(avg_heart_rate: int, age: int) -> int:
     return min(intensity, 100)  # 최대 100%
 
 
-def calculate_total_seconds(minutes: int, seconds: int) -> int:
-    """분과 초를 총 초로 변환"""
-    return minutes * 60 + seconds
 
 
 # ==================== 등급 계산 함수 ====================
@@ -268,6 +268,8 @@ def process_measurement_data(
         hr2 = measurement_data.get('heart_rate_2')
         hr3 = measurement_data.get('heart_rate_3')
         if all([hr1, hr2, hr3]):
+            # TODO: 성별 정보가 없어 임시로 학년만으로 고등학교 남학생 판단
+            # 향후 성별 정보 추가 시 수정 필요 (고등학교 남학생만 다른 PEI 계산 공식 사용)
             is_male_hs = student_grade >= 10  # 임시로 고등학교 남학생 판단
             processed_data['pei'] = float(calculate_pei(hr1, hr2, hr3, is_male_high_school=is_male_hs))
     
@@ -305,11 +307,6 @@ def process_measurement_data(
         values = [measurement_data.get(field, False) for field in boolean_fields]
         processed_data['total_score'] = calculate_total_score(*values)
     
-    elif activity_name == 'LONG_RUN_WALK':
-        # 오래달리기걷기 총 시간(초) 계산
-        minutes = measurement_data.get('minutes', 0)
-        seconds = measurement_data.get('seconds', 0)
-        processed_data['total_seconds'] = calculate_total_seconds(minutes, seconds)
     
     elif activity_name == 'CARDIO_PRECISION_TEST':
         # 심폐지구력정밀평가 운동강도 계산
