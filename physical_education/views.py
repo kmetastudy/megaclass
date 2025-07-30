@@ -525,17 +525,94 @@ def paps_required_measurement_view(request):
 @teacher_required
 def paps_optional_measurement_view(request):
     """PAPS 선택평가 측정 입력 뷰"""
+    teacher_id = request.user.teacher.id
+    
     # 선택평가 카테고리 조회
     optional_categories = PAPSCategory.objects.filter(
         evaluation_type=PAPSCategory.OPTIONAL
     ).order_by("order")
-
+    
+    # 교사의 측정회차 목록 조회
+    available_sessions = PAPSSession.objects.filter(teacher_id=teacher_id).order_by(
+        "-created_at"
+    )
+    
+    # 교사가 담당하는 학급들 조회 (ClassTeacher 모델 기반)
+    teacher_classes = (
+        ClassTeacher.objects.filter(teacher_id=teacher_id)
+        .select_related("class_instance")
+        .order_by("class_instance__grade", "class_instance__class_number")
+    )
+    
+    # 교사가 담당하는 실제 학년 목록 추출 (중복 제거, PAPS 대상만)
+    paps_grades = set()
+    for ct in teacher_classes:
+        grade = ct.class_instance.grade
+        if 4 <= grade <= 12:  # PAPS 대상: 초4~고3
+            paps_grades.add(grade)
+    
+    # 학년 선택지 생성 (실제 담당 학년만)
+    grade_choices = [
+        (grade, get_grade_display_name(grade)) for grade in sorted(paps_grades)
+    ]
+    
+    # 현재 연도 기준으로 학년도 범위 생성 (현재년도 ± 2년)
+    current_year = timezone.now().year
+    year_range = list(range(current_year - 2, current_year + 3))
+    
+    # 학급 정보 JSON 직렬화
+    available_classes = []
+    for ct in teacher_classes:
+        available_classes.append(
+            {
+                "id": ct.class_instance.id,
+                "name": f"{ct.class_instance.grade}학년 {ct.class_instance.class_number}반",
+                "grade": ct.class_instance.grade,
+                "class_number": ct.class_instance.class_number,
+            }
+        )
+    
+    # 선택평가 카테고리 JSON 직렬화
+    optional_categories_json = []
+    for category in optional_categories:
+        optional_categories_json.append(
+            {
+                "id": str(category.id),
+                "name": category.name,
+                "name_display": category.get_name_display(),
+                "order": category.order,
+                "evaluation_type": category.evaluation_type,
+            }
+        )
+    
     context = {
-        "categories": optional_categories,
-        "evaluation_type": "optional",
-        "title": "PAPS 선택평가 입력",
+        "current_year": current_year,
+        "year_range": year_range,
+        "grade_choices": grade_choices,
+        "grade_choices_json": json.dumps(grade_choices),
+        "available_classes": available_classes,
+        "available_classes_json": json.dumps(available_classes),
+        "available_sessions": available_sessions,
+        "available_sessions_json": json.dumps(
+            [
+                {
+                    "id": str(session.id),
+                    "name": session.name,
+                    "school_year": session.school_year,
+                    "session_type": session.session_type,
+                    "measurement_date": session.measurement_date.strftime("%Y-%m-%d"),
+                    "is_completed": session.is_completed,
+                }
+                for session in available_sessions
+            ]
+        ),
+        "optional_categories": optional_categories,
+        "optional_categories_json": json.dumps(optional_categories_json),
     }
-    return render(request, "physical_education/paps/measurement/input.html", context)
+    
+    return render(
+        request, "physical_education/teachers/paps/measurement/optional.html", context
+    )
 
 
 # ================= PAPS API 엔드포인트 =================

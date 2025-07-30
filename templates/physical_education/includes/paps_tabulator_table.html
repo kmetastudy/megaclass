@@ -610,6 +610,559 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 }
             },
             ...resultColumns
+        ],
+
+        // 선택평가 activities (등급 없음)
+        'CARDIO_PRECISION_TEST': [
+            ...baseColumns,
+            {
+                title: "왕복오래달리기",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "심박수(회/분)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "평균",
+                                field: "measurement_data.cardio_precision_avg_heart_rate",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                            },
+                            {
+                                title: "최고",
+                                field: "measurement_data.cardio_precision_max_heart_rate",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "운동강도(%)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "평균",
+                                field: "measurement_data.cardio_precision_avg_intensity",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                cssClass: "calculated-field",
+                                formatter: function(cell) {
+                                    const value = cell.getValue();
+                                    return value ? `${value}%` : '-';
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        title: "총 소비열량<br>(kcal)",
+                        field: "measurement_data.cardio_precision_total_calories",
+                        widthGrow: 2,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    },
+                    {
+                        title: "구간별 운동시간(초)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "1구간",
+                                field: "measurement_data.cardio_precision_section_1_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "2구간",
+                                field: "measurement_data.cardio_precision_section_2_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "3구간",
+                                field: "measurement_data.cardio_precision_section_3_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "4구간",
+                                field: "measurement_data.cardio_precision_section_4_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "5구간",
+                                field: "measurement_data.cardio_precision_section_5_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "3분 휴식",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "심박수1<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_hr1",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수2<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_hr2",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수3<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_hr3",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "PEI",
+                        field: "measurement_data.cardio_precision_rest_pei",
+                        widthGrow: 1.2,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            }
+        ],
+
+        'BODY_FAT_RATE_TEST': [
+            ...baseColumns,
+            {
+                title: "체지방률평가",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "키(cm)",
+                        field: "measurement_data.body_fat_rate_test_height",
+                        widthGrow: 1.5,
+                        minWidth: 70,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
+                    },
+                    {
+                        title: "몸무게(kg)",
+                        field: "measurement_data.body_fat_rate_test_weight",
+                        widthGrow: 1.5,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 10}, {type: "max", parameters: 300}]
+                    },
+                    {
+                        title: "BMI(kg/m²)",
+                        field: "measurement_data.body_fat_rate_test_bmi",
+                        widthGrow: 1.5,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    },
+                    {
+                        title: "체지방률<br>(%fat)",
+                        field: "measurement_data.body_fat_rate",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 60}]
+                    },
+                    {
+                        title: "근육량(%)",
+                        field: "measurement_data.body_fat_rate_muscle_mass",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    },
+                    {
+                        title: "지방량(%)",
+                        field: "measurement_data.body_fat_rate_fat_mass",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    }
+                ]
+            }
+        ],
+
+        'POSTURE_TEST': [
+            ...baseColumns,
+            {
+                title: "어깨 기울기",
+                field: "measurement_data.shoulder_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "골반 기울기",
+                field: "measurement_data.pelvis_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "다리 굴곡",
+                field: "measurement_data.leg_flexion",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "목뼈 기울기",
+                field: "measurement_data.neck_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "상체 기울기",
+                field: "measurement_data.upper_body_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "골반전후<br>기울기",
+                field: "measurement_data.pelvis_sagittal_tilt",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "척추 휨정도",
+                field: "measurement_data.spine_curvature",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "평가",
+                field: "measurement_data.posture_test_overall_evaluation",
+                widthGrow: 1.5,
+                minWidth: 70,
+                hozAlign: "center",
+                resizable: true,
+                cssClass: "calculated-field",
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return value || '-';
+                }
+            },
+            {
+                title: "문진1",
+                field: "measurement_data.posture_test_questionnaire_1",
+                widthGrow: 1,
+                minWidth: 60,
+                hozAlign: "center",
+                resizable: true,
+                editor: "tickCross"
+            },
+            {
+                title: "문진2",
+                field: "measurement_data.posture_test_questionnaire_2",
+                widthGrow: 1,
+                minWidth: 60,
+                hozAlign: "center",
+                resizable: true,
+                editor: "tickCross"
+            }
+        ],
+
+        'SELF_BODY_TEST': [
+            ...baseColumns,
+            {
+                title: "1",
+                field: "measurement_data.self_body_test_question_1",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "2",
+                field: "measurement_data.self_body_test_question_2",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "3",
+                field: "measurement_data.self_body_test_question_3",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "4",
+                field: "measurement_data.self_body_test_question_4",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "5",
+                field: "measurement_data.self_body_test_question_5",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "6",
+                field: "measurement_data.self_body_test_question_6",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "7",
+                field: "measurement_data.self_body_test_question_7",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "8",
+                field: "measurement_data.self_body_test_question_8",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "9",
+                field: "measurement_data.self_body_test_question_9",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "10",
+                field: "measurement_data.self_body_test_question_10",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "11",
+                field: "measurement_data.self_body_test_question_11",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "12",
+                field: "measurement_data.self_body_test_question_12",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "13",
+                field: "measurement_data.self_body_test_question_13",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "14",
+                field: "measurement_data.self_body_test_question_14",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "15",
+                field: "measurement_data.self_body_test_question_15",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "16",
+                field: "measurement_data.self_body_test_question_16",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "17",
+                field: "measurement_data.self_body_test_question_17",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "18",
+                field: "measurement_data.self_body_test_question_18",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "19",
+                field: "measurement_data.self_body_test_question_19",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "20",
+                field: "measurement_data.self_body_test_question_20",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            }
         ]
     };
 };
