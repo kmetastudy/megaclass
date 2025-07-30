@@ -153,7 +153,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "왕복오래달리기(회)",
-                field: "measurement_data.shuttles_completed",
+                field: "measurement_data.shuttle_run",
                 widthGrow: 2,
                 minWidth: 120,
                 hozAlign: "center",
@@ -168,7 +168,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "오래달리기/걷기(분.초)",
-                field: "measurement_data.total_time",
+                field: "measurement_data.long_run_walk",
                 widthGrow: 2,
                 minWidth: 120,
                 hozAlign: "center",
@@ -186,7 +186,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 columns: [
                     {
                         title: "촉진",
-                        field: "measurement_data.palpation",
+                        field: "measurement_data.is_palpation",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -195,7 +195,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "심박수(1)<br>(회/분)",
-                        field: "measurement_data.hr1",
+                        field: "measurement_data.step_test_heart_rate_1",
                         widthGrow: 2,
                         minWidth: 80,
                         hozAlign: "center",
@@ -205,7 +205,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "심박수(2)<br>(회/분)",
-                        field: "measurement_data.hr2",
+                        field: "measurement_data.step_test_heart_rate_2",
                         widthGrow: 2,
                         minWidth: 80,
                         hozAlign: "center",
@@ -215,7 +215,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "심박수(3)<br>(회/분)",
-                        field: "measurement_data.hr3",
+                        field: "measurement_data.step_test_heart_rate_3",
                         widthGrow: 2,
                         minWidth: 80,
                         hozAlign: "center",
@@ -225,7 +225,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "PEI",
-                        field: "measurement_data.pei",
+                        field: "measurement_data.step_test_pei",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -250,7 +250,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 columns: [
                     {
                         title: "1차",
-                        field: "measurement_data.attempt1",
+                        field: "measurement_data.sit_reach_first_attempt",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -260,7 +260,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "2차",
-                        field: "measurement_data.attempt2",
+                        field: "measurement_data.sit_reach_second_attempt",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -270,7 +270,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "평가값",
-                        field: "measurement_data.best_record",
+                        field: "measurement_data.sit_reach_best_record",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -298,7 +298,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "좌",
-                                field: "measurement_data.shoulder_left",
+                                field: "measurement_data.flexibility_shoulder_left",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -307,7 +307,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "우",
-                                field: "measurement_data.shoulder_right",
+                                field: "measurement_data.flexibility_shoulder_right",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -322,7 +322,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "좌",
-                                field: "measurement_data.trunk_left",
+                                field: "measurement_data.flexibility_body_left",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -331,7 +331,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "우",
-                                field: "measurement_data.trunk_right",
+                                field: "measurement_data.flexibility_body_right",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -346,7 +346,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "좌",
-                                field: "measurement_data.side_left",
+                                field: "measurement_data.flexibility_side_left",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -355,7 +355,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "우",
-                                field: "measurement_data.side_right",
+                                field: "measurement_data.flexibility_side_right",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -370,7 +370,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "좌",
-                                field: "measurement_data.lower_left",
+                                field: "measurement_data.flexibility_lower_body_left",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -379,7 +379,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "우",
-                                field: "measurement_data.lower_right",
+                                field: "measurement_data.flexibility_lower_body_right",
                                 widthGrow: 1,
                                 minWidth: 50,
                                 hozAlign: "center",
@@ -390,7 +390,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "평가값",
-                        field: "measurement_data.total_score",
+                        field: "measurement_data.flexibility_total_score",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -411,7 +411,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "(무릎대고)팔굽혀펴기(회)",
-                field: "measurement_data.count",
+                field: "measurement_data.push_up",
                 widthGrow: 2,
                 minWidth: 140,
                 hozAlign: "center",
@@ -426,7 +426,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "윗몸말아올리기(회)",
-                field: "measurement_data.count",
+                field: "measurement_data.sit_up",
                 widthGrow: 2,
                 minWidth: 120,
                 hozAlign: "center",
@@ -449,7 +449,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "오른쪽",
-                                field: "measurement_data.right_hand_1st",
+                                field: "measurement_data.grip_strength_right_hand_1",
                                 widthGrow: 1.5,
                                 minWidth: 70,
                                 hozAlign: "center",
@@ -459,7 +459,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "왼쪽",
-                                field: "measurement_data.left_hand_1st",
+                                field: "measurement_data.grip_strength_left_hand_1",
                                 widthGrow: 1.5,
                                 minWidth: 70,
                                 hozAlign: "center",
@@ -475,7 +475,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         columns: [
                             {
                                 title: "오른쪽",
-                                field: "measurement_data.right_hand_2nd",
+                                field: "measurement_data.grip_strength_right_hand_2",
                                 widthGrow: 1.5,
                                 minWidth: 70,
                                 hozAlign: "center",
@@ -485,7 +485,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             },
                             {
                                 title: "왼쪽",
-                                field: "measurement_data.left_hand_2nd",
+                                field: "measurement_data.grip_strength_left_hand_2",
                                 widthGrow: 1.5,
                                 minWidth: 70,
                                 hozAlign: "center",
@@ -497,7 +497,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "악력",
-                        field: "measurement_data.grip_strength",
+                        field: "measurement_data.grip_strength_best",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -518,7 +518,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "50m 달리기(초)",
-                field: "measurement_data.time",
+                field: "measurement_data.fifty_meter_run",
                 widthGrow: 2,
                 minWidth: 100,
                 hozAlign: "center",
@@ -537,7 +537,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 columns: [
                     {
                         title: "1차",
-                        field: "measurement_data.attempt1",
+                        field: "measurement_data.standing_long_jump_first_attempt",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -547,7 +547,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "2차",
-                        field: "measurement_data.attempt2",
+                        field: "measurement_data.standing_long_jump_second_attempt",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -557,7 +557,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "평가값",
-                        field: "measurement_data.best_record",
+                        field: "measurement_data.standing_long_jump_best_record",
                         widthGrow: 1.5,
                         minWidth: 60,
                         hozAlign: "center",
@@ -578,7 +578,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             ...baseColumns,
             {
                 title: "신장(cm)",
-                field: "measurement_data.height",
+                field: "measurement_data.bmi_height",
                 widthGrow: 1.5,
                 minWidth: 80,
                 hozAlign: "center",
@@ -588,7 +588,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             },
             {
                 title: "체중(kg)",
-                field: "measurement_data.weight",
+                field: "measurement_data.bmi_weight",
                 widthGrow: 1.5,
                 minWidth: 80,
                 hozAlign: "center",
@@ -598,7 +598,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             },
             {
                 title: "BMI(kg/㎡)",
-                field: "measurement_data.bmi",
+                field: "measurement_data.bmi_bmi",
                 widthGrow: 1.5,
                 minWidth: 90,
                 hozAlign: "center",
@@ -738,7 +738,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 columns: [
                     {
                         title: "심박수1<br>(회/분)",
-                        field: "measurement_data.cardio_precision_rest_hr1",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_1",
                         widthGrow: 1.5,
                         minWidth: 80,
                         hozAlign: "center",
@@ -748,7 +748,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "심박수2<br>(회/분)",
-                        field: "measurement_data.cardio_precision_rest_hr2",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_2",
                         widthGrow: 1.5,
                         minWidth: 80,
                         hozAlign: "center",
@@ -758,7 +758,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "심박수3<br>(회/분)",
-                        field: "measurement_data.cardio_precision_rest_hr3",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_3",
                         widthGrow: 1.5,
                         minWidth: 80,
                         hozAlign: "center",
@@ -768,7 +768,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     },
                     {
                         title: "PEI",
-                        field: "measurement_data.cardio_precision_rest_pei",
+                        field: "measurement_data.cardio_precision_pei",
                         widthGrow: 1.2,
                         minWidth: 60,
                         hozAlign: "center",

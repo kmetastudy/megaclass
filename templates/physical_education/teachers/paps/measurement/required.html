@@ -737,17 +737,17 @@ function performFieldCalculation(calculation, data) {
                 return values.length > 0 ? Math.max(...values) : null;
                 
             case 'bmi':
-                const height = parseFloat(data.height) || 0;
-                const weight = parseFloat(data.weight) || 0;
+                const height = parseFloat(data.bmi_height) || 0;
+                const weight = parseFloat(data.bmi_weight) || 0;
                 if (height > 0 && weight > 0) {
                     return ((weight / Math.pow(height / 100, 2)).toFixed(1));
                 }
                 return null;
                 
             case 'pei':
-                const hr1 = parseFloat(data.hr1) || 0;
-                const hr2 = parseFloat(data.hr2) || 0;
-                const hr3 = parseFloat(data.hr3) || 0;
+                const hr1 = parseFloat(data.step_test_heart_rate_1) || 0;
+                const hr2 = parseFloat(data.step_test_heart_rate_2) || 0;
+                const hr3 = parseFloat(data.step_test_heart_rate_3) || 0;
                 if (hr1 > 0 && hr2 > 0 && hr3 > 0) {
                     const duration = calculation.duration || 300;
                     return Math.round((duration * 100) / (2 * (hr1 + hr2 + hr3)));

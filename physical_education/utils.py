@@ -257,70 +257,70 @@ def process_measurement_data(
     # 종목별 자동 계산 로직
     if activity_name == 'BMI':
         # BMI 계산
-        height = measurement_data.get('height')
-        weight = measurement_data.get('weight')
+        height = measurement_data.get('bmi_height')
+        weight = measurement_data.get('bmi_weight')
         if height and weight:
-            processed_data['bmi'] = float(calculate_bmi(height, weight))
+            processed_data['bmi_bmi'] = float(calculate_bmi(height, weight))
     
     elif activity_name == 'STEP_TEST':
         # PEI 계산
-        hr1 = measurement_data.get('heart_rate_1')
-        hr2 = measurement_data.get('heart_rate_2')
-        hr3 = measurement_data.get('heart_rate_3')
+        hr1 = measurement_data.get('step_test_heart_rate_1')
+        hr2 = measurement_data.get('step_test_heart_rate_2')
+        hr3 = measurement_data.get('step_test_heart_rate_3')
         if all([hr1, hr2, hr3]):
             # TODO: 성별 정보가 없어 임시로 학년만으로 고등학교 남학생 판단
             # 향후 성별 정보 추가 시 수정 필요 (고등학교 남학생만 다른 PEI 계산 공식 사용)
             is_male_hs = student_grade >= 10  # 임시로 고등학교 남학생 판단
-            processed_data['pei'] = float(calculate_pei(hr1, hr2, hr3, is_male_high_school=is_male_hs))
+            processed_data['step_test_pei'] = float(calculate_pei(hr1, hr2, hr3, is_male_high_school=is_male_hs))
     
     elif activity_name == 'GRIP_STRENGTH':
         # 악력 최댓값 계산
         values = [
-            measurement_data.get('right_first'),
-            measurement_data.get('left_first'),
-            measurement_data.get('right_second'),
-            measurement_data.get('left_second')
+            measurement_data.get('grip_strength_right_hand_1'),
+            measurement_data.get('grip_strength_left_hand_1'),
+            measurement_data.get('grip_strength_right_hand_2'),
+            measurement_data.get('grip_strength_left_hand_2')
         ]
         if any(v is not None for v in values):
-            processed_data['best_grip'] = float(calculate_max_value(*values))
+            processed_data['grip_strength_best'] = float(calculate_max_value(*values))
     
     elif activity_name == 'SIT_REACH':
         # 앉아윗몸앞으로굽히기 최댓값
-        first = measurement_data.get('first_attempt')
-        second = measurement_data.get('second_attempt')
+        first = measurement_data.get('sit_reach_first_attempt')
+        second = measurement_data.get('sit_reach_second_attempt')
         if first is not None and second is not None:
-            processed_data['best_record'] = float(calculate_max_value(first, second))
+            processed_data['sit_reach_best_record'] = float(calculate_max_value(first, second))
     
     elif activity_name == 'STANDING_LONG_JUMP':
         # 제자리멀리뛰기 최댓값
-        first = measurement_data.get('first_attempt')
-        second = measurement_data.get('second_attempt')
+        first = measurement_data.get('standing_long_jump_first_attempt')
+        second = measurement_data.get('standing_long_jump_second_attempt')
         if first is not None and second is not None:
-            processed_data['best_record'] = float(calculate_max_value(first, second))
+            processed_data['standing_long_jump_best_record'] = float(calculate_max_value(first, second))
     
     elif activity_name == 'COMPREHENSIVE_FLEXIBILITY':
         # 종합유연성 총점
         boolean_fields = [
-            'shoulder_left', 'shoulder_right', 'body_left', 'body_right',
-            'side_left', 'side_right', 'lower_body_left', 'lower_body_right'
+            'flexibility_shoulder_left', 'flexibility_shoulder_right', 'flexibility_body_left', 'flexibility_body_right',
+            'flexibility_side_left', 'flexibility_side_right', 'flexibility_lower_body_left', 'flexibility_lower_body_right'
         ]
         values = [measurement_data.get(field, False) for field in boolean_fields]
-        processed_data['total_score'] = calculate_total_score(*values)
+        processed_data['flexibility_total_score'] = calculate_total_score(*values)
     
     
     elif activity_name == 'CARDIO_PRECISION_TEST':
         # 심폐지구력정밀평가 운동강도 계산
-        avg_hr = measurement_data.get('avg_heart_rate')
+        avg_hr = measurement_data.get('cardio_precision_avg_heart_rate')
         if avg_hr:
             age = get_age_from_grade(student_grade)
-            processed_data['avg_intensity'] = calculate_exercise_intensity(avg_hr, age)
+            processed_data['cardio_precision_avg_intensity'] = calculate_exercise_intensity(avg_hr, age)
     
     elif activity_name == 'BODY_FAT_RATE_TEST':
         # 체지방률평가 BMI 계산
-        height = measurement_data.get('height')
-        weight = measurement_data.get('weight')
+        height = measurement_data.get('body_fat_rate_test_height')
+        weight = measurement_data.get('body_fat_rate_test_weight')
         if height and weight:
-            processed_data['bmi'] = float(calculate_bmi(height, weight))
+            processed_data['body_fat_rate_test_bmi'] = float(calculate_bmi(height, weight))
     
     return processed_data
 
