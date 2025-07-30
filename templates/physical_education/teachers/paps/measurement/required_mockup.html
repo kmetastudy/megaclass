@@ -709,7 +709,7 @@ function renderCurrentTab() {
     appState.activeActivity = activityKey;
     
     // 현재 종목 정보 업데이트
-    elements.currentActivityName.textContent = activity.name;
+    elements.currentActivityName.textContent = activity.display_name;
     elements.currentActivityDescription.textContent = activity.description;
     
     // 데스크톱: Table 렌더링

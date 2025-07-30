@@ -677,7 +677,8 @@ def api_paps_get_activities(request, category):
             activities_data.append(
                 {
                     "id": str(activity.id),
-                    "name": activity.get_name_display(),
+                    "name": activity.name,  # English code for buildColumns lookup
+                    "display_name": activity.get_name_display(),  # Korean name for UI display
                     "measurement_schema": activity.measurement_schema,
                     "evaluation_criteria": activity.evaluation_criteria,
                 }

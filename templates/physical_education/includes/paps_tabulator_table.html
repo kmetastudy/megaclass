@@ -65,16 +65,9 @@ window.PAPSTabulator.config = {
     locale: "ko-kr"
 };
 
-// Build column definitions from measurement schema with Column Groups support
-window.PAPSTabulator.buildColumns = function(activity, students) {
-    if (!activity || !activity.measurement_schema || !activity.measurement_schema.fields) {
-        return [];
-    }
-    
-    const schema = activity.measurement_schema;
-    const fields = schema.fields || [];
-    
-    // Base columns (student info) - always frozen
+// Complete column definitions for each activity based on documented table structures
+window.PAPSTabulator.getCompleteColumnDefinitions = function() {
+    // Base columns used in all activities
     const baseColumns = [
         {
             title: "순번",
@@ -124,15 +117,8 @@ window.PAPSTabulator.buildColumns = function(activity, students) {
             }
         }
     ];
-    
-    // Analyze fields for grouping patterns
-    const fieldGroups = window.PAPSTabulator.analyzeFieldGroups(fields);
-    
-    // Build measurement and calculated columns with groups
-    const measurementColumns = window.PAPSTabulator.buildGroupedColumns(fieldGroups.measurement, activity);
-    const calculatedColumns = window.PAPSTabulator.buildGroupedColumns(fieldGroups.calculated, activity);
-    
-    // Result columns
+
+    // Result columns used in all activities
     const resultColumns = [
         {
             title: "점수",
@@ -143,9 +129,7 @@ window.PAPSTabulator.buildColumns = function(activity, students) {
             resizable: true,
             cssClass: "calculated-field",
             formatter: function(cell) {
-                // This would be calculated based on measurement data
-                // For now, using placeholder
-                return '-';
+                return '-'; // Placeholder
             }
         },
         {
@@ -157,142 +141,521 @@ window.PAPSTabulator.buildColumns = function(activity, students) {
             resizable: true,
             cssClass: "calculated-field",
             formatter: function(cell) {
-                // This would be calculated based on score
-                // For now, using placeholder with grade styling
                 const grade = Math.floor(Math.random() * 5) + 1; // Temporary
                 return `<span class="grade-${grade}">${grade}등급</span>`;
             }
         }
     ];
-    
-    return [...baseColumns, ...measurementColumns, ...calculatedColumns, ...resultColumns];
+
+    return {
+        // 심폐지구력 activities
+        'SHUTTLE_RUN': [
+            ...baseColumns,
+            {
+                title: "왕복오래달리기(회)",
+                field: "measurement_data.shuttles_completed",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 150}]
+            },
+            ...resultColumns
+        ],
+
+        'LONG_RUN_WALK': [
+            ...baseColumns,
+            {
+                title: "오래달리기/걷기(분.초)",
+                field: "measurement_data.total_time",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number"
+            },
+            ...resultColumns
+        ],
+
+        'STEP_TEST': [
+            ...baseColumns,
+            {
+                title: "스텝검사",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "촉진",
+                        field: "measurement_data.palpation",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "tickCross"
+                    },
+                    {
+                        title: "심박수(1)<br>(회/분)",
+                        field: "measurement_data.hr1",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수(2)<br>(회/분)",
+                        field: "measurement_data.hr2",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수(3)<br>(회/분)",
+                        field: "measurement_data.hr3",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "PEI",
+                        field: "measurement_data.pei",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 유연성 activities
+        'SIT_REACH': [
+            ...baseColumns,
+            {
+                title: "앉아윗몸앞으로굽히기(cm)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        field: "measurement_data.attempt1",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
+                    },
+                    {
+                        title: "2차",
+                        field: "measurement_data.attempt2",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.best_record",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        'COMPREHENSIVE_FLEXIBILITY': [
+            ...baseColumns,
+            {
+                title: "종합유연성평가(0: 실패, 1: 성공)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "어깨",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.shoulder_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.shoulder_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "몸통",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.trunk_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.trunk_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "옆구리",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.side_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.side_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "하체",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.lower_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.lower_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.total_score",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 근력·근지구력 activities
+        'PUSH_UP': [
+            ...baseColumns,
+            {
+                title: "(무릎대고)팔굽혀펴기(회)",
+                field: "measurement_data.count",
+                widthGrow: 2,
+                minWidth: 140,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
+            },
+            ...resultColumns
+        ],
+
+        'SIT_UP': [
+            ...baseColumns,
+            {
+                title: "윗몸말아올리기(회)",
+                field: "measurement_data.count",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
+            },
+            ...resultColumns
+        ],
+
+        'GRIP_STRENGTH': [
+            ...baseColumns,
+            {
+                title: "악력(kg)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "오른쪽",
+                                field: "measurement_data.right_hand_1st",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            },
+                            {
+                                title: "왼쪽",
+                                field: "measurement_data.left_hand_1st",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "2차",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "오른쪽",
+                                field: "measurement_data.right_hand_2nd",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            },
+                            {
+                                title: "왼쪽",
+                                field: "measurement_data.left_hand_2nd",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "악력",
+                        field: "measurement_data.grip_strength",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 순발력 activities
+        'FIFTY_METER_RUN': [
+            ...baseColumns,
+            {
+                title: "50m 달리기(초)",
+                field: "measurement_data.time",
+                widthGrow: 2,
+                minWidth: 100,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 5}, {type: "max", parameters: 30}]
+            },
+            ...resultColumns
+        ],
+
+        'STANDING_LONG_JUMP': [
+            ...baseColumns,
+            {
+                title: "제자리멀리뛰기(cm)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        field: "measurement_data.attempt1",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
+                    },
+                    {
+                        title: "2차",
+                        field: "measurement_data.attempt2",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.best_record",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 비만 activity
+        'BMI': [
+            ...baseColumns,
+            {
+                title: "신장(cm)",
+                field: "measurement_data.height",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
+            },
+            {
+                title: "체중(kg)",
+                field: "measurement_data.weight",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 200}]
+            },
+            {
+                title: "BMI(kg/㎡)",
+                field: "measurement_data.bmi",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                cssClass: "calculated-field",
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return value ? value.toFixed(1) : '-';
+                }
+            },
+            ...resultColumns
+        ]
+    };
 };
 
-// Analyze fields to identify grouping patterns
-window.PAPSTabulator.analyzeFieldGroups = function(fields) {
-    const measurement = [];
-    const calculated = [];
-    const groups = new Map();
-    
-    fields.forEach(field => {
-        const isCalculated = field.readonly;  // Use schema readonly property directly
-        const targetArray = isCalculated ? calculated : measurement;
-        
-        // Check for grouping patterns in field names
-        const groupMatch = window.PAPSTabulator.identifyGroup(field);
-        
-        if (groupMatch) {
-            // Field belongs to a group
-            if (!groups.has(groupMatch.groupName)) {
-                groups.set(groupMatch.groupName, {
-                    name: groupMatch.groupName,
-                    title: groupMatch.groupTitle,
-                    fields: [],
-                    isCalculated: isCalculated
-                });
-            }
-            groups.get(groupMatch.groupName).fields.push(field);
-        } else {
-            // Individual field
-            targetArray.push({
-                type: 'individual',
-                field: field
-            });
-        }
-    });
-    
-    // Add groups to appropriate arrays
-    groups.forEach(group => {
-        const targetArray = group.isCalculated ? calculated : measurement;
-        targetArray.push({
-            type: 'group',
-            group: group
-        });
-    });
-    
-    return { measurement, calculated };
-};
-
-// Identify group patterns in field names
-window.PAPSTabulator.identifyGroup = function(field) {
-    const fieldName = field.name || '';
-    const fieldTitle = field.title || field.label || '';
-    
-    // Pattern matching for common groupings
-    const patterns = [
-        // Flexibility patterns (어깨_좌, 어깨_우, etc.)
-        { regex: /^(어깨|몸통|옆구리|하체)_?(좌|우|left|right)$/i, 
-          groupExtractor: (match) => ({ 
-              groupName: match[1], 
-              groupTitle: match[1],
-              subField: match[2] 
-          })
-        },
-        // Grip strength patterns (오른쪽1차, 왼쪽1차, etc.)
-        { regex: /^(오른쪽|왼쪽|right|left)_?(\d차|attempt\d?)$/i,
-          groupExtractor: (match) => ({
-              groupName: '악력',
-              groupTitle: '악력',
-              subField: `${match[1]}_${match[2]}`
-          })
-        },
-        // Multi-attempt patterns (1차, 2차, etc.)
-        { regex: /^(.+)_?(\d차|attempt\d?)$/i,
-          groupExtractor: (match) => ({
-              groupName: match[1],
-              groupTitle: match[1],
-              subField: match[2]
-          })
-        },
-        // Heart rate patterns (심박수1, 심박수2, etc.)
-        { regex: /^(심박수|hr|heart_rate)_?(\d+)$/i,
-          groupExtractor: (match) => ({
-              groupName: '심박수',
-              groupTitle: '심박수',
-              subField: match[2]
-          })
-        }
-    ];
-    
-    // Try to match patterns
-    for (const pattern of patterns) {
-        const match = fieldName.match(pattern.regex) || fieldTitle.match(pattern.regex);
-        if (match) {
-            return pattern.groupExtractor(match);
-        }
+// Build column definitions using pre-defined complete column structures
+window.PAPSTabulator.buildColumns = function(activity, students) {
+    console.log("activity:", activity);
+    if (!activity || !activity.name) {
+        return [];
     }
     
-    return null;
-};
-
-// Build grouped columns with Column Groups support
-window.PAPSTabulator.buildGroupedColumns = function(items, activity) {
-    const columns = [];
+    const activityName = activity.name;
+    console.log("Looking up activityName:", activityName);
+    const columnDefinitions = window.PAPSTabulator.getCompleteColumnDefinitions();
     
-    items.forEach(item => {
-        if (item.type === 'individual') {
-            // Individual column
-            const column = window.PAPSTabulator.buildSingleColumn(item.field, activity);
-            columns.push(column);
-        } else if (item.type === 'group') {
-            // Group of columns
-            const group = item.group;
-            const groupColumns = group.fields.map(field => 
-                window.PAPSTabulator.buildSingleColumn(field, activity)
-            );
-            
-            // Create Column Group
-            const columnGroup = {
-                title: group.title,
-                cssClass: "header-group",
-                columns: groupColumns
-            };
-            
-            columns.push(columnGroup);
-        }
-    });
+    // Get pre-defined columns for this activity
+    const predefinedColumns = columnDefinitions[activityName];
+    console.log("Found predefinedColumns:", predefinedColumns ? "YES" : "NO");
+    
+    if (!predefinedColumns) {
+        console.warn(`No column definition found for activity: ${activityName}`);
+        return [];
+    }
+    
+    // Clone the column definitions to avoid modifying the original
+    const columns = JSON.parse(JSON.stringify(predefinedColumns));
+    
+    // Apply cell edited handlers to editable columns
+    window.PAPSTabulator.applyCellEditedHandlers(columns, activity);
     
     return columns;
+};
+
+// Apply cell edited handlers to editable columns recursively
+window.PAPSTabulator.applyCellEditedHandlers = function(columns, activity) {
+    columns.forEach(column => {
+        if (column.columns) {
+            // This is a column group, recurse into sub-columns
+            window.PAPSTabulator.applyCellEditedHandlers(column.columns, activity);
+        } else if (column.editor && !column.cssClass?.includes('calculated-field')) {
+            // This is an editable column, add cell edited handler
+            column.cellEdited = function(cell) {
+                window.PAPSTabulator.onCellEdited(cell, column, activity);
+            };
+        }
+    });
 };
 
 // Build a single column definition using schema data directly
@@ -315,7 +678,7 @@ window.PAPSTabulator.buildSingleColumn = function(field, activity) {
     // Use schema data directly
     const baseColumn = {
         title: field.title,  // Use schema title directly
-        field: `measurement_data.${field.field}`,  // Use schema field property
+        field: `measurement_data.${field.field}`,  // Use schema field name property
         widthGrow: widthGrow,
         minWidth: minWidth,
         hozAlign: "center",
@@ -419,11 +782,14 @@ window.PAPSTabulator.getFieldValidator = function(field) {
 };
 
 // Handle cell edited event
-window.PAPSTabulator.onCellEdited = function(cell, field, activity) {
+window.PAPSTabulator.onCellEdited = function(cell, column, activity) {
     const row = cell.getRow();
     const studentId = row.getData().id;
-    const fieldName = field.name;
     const value = cell.getValue();
+    
+    // Extract field name from column field path (e.g., "measurement_data.shoulder_left" -> "shoulder_left")
+    const fieldPath = column.field || cell.getField();
+    const fieldName = fieldPath.replace('measurement_data.', '');
     
     // Save data to app state (preserve existing functionality)
     if (window.saveStudentFieldData) {
@@ -707,6 +1073,30 @@ console.log('PAPS Tabulator component loaded successfully');
 /* Header text alignment - Center align all header titles */
 .paps-tabulator-container .tabulator-col-title {
     text-align: center;
+}
+
+/* Column Group Header Styling */
+.paps-tabulator-container .header-group .tabulator-col-title {
+    background-color: #f8fafc;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 8px 4px;
+}
+
+.paps-tabulator-container .header-subgroup .tabulator-col-title {
+    background-color: #f1f5f9;
+    font-weight: 500;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 6px 4px;
+}
+
+/* Multi-level header border enhancement */
+.paps-tabulator-container .tabulator-col-group {
+    border-right: 1px solid #d1d5db;
+}
+
+.paps-tabulator-container .tabulator-col-group:last-child {
+    border-right: none;
 }
 
 /* Grade colors - Custom functionality not in Bootstrap theme */

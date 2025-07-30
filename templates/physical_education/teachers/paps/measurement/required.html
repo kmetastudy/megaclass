@@ -532,7 +532,7 @@ async function renderCurrentTab() {
         console.log('activeActivity 설정 완료');
         
         // 현재 종목 정보 업데이트
-        elements.currentActivityName.textContent = currentActivity.name;
+        elements.currentActivityName.textContent = currentActivity.display_name;
         elements.currentActivityDescription.textContent = getActivityDescription(currentActivity);
         console.log('종목 정보 UI 업데이트 완료');
         
