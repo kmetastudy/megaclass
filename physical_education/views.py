@@ -754,8 +754,16 @@ def api_paps_save_measurement(request):
                 "error": "측정 기록을 찾을 수 없습니다. 측정 종목이 올바르게 설정되었는지 확인해주세요."
             })
 
-        # 측정 데이터 업데이트
-        record.measurement_data = measurement_data
+        # 측정 데이터 자동 계산 처리 추가
+        from .utils import process_measurement_data
+        processed_data = process_measurement_data(
+            activity.name,
+            measurement_data,
+            student_grade
+        )
+        
+        # 측정 데이터 업데이트 (계산된 값 포함)
+        record.measurement_data = processed_data
         record.measured_at = timezone.now()
         record.save()
 

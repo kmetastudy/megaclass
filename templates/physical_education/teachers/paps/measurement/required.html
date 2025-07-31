@@ -1,10 +1,13 @@
 {% extends "teacher/base.html" %}
+{% load static %}
 
 {% block title %}PAPS 필수평가 입력{% endblock %}
 
 {% block content %}
 <!-- Include PAPS Tabulator Component -->
 {% include 'physical_education/includes/paps_tabulator_table.html' %}
+<!-- Include PAPS Calculations Module -->
+<script src="{% static 'js/physical_education/paps_calculations.js' %}"></script>
 <div class="flex min-h-screen mobile-nav-padding">
     <!-- 공통 사이드바 -->
     {% include "physical_education/teachers/partials/sidebar.html" %}
@@ -704,63 +707,30 @@ function saveStudentFieldData(studentId, fieldName, value) {
     }
 }
 
-// 자동 계산 수행
+// 자동 계산 수행 (새로운 계산 모듈 사용)
 function performAutoCalculation(studentId) {
-    if (!appState.activeActivity) return;
+    if (!appState.activeActivity || !window.PAPSCalculations) return;
     
     const studentData = appState.studentsData[studentId];
     if (!studentData || !studentData[appState.activeActivity.id]) return;
     
     const activityData = studentData[appState.activeActivity.id];
-    const schema = appState.activeActivity.measurement_schema;
+    const studentGrade = appState.selectedGrade || 7; // 기본값 설정
     
-    if (!schema || !schema.fields) return;
+    // 새로운 계산 모듈 사용
+    const calculatedData = window.PAPSCalculations.processActivityData(
+        appState.activeActivity.name,
+        activityData,
+        studentGrade
+    );
     
-    // 계산된 필드들 처리
-    schema.fields.forEach(field => {
-        if (field.calculated && field.calculation) {
-            const result = performFieldCalculation(field.calculation, activityData);
-            if (result !== null) {
-                activityData[field.name] = result;
-                updateCalculatedFieldDisplay(studentId, field.name, result);
-            }
+    // 계산된 값들을 activityData에 업데이트
+    Object.keys(calculatedData).forEach(fieldName => {
+        if (activityData[fieldName] !== calculatedData[fieldName]) {
+            activityData[fieldName] = calculatedData[fieldName];
+            updateCalculatedFieldDisplay(studentId, fieldName, calculatedData[fieldName]);
         }
     });
-}
-
-// 필드 계산 수행
-function performFieldCalculation(calculation, data) {
-    try {
-        switch (calculation.type) {
-            case 'max':
-                const values = calculation.fields.map(f => parseFloat(data[f]) || 0).filter(v => v > 0);
-                return values.length > 0 ? Math.max(...values) : null;
-                
-            case 'bmi':
-                const height = parseFloat(data.bmi_height) || 0;
-                const weight = parseFloat(data.bmi_weight) || 0;
-                if (height > 0 && weight > 0) {
-                    return ((weight / Math.pow(height / 100, 2)).toFixed(1));
-                }
-                return null;
-                
-            case 'pei':
-                const hr1 = parseFloat(data.step_test_heart_rate_1) || 0;
-                const hr2 = parseFloat(data.step_test_heart_rate_2) || 0;
-                const hr3 = parseFloat(data.step_test_heart_rate_3) || 0;
-                if (hr1 > 0 && hr2 > 0 && hr3 > 0) {
-                    const duration = calculation.duration || 300;
-                    return Math.round((duration * 100) / (2 * (hr1 + hr2 + hr3)));
-                }
-                return null;
-                
-            default:
-                return null;
-        }
-    } catch (error) {
-        console.error('계산 오류:', error);
-        return null;
-    }
 }
 
 // 계산된 필드 표시 업데이트 (Tabulator에서 처리)

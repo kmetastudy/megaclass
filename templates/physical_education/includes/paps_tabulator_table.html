@@ -1349,17 +1349,57 @@ window.PAPSTabulator.onCellEdited = function(cell, column, activity) {
         window.saveStudentFieldData(studentId, fieldName, value);
     }
     
-    // Trigger calculations (preserve existing functionality)
-    if (window.performAutoCalculation) {
-        window.performAutoCalculation(studentId);
-    }
-    
     // Set dirty flag
     if (window.appState) {
         window.appState.isDirty = true;
     }
     
-    // Update calculated fields in the table
+    // Use new calculation module for automatic calculations
+    if (window.PAPSCalculations && activity) {
+        const measurementData = row.getData().measurement_data || {};
+        const studentGrade = window.appState?.selectedGrade || 7; // 기본값 설정
+        
+        // 새로운 계산 모듈 사용
+        const calculatedData = window.PAPSCalculations.processActivityData(
+            activity.name,
+            measurementData,
+            studentGrade
+        );
+        
+        // 계산된 값으로 테이블 업데이트
+        let hasUpdates = false;
+        Object.keys(calculatedData).forEach(calcFieldName => {
+            if (measurementData[calcFieldName] !== calculatedData[calcFieldName]) {
+                measurementData[calcFieldName] = calculatedData[calcFieldName];
+                hasUpdates = true;
+                
+                // Update the cell in the table if it exists
+                try {
+                    const calcCell = row.getCell(`measurement_data.${calcFieldName}`);
+                    if (calcCell) {
+                        calcCell.setValue(calculatedData[calcFieldName]);
+                    }
+                } catch (error) {
+                    // Cell might not exist in the table, which is fine
+                    console.debug(`Cell measurement_data.${calcFieldName} not found in table`);
+                }
+            }
+        });
+        
+        // Update the row data if there were calculated field updates
+        if (hasUpdates) {
+            const rowData = row.getData();
+            rowData.measurement_data = measurementData;
+            row.update(rowData);
+        }
+    }
+    
+    // Fallback: Trigger calculations using legacy method if new module not available
+    if (!window.PAPSCalculations && window.performAutoCalculation) {
+        window.performAutoCalculation(studentId);
+    }
+    
+    // Update calculated fields in the table (legacy method)
     window.PAPSTabulator.updateCalculatedFields(row, activity);
 };
 
