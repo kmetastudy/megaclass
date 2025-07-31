@@ -337,6 +337,9 @@ def process_measurement_data(
         weight = measurement_data.get('bmi_weight')
         if height and weight:
             processed_data['bmi_bmi'] = float(calculate_bmi(height, weight))
+        elif 'bmi_bmi' in processed_data:
+            # 필수 입력값이 없는데 기존 계산값이 있으면 제거
+            del processed_data['bmi_bmi']
     
     elif activity_name == 'STEP_TEST':
         # PEI 계산
@@ -348,6 +351,9 @@ def process_measurement_data(
             # 향후 성별 정보 추가 시 수정 필요 (고등학교 남학생만 다른 PEI 계산 공식 사용)
             is_male_hs = student_grade >= 10  # 임시로 고등학교 남학생 판단
             processed_data['step_test_pei'] = float(calculate_pei(hr1, hr2, hr3, is_male_high_school=is_male_hs))
+        elif 'step_test_pei' in processed_data:
+            # 필수 입력값이 하나라도 없는데 기존 계산값이 있으면 제거
+            del processed_data['step_test_pei']
     
     elif activity_name == 'GRIP_STRENGTH':
         # 악력 최댓값 계산
@@ -359,6 +365,9 @@ def process_measurement_data(
         ]
         if any(v is not None for v in values):
             processed_data['grip_strength_best'] = float(calculate_max_value(*values))
+        elif 'grip_strength_best' in processed_data:
+            # 모든 입력값이 없는데 기존 계산값이 있으면 제거
+            del processed_data['grip_strength_best']
     
     elif activity_name == 'SIT_REACH':
         # 앉아윗몸앞으로굽히기 최댓값
@@ -366,6 +375,9 @@ def process_measurement_data(
         second = measurement_data.get('sit_reach_second_attempt')
         if first is not None and second is not None:
             processed_data['sit_reach_best_record'] = float(calculate_max_value(first, second))
+        elif 'sit_reach_best_record' in processed_data:
+            # 필수 입력값이 하나라도 없는데 기존 계산값이 있으면 제거
+            del processed_data['sit_reach_best_record']
     
     elif activity_name == 'STANDING_LONG_JUMP':
         # 제자리멀리뛰기 최댓값
@@ -373,6 +385,9 @@ def process_measurement_data(
         second = measurement_data.get('standing_long_jump_second_attempt')
         if first is not None and second is not None:
             processed_data['standing_long_jump_best_record'] = float(calculate_max_value(first, second))
+        elif 'standing_long_jump_best_record' in processed_data:
+            # 필수 입력값이 하나라도 없는데 기존 계산값이 있으면 제거
+            del processed_data['standing_long_jump_best_record']
     
     elif activity_name == 'COMPREHENSIVE_FLEXIBILITY':
         # 종합유연성 총점
@@ -380,8 +395,14 @@ def process_measurement_data(
             'flexibility_shoulder_left', 'flexibility_shoulder_right', 'flexibility_body_left', 'flexibility_body_right',
             'flexibility_side_left', 'flexibility_side_right', 'flexibility_lower_body_left', 'flexibility_lower_body_right'
         ]
-        values = [measurement_data.get(field, False) for field in boolean_fields]
-        processed_data['flexibility_total_score'] = calculate_total_score(*values)
+        # 실제로 입력된 필드가 있는지 확인
+        has_any_input = any(field in measurement_data for field in boolean_fields)
+        if has_any_input:
+            values = [measurement_data.get(field, False) for field in boolean_fields]
+            processed_data['flexibility_total_score'] = calculate_total_score(*values)
+        elif 'flexibility_total_score' in processed_data:
+            # 입력이 없는데 기존 계산값이 있으면 제거
+            del processed_data['flexibility_total_score']
     
     
     elif activity_name == 'CARDIO_PRECISION_TEST':
@@ -390,6 +411,9 @@ def process_measurement_data(
         if avg_hr:
             age = get_age_from_grade(student_grade)
             processed_data['cardio_precision_avg_intensity'] = calculate_exercise_intensity(avg_hr, age)
+        elif 'cardio_precision_avg_intensity' in processed_data:
+            # 필수 입력값이 없는데 기존 계산값이 있으면 제거
+            del processed_data['cardio_precision_avg_intensity']
     
     elif activity_name == 'BODY_FAT_RATE_TEST':
         # 체지방률평가 BMI 계산
@@ -397,6 +421,9 @@ def process_measurement_data(
         weight = measurement_data.get('body_fat_rate_test_weight')
         if height and weight:
             processed_data['body_fat_rate_test_bmi'] = float(calculate_bmi(height, weight))
+        elif 'body_fat_rate_test_bmi' in processed_data:
+            # 필수 입력값이 없는데 기존 계산값이 있으면 제거
+            del processed_data['body_fat_rate_test_bmi']
     
     return processed_data
 
