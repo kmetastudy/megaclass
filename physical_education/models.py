@@ -210,11 +210,11 @@ class PAPSRecord(models.Model):
 
     # PAPS 등급
     GRADE_CHOICES = [
-        ("1", "1등급"),
-        ("2", "2등급"),
-        ("3", "3등급"),
-        ("4", "4등급"),
-        ("5", "5등급"),
+        (1, "1등급"),
+        (2, "2등급"),
+        (3, "3등급"),
+        (4, "4등급"),
+        (5, "5등급"),
     ]
 
     session_id = models.UUIDField()  # PAPSSession ID 참조
@@ -227,7 +227,7 @@ class PAPSRecord(models.Model):
         validators=[MinValueValidator(4), MaxValueValidator(12)]
     )
     measurement_data = models.JSONField()  # 측정 데이터
-    evaluation_grade = models.CharField(max_length=2, choices=GRADE_CHOICES, blank=True)
+    evaluation_grade = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], null=True, blank=True)
 
     measured_at = models.DateTimeField(default=timezone.now)
     notes = models.TextField(blank=True)
@@ -243,5 +243,8 @@ class PAPSRecord(models.Model):
         unique_together = ["session_id", "student_id", "activity_id"]
 
     def __str__(self):
-        grade = self.evaluation_grade if self.evaluation_grade else "미산정"
-        return f"PAPS 측정 기록 - {grade}등급"
+        if self.evaluation_grade:
+            grade = f"{self.evaluation_grade}등급"
+        else:
+            grade = "미산정"
+        return f"PAPS 측정 기록 - {grade}"

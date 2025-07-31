@@ -15,6 +15,25 @@ if (!window.PAPSTabulator) {
     window.PAPSTabulator = {};
 }
 
+// 전역 등급 formatter 함수
+window.PAPSTabulator.gradeFormatter = function(cell) {
+    const grade = cell.getValue();
+    const activityName = cell.getRow().getTable().options.currentActivity?.name;
+    
+    // 등급 값이 없으면 빈 문자열 반환
+    if (!grade || grade < 1 || grade > 5) {
+        return '';
+    }
+    
+    // BMI 종목인 경우 특수 처리
+    if (activityName === 'BMI') {
+        return window.formatBMIGrade ? window.formatBMIGrade(grade) : `${grade}등급`;
+    }
+    
+    // 일반 종목은 "N등급" 형식
+    return `<span class="grade-${grade}">${grade}등급</span>`;
+};
+
 // PAPS Tabulator configuration
 window.PAPSTabulator.config = {
     ...window.PETabulator.defaultConfig,
@@ -134,16 +153,13 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         },
         {
             title: "등급", 
-            field: "grade",
+            field: "evaluation_grade",
             widthGrow: 1.5,
             minWidth: 70,
             hozAlign: "center",
             resizable: true,
             cssClass: "calculated-field",
-            formatter: function(cell) {
-                const grade = Math.floor(Math.random() * 5) + 1; // Temporary
-                return `<span class="grade-${grade}">${grade}등급</span>`;
-            }
+            formatter: window.PAPSTabulator.gradeFormatter
         }
     ];
 
@@ -1167,6 +1183,22 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
     };
 };
 
+// Deep clone helper that preserves functions
+window.PAPSTabulator.deepCloneWithFunctions = function(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof Array) return obj.map(item => this.deepCloneWithFunctions(item));
+    if (typeof obj === 'function') return obj;
+    
+    const cloned = {};
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            cloned[key] = this.deepCloneWithFunctions(obj[key]);
+        }
+    }
+    return cloned;
+};
+
 // Build column definitions using pre-defined complete column structures
 window.PAPSTabulator.buildColumns = function(activity, students) {
     console.log("activity:", activity);
@@ -1186,9 +1218,10 @@ window.PAPSTabulator.buildColumns = function(activity, students) {
         console.warn(`No column definition found for activity: ${activityName}`);
         return [];
     }
+    console.log("predefinedColumns: ", predefinedColumns);
     
-    // Clone the column definitions to avoid modifying the original
-    const columns = JSON.parse(JSON.stringify(predefinedColumns));
+    // Clone the column definitions to avoid modifying the original (preserving functions)
+    const columns = window.PAPSTabulator.deepCloneWithFunctions(predefinedColumns);
     
     // Apply cell edited handlers to editable columns
     window.PAPSTabulator.applyCellEditedHandlers(columns, activity);
@@ -1541,7 +1574,8 @@ window.PAPSTabulator.init = function(containerId, activity, options = {}, sessio
     let config = {
         ...window.PAPSTabulator.config,
         ...options,
-        columns: columns
+        columns: columns,
+        currentActivity: activity
     };
     
     if (useAjax) {

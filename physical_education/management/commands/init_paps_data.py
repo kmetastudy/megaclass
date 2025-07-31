@@ -12,9 +12,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('PAPS 데이터 초기화를 시작합니다...'))
         
         # JSON 파일 경로
-        docs_path = os.path.join(settings.BASE_DIR, 'docs')
-        schemas_file = os.path.join(docs_path, 'paps_measurement_schemas.json')
-        criteria_file = os.path.join(docs_path, 'paps_evaluation_criteria.json')
+        pe_data_path = os.path.join(settings.BASE_DIR, 'physical_education', 'data')
+        schemas_file = os.path.join(pe_data_path, 'measurement_schemas.json')
+        criteria_file = os.path.join(pe_data_path, 'evaluation_criteria.json')
         
         # JSON 파일 로드
         try:
@@ -120,20 +120,20 @@ class Command(BaseCommand):
     def _get_calculation_field(self, activity_code):
         """활동별 등급 계산에 사용할 필드명 반환"""
         calculation_fields = {
-            'SHUTTLE_RUN': 'shuttles_completed',
-            'LONG_RUN_WALK': 'total_seconds',
-            'STEP_TEST': 'pei',
-            'SIT_REACH': 'best_result',
-            'COMPREHENSIVE_FLEXIBILITY': 'total_score',
-            'PUSH_UP': 'repetitions',
-            'SIT_UP': 'repetitions',
-            'GRIP_STRENGTH': 'best_result',
-            'FIFTY_METER_RUN': 'time_seconds',
-            'STANDING_LONG_JUMP': 'best_result',
-            'BMI': 'bmi',
-            'CARDIO_PRECISION_TEST': 'avg_heart_rate',
+            'SHUTTLE_RUN': 'shuttle_run',
+            'LONG_RUN_WALK': 'long_run_walk',
+            'STEP_TEST': 'step_test_pei',
+            'SIT_REACH': 'sit_reach_best_record',
+            'COMPREHENSIVE_FLEXIBILITY': 'flexibility_total_score',
+            'PUSH_UP': 'push_up',
+            'SIT_UP': 'sit_up',
+            'GRIP_STRENGTH': 'grip_strength_best',
+            'FIFTY_METER_RUN': 'fifty_meter_run',
+            'STANDING_LONG_JUMP': 'standing_long_jump_best_record',
+            'BMI': 'bmi_bmi',
+            'CARDIO_PRECISION_TEST': 'cardio_precision_avg_heart_rate',
             'BODY_FAT_RATE_TEST': 'body_fat_rate',
-            'POSTURE_TEST': 'overall_evaluation',
-            'SELF_BODY_TEST': 'question_1',  # 첫 번째 문항으로 임시 설정
+            'POSTURE_TEST': 'posture_test_overall_evaluation',
+            'SELF_BODY_TEST': 'self_body_test_question_1',  # 첫 번째 문항으로 임시 설정
         }
         return calculation_fields.get(activity_code, 'value')

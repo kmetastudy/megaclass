@@ -762,8 +762,24 @@ def api_paps_save_measurement(request):
             student_grade
         )
         
+        # 등급 계산 및 저장
+        evaluation_grade = None
+        if activity.evaluation_criteria:
+            grade_result = calculate_paps_grade(activity, processed_data, student_grade)
+            if 'error' not in grade_result:
+                # 임시로 male_grade를 사용 (실제로는 학생 성별에 따라 결정)
+                if grade_result.get('male_grade_code'):
+                    grade_code = grade_result.get('male_grade_code')
+                    # grade_code가 'grade_1', 'grade_2' 등의 형태일 때 숫자만 추출
+                    if grade_code and grade_code.startswith('grade_'):
+                        try:
+                            evaluation_grade = int(grade_code.split('_')[1])
+                        except (IndexError, ValueError):
+                            pass
+        
         # 측정 데이터 업데이트 (계산된 값 포함)
         record.measurement_data = processed_data
+        record.evaluation_grade = evaluation_grade
         record.measured_at = timezone.now()
         record.save()
 
@@ -778,44 +794,6 @@ def api_paps_save_measurement(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
 
-
-@login_required
-@teacher_required
-@require_http_methods(["GET", "POST"])
-def api_paps_calculate_grade(request):
-    """PAPS 등급 계산 API"""
-    try:
-        if request.method == "GET":
-            data = request.GET
-        else:
-            data = json.loads(request.body)
-
-        activity_id = data.get("activity_id")
-        measurement_data = data.get("measurement_data", {})
-        student_grade = int(data.get("student_grade", 6))
-
-        if not activity_id:
-            return JsonResponse(
-                {"success": False, "error": "activity_id가 필요합니다."}
-            )
-
-        activity = get_object_or_404(PAPSActivity, id=activity_id)
-
-        # 등급 계산
-        grade_result = calculate_paps_grade(
-            activity=activity,
-            measurement_data=measurement_data,
-            student_grade=student_grade,
-        )
-
-        return JsonResponse({"success": True, "grade_result": grade_result})
-
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"success": False, "error": "JSON 데이터가 올바르지 않습니다."}
-        )
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required

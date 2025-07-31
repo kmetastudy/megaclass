@@ -2,7 +2,7 @@
   "SHUTTLE_RUN": {
     "gender_specific": true,
     "unit": "회",
-    "calculation_field": "shuttles_completed",
+    "calculation_field": "shuttle_run",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -147,7 +147,7 @@
   "LONG_RUN_WALK": {
     "gender_specific": true,
     "unit": "초",
-    "calculation_field": "total_seconds",
+    "calculation_field": "long_run_walk",
     "grade_type": "numeric",
     "calculation_method": "lower_better",
     "grade_labels": {
@@ -279,7 +279,7 @@
   "STEP_TEST": {
     "gender_specific": false,
     "unit": "PEI",
-    "calculation_field": "pei",
+    "calculation_field": "step_test_pei",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -303,7 +303,7 @@
   "SIT_REACH": {
     "gender_specific": true,
     "unit": "cm",
-    "calculation_field": "best_record",
+    "calculation_field": "sit_reach_best_record",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -448,7 +448,7 @@
   "COMPREHENSIVE_FLEXIBILITY": {
     "gender_specific": false,
     "unit": "점",
-    "calculation_field": "total_score",
+    "calculation_field": "flexibility_total_score",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -472,144 +472,144 @@
   "BMI": {
     "gender_specific": true,
     "unit": "kg/m²",
-    "calculation_field": "bmi",
-    "grade_type": "categorical",
+    "calculation_field": "bmi_bmi",
+    "grade_type": "numeric",
     "grade_labels": {
-      "underweight": "마름",
-      "normal": "정상",
-      "overweight": "과체중",
-      "mild_obesity": "경도비만",
-      "severe_obesity": "고도비만"
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
     },
     "criteria": {
       "male": {
         "초4": {
-          "underweight": {"max": 14.2},
-          "normal": {"min": 14.3, "max": 20.7},
-          "overweight": {"min": 20.8, "max": 23.2},
-          "mild_obesity": {"min": 23.3, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 14.2},
+          "grade_4": {"min": 14.3, "max": 20.7},
+          "grade_3": {"min": 20.8, "max": 23.2},
+          "grade_2": {"min": 23.3, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "초5": {
-          "underweight": {"max": 14.5},
-          "normal": {"min": 14.6, "max": 21.4},
-          "overweight": {"min": 21.5, "max": 23.9},
-          "mild_obesity": {"min": 24.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 14.5},
+          "grade_4": {"min": 14.6, "max": 21.4},
+          "grade_3": {"min": 21.5, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "초6": {
-          "underweight": {"max": 14.8},
-          "normal": {"min": 14.9, "max": 22.1},
-          "overweight": {"min": 22.2, "max": 24.6},
-          "mild_obesity": {"min": 24.7, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 14.8},
+          "grade_4": {"min": 14.9, "max": 22.1},
+          "grade_3": {"min": 22.2, "max": 24.6},
+          "grade_2": {"min": 24.7, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중1": {
-          "underweight": {"max": 15.3},
-          "normal": {"min": 15.4, "max": 23.2},
-          "overweight": {"min": 23.3, "max": 25.9},
-          "mild_obesity": {"min": 26.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 15.3},
+          "grade_4": {"min": 15.4, "max": 23.2},
+          "grade_3": {"min": 23.3, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중2": {
-          "underweight": {"max": 15.7},
-          "normal": {"min": 15.8, "max": 24.3},
-          "overweight": {"min": 24.4, "max": 27.2},
-          "mild_obesity": {"min": 27.3, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 15.7},
+          "grade_4": {"min": 15.8, "max": 24.3},
+          "grade_3": {"min": 24.4, "max": 27.2},
+          "grade_2": {"min": 27.3, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중3": {
-          "underweight": {"max": 16.2},
-          "normal": {"min": 16.3, "max": 25.4},
-          "overweight": {"min": 25.5, "max": 28.5},
-          "mild_obesity": {"min": 28.6, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 16.2},
+          "grade_4": {"min": 16.3, "max": 25.4},
+          "grade_3": {"min": 25.5, "max": 28.5},
+          "grade_2": {"min": 28.6, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고1": {
-          "underweight": {"max": 16.7},
-          "normal": {"min": 16.8, "max": 26.5},
-          "overweight": {"min": 26.6, "max": 29.8},
-          "mild_obesity": {"min": 29.9, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 16.7},
+          "grade_4": {"min": 16.8, "max": 26.5},
+          "grade_3": {"min": 26.6, "max": 29.8},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고2": {
-          "underweight": {"max": 17.2},
-          "normal": {"min": 17.3, "max": 27.6},
-          "overweight": {"min": 27.7, "max": 29.9},
-          "mild_obesity": {"min": 29.9, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 17.2},
+          "grade_4": {"min": 17.3, "max": 27.6},
+          "grade_3": {"min": 27.7, "max": 29.9},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고3": {
-          "underweight": {"max": 17.7},
-          "normal": {"min": 17.8, "max": 24.9},
-          "overweight": {"min": 25.0, "max": 29.9},
-          "mild_obesity": {"min": 25.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 17.7},
+          "grade_4": {"min": 17.8, "max": 24.9},
+          "grade_3": {"min": 25.0, "max": 29.9},
+          "grade_2": {"min": 25.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         }
       },
       "female": {
         "초4": {
-          "underweight": {"max": 13.9},
-          "normal": {"min": 14.0, "max": 19.8},
-          "overweight": {"min": 19.9, "max": 22.0},
-          "mild_obesity": {"min": 22.1, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 13.9},
+          "grade_4": {"min": 14.0, "max": 19.8},
+          "grade_3": {"min": 19.9, "max": 22.0},
+          "grade_2": {"min": 22.1, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "초5": {
-          "underweight": {"max": 14.2},
-          "normal": {"min": 14.3, "max": 20.6},
-          "overweight": {"min": 20.7, "max": 23.0},
-          "mild_obesity": {"min": 23.1, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 14.2},
+          "grade_4": {"min": 14.3, "max": 20.6},
+          "grade_3": {"min": 20.7, "max": 23.0},
+          "grade_2": {"min": 23.1, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "초6": {
-          "underweight": {"max": 14.6},
-          "normal": {"min": 14.7, "max": 21.4},
-          "overweight": {"min": 21.5, "max": 23.9},
-          "mild_obesity": {"min": 24.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 14.6},
+          "grade_4": {"min": 14.7, "max": 21.4},
+          "grade_3": {"min": 21.5, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중1": {
-          "underweight": {"max": 15.1},
-          "normal": {"min": 15.2, "max": 22.3},
-          "overweight": {"min": 22.4, "max": 24.9},
-          "mild_obesity": {"min": 25.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 15.1},
+          "grade_4": {"min": 15.2, "max": 22.3},
+          "grade_3": {"min": 22.4, "max": 24.9},
+          "grade_2": {"min": 25.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중2": {
-          "underweight": {"max": 15.6},
-          "normal": {"min": 15.7, "max": 23.2},
-          "overweight": {"min": 23.3, "max": 25.9},
-          "mild_obesity": {"min": 26.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 15.6},
+          "grade_4": {"min": 15.7, "max": 23.2},
+          "grade_3": {"min": 23.3, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "중3": {
-          "underweight": {"max": 16.2},
-          "normal": {"min": 16.3, "max": 24.1},
-          "overweight": {"min": 24.2, "max": 26.9},
-          "mild_obesity": {"min": 27.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 16.2},
+          "grade_4": {"min": 16.3, "max": 24.1},
+          "grade_3": {"min": 24.2, "max": 26.9},
+          "grade_2": {"min": 27.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고1": {
-          "underweight": {"max": 16.7},
-          "normal": {"min": 16.8, "max": 25.0},
-          "overweight": {"min": 25.1, "max": 27.9},
-          "mild_obesity": {"min": 28.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 16.7},
+          "grade_4": {"min": 16.8, "max": 25.0},
+          "grade_3": {"min": 25.1, "max": 27.9},
+          "grade_2": {"min": 28.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고2": {
-          "underweight": {"max": 17.2},
-          "normal": {"min": 17.3, "max": 25.9},
-          "overweight": {"min": 26.0, "max": 28.9},
-          "mild_obesity": {"min": 29.0, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 17.2},
+          "grade_4": {"min": 17.3, "max": 25.9},
+          "grade_3": {"min": 26.0, "max": 28.9},
+          "grade_2": {"min": 29.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
         },
         "고3": {
-          "underweight": {"max": 17.6},
-          "normal": {"min": 17.7, "max": 26.8},
-          "overweight": {"min": 26.9, "max": 29.9},
-          "mild_obesity": {"min": 29.9, "max": 29.9},
-          "severe_obesity": {"min": 30.0}
+          "grade_5": {"max": 17.6},
+          "grade_4": {"min": 17.7, "max": 26.8},
+          "grade_3": {"min": 26.9, "max": 29.9},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
         }
       }
     }
@@ -617,7 +617,7 @@
   "PUSH_UP": {
     "gender_specific": true,
     "unit": "회",
-    "calculation_field": "repetitions",
+    "calculation_field": "push_up",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -762,7 +762,7 @@
   "SIT_UP": {
     "gender_specific": true,
     "unit": "회",
-    "calculation_field": "repetitions",
+    "calculation_field": "sit_up",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -907,7 +907,7 @@
   "GRIP_STRENGTH": {
     "gender_specific": true,
     "unit": "kg",
-    "calculation_field": "best_grip",
+    "calculation_field": "grip_strength_best",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",
@@ -1052,7 +1052,7 @@
   "FIFTY_METER_RUN": {
     "gender_specific": true,
     "unit": "초",
-    "calculation_field": "time_seconds",
+    "calculation_field": "fifty_meter_run",
     "grade_type": "numeric",
     "calculation_method": "lower_better",
     "grade_labels": {
@@ -1198,7 +1198,7 @@
   "STANDING_LONG_JUMP": {
     "gender_specific": true,
     "unit": "cm",
-    "calculation_field": "best_record",
+    "calculation_field": "standing_long_jump_best_record",
     "grade_type": "numeric",
     "grade_labels": {
       "grade_1": "1등급",

@@ -143,6 +143,70 @@ def calculate_exercise_intensity(avg_heart_rate: int, age: int) -> int:
 
 # ==================== 등급 계산 함수 ====================
 
+def get_boundary_grade(
+    measurement_value: Union[float, Decimal],
+    grade_criteria: Dict[str, Dict[str, Any]],
+    calculation_method: str,
+    grade_labels: Dict[str, str]
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    범위를 벗어난 측정값에 대해 경계 등급 계산
+    
+    Args:
+        measurement_value: 측정값
+        grade_criteria: 학년별 등급 기준 (예: {"grade_1": {"min": 96, "max": 103}, ...})
+        calculation_method: 'higher_better' 또는 'lower_better'
+        grade_labels: 등급 라벨 정보
+    
+    Returns:
+        (grade_code, grade_label) 튜플 또는 (None, None)
+    """
+    if not grade_criteria:
+        return None, None
+    
+    measurement_value = safe_decimal(measurement_value)
+    
+    # 모든 등급의 범위에서 전체 최소/최대값 찾기
+    all_mins = []
+    all_maxs = []
+    
+    for grade_key, range_info in grade_criteria.items():
+        min_val = range_info.get('min')
+        max_val = range_info.get('max')
+        
+        if min_val is not None:
+            all_mins.append(min_val)
+        if max_val is not None:
+            all_maxs.append(max_val)
+    
+    if not all_mins and not all_maxs:
+        return None, None
+    
+    # 전체 범위의 최소/최대값
+    overall_min = min(all_mins) if all_mins else None
+    overall_max = max(all_maxs) if all_maxs else None
+    
+    # 경계값 처리
+    if calculation_method == 'lower_better':
+        # 값이 낮을수록 좋음 (시간 등)
+        if overall_min is not None and measurement_value < overall_min:
+            # 최소값보다 작으면 1등급 (가장 좋음)
+            return 'grade_1', grade_labels.get('grade_1', '1등급')
+        elif overall_max is not None and measurement_value > overall_max:
+            # 최대값보다 크면 5등급 (가장 나쁨)
+            return 'grade_5', grade_labels.get('grade_5', '5등급')
+    else:
+        # 값이 높을수록 좋음 (기본)
+        if overall_min is not None and measurement_value < overall_min:
+            # 최소값보다 작으면 5등급 (가장 나쁨)
+            return 'grade_5', grade_labels.get('grade_5', '5등급')
+        elif overall_max is not None and measurement_value > overall_max:
+            # 최대값보다 크면 1등급 (가장 좋음)
+            return 'grade_1', grade_labels.get('grade_1', '1등급')
+    
+    return None, None
+
+
 def calculate_grade(
     measurement_value: Union[float, Decimal],
     evaluation_criteria: Dict[str, Any],
@@ -227,6 +291,18 @@ def calculate_grade(
                 grade_code = grade_key
                 grade_label = grade_labels.get(grade_key, grade_key)
                 break
+        
+        # 등급이 결정되지 않은 경우 경계값 처리
+        if grade_code is None:
+            boundary_grade_code, boundary_grade_label = get_boundary_grade(
+                measurement_value=measurement_value,
+                grade_criteria=grade_criteria,
+                calculation_method=calculation_method,
+                grade_labels=grade_labels
+            )
+            if boundary_grade_code is not None:
+                grade_code = boundary_grade_code
+                grade_label = boundary_grade_label
         
         result[f'{check_gender}_grade'] = grade_label
         result[f'{check_gender}_grade_code'] = grade_code

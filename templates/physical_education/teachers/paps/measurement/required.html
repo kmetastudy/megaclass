@@ -864,6 +864,22 @@ function getClassDisplay(classId) {
     return classInfo ? classInfo.name : `${classId}반`;
 }
 
+// PAPS 등급 포맷 함수
+window.formatBMIGrade = function(grade) {
+    const bmiLabels = {
+        1: "고도비만",
+        2: "경도비만", 
+        3: "과체중",
+        4: "정상",
+        5: "마름"
+    };
+    
+    const label = bmiLabels[grade];
+    if (!label) return '';
+    
+    return `<span class="grade-${grade}">${label}</span>`;
+};
+
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', init);
 

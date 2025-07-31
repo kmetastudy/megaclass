@@ -36,11 +36,6 @@ urlpatterns = [
         name="api_paps_save_measurement",
     ),
     path(
-        "api/paps/calculate-grade/",
-        views.api_paps_calculate_grade,
-        name="api_paps_calculate_grade",
-    ),
-    path(
         "api/paps/activities/<str:category>/",
         views.api_paps_get_activities,
         name="api_paps_get_activities",
