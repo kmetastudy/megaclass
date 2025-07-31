@@ -229,7 +229,7 @@ class PAPSRecord(models.Model):
     measurement_data = models.JSONField()  # 측정 데이터
     evaluation_grade = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)], null=True, blank=True)
 
-    measured_at = models.DateTimeField(default=timezone.now)
+    measured_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
