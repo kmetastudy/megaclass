@@ -278,12 +278,18 @@ function init() {
     
     // 초기 상태 설정
     initializeState();
+    
+    // 학급 필터링 초기화
+    updateClassOptions();
 }
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
     // 필터 조회 버튼
     elements.filterSearchBtn.addEventListener('click', handleFilterSearch);
+    
+    // 학년 선택 변경 시 학급 목록 업데이트
+    elements.gradeSelect.addEventListener('change', updateClassOptions);
     
     // 탭 버튼들 (동적으로 생성되므로 이벤트 위임 사용)
     document.addEventListener('click', (e) => {
@@ -309,6 +315,42 @@ function initializeState() {
     }
     
     console.log('앱 초기화 완료', appState);
+}
+
+// 학년에 따른 학급 목록 업데이트
+function updateClassOptions() {
+    const selectedGrade = parseInt(elements.gradeSelect.value);
+    const currentSelectedClass = elements.classSelect.value;
+    
+    // 모든 옵션 제거
+    elements.classSelect.innerHTML = '';
+    
+    // 선택된 학년에 해당하는 학급만 필터링
+    const filteredClasses = djangoData.availableClasses.filter(classInfo => {
+        return classInfo.grade === selectedGrade;
+    });
+    
+    // 필터링된 학급 옵션 추가
+    if (filteredClasses.length > 0) {
+        filteredClasses.forEach(classInfo => {
+            const option = document.createElement('option');
+            option.value = classInfo.id;
+            option.textContent = classInfo.name;
+            elements.classSelect.appendChild(option);
+        });
+        
+        // 이전에 선택된 학급이 있고 필터링된 목록에 포함되어 있으면 유지
+        if (currentSelectedClass && filteredClasses.find(c => c.id == currentSelectedClass)) {
+            elements.classSelect.value = currentSelectedClass;
+        }
+    } else {
+        // 해당 학년에 학급이 없는 경우
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = '해당 학년에 학급이 없습니다';
+        option.disabled = true;
+        elements.classSelect.appendChild(option);
+    }
 }
 
 // 필터 조회 처리
