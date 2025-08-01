@@ -1,0 +1,1752 @@
+{% comment %}
+PAPS Tabulator Table Component
+- Reusable table component for PAPS measurement data entry
+- Supports complex multi-level headers using Column Groups
+- Integrates with existing measurement_schema structure
+- Preserves all current functionality (calculations, validation, batch operations)
+{% endcomment %}
+
+<!-- Include Tabulator setup -->
+{% include 'physical_education/includes/tabulator_setup.html' %}
+
+<script>
+// PAPS Tabulator namespace
+if (!window.PAPSTabulator) {
+    window.PAPSTabulator = {};
+}
+
+// 전역 등급 formatter 함수
+window.PAPSTabulator.gradeFormatter = function(cell) {
+    const grade = cell.getValue();
+    const activityName = cell.getRow().getTable().options.currentActivity?.name;
+    
+    // 등급 값이 없으면 빈 문자열 반환
+    if (!grade || grade < 1 || grade > 5) {
+        return '';
+    }
+    
+    // BMI 종목인 경우 특수 처리
+    if (activityName === 'BMI') {
+        return window.formatBMIGrade ? window.formatBMIGrade(grade) : `${grade}등급`;
+    }
+    
+    // 일반 종목은 "N등급" 형식
+    return `<span class="grade-${grade}">${grade}등급</span>`;
+};
+
+// PAPS Tabulator configuration
+window.PAPSTabulator.config = {
+    ...window.PETabulator.defaultConfig,
+    layout: "fitColumns", // Scale columns to fit table width
+    responsiveLayout: "collapse",
+    responsiveLayoutCollapseStartOpen: false,
+    pagination: false, // Load all students at once as per requirement
+    maxHeight: "70vh",
+    columnCalcs: "table",
+    editTriggerEvent: "click",
+    validationMode: "blocking",
+    placeholder: "측정 데이터가 없습니다.",
+    
+    // Korean localization
+    langs: {
+        "ko-kr": {
+            ...window.PETabulator.defaultConfig.langs["ko-kr"],
+            "pagination": {
+                "page_size": "페이지 크기",
+                "page_title": "페이지 번호",
+                "first": "처음",
+                "first_title": "첫 페이지",
+                "last": "마지막",
+                "last_title": "마지막 페이지",
+                "prev": "이전",
+                "prev_title": "이전 페이지",
+                "next": "다음",
+                "next_title": "다음 페이지",
+                "all": "전체"
+            },
+            "ajax": {
+                "loading": "측정 데이터 로딩중...",
+                "error": "데이터 로딩 오류"
+            },
+            "groups": {
+                "item": "항목",
+                "items": "항목들"
+            },
+            "columns": {
+                "name": "이름"
+            },
+            "data": {
+                "loading": "로딩중...",
+                "error": "오류"
+            }
+        }
+    },
+    locale: "ko-kr"
+};
+
+// Complete column definitions for each activity based on documented table structures
+window.PAPSTabulator.getCompleteColumnDefinitions = function() {
+    // Base columns used in all activities
+    const baseColumns = [
+        {
+            title: "순번",
+            field: "_index",
+            widthGrow: 1,
+            minWidth: 50,
+            hozAlign: "center",
+            resizable: true,
+            frozen: true,
+            formatter: function(cell) {
+                return cell.getRow().getPosition();
+            }
+        },
+        {
+            title: "번호",
+            field: "number",
+            widthGrow: 1.5,
+            minWidth: 60,
+            hozAlign: "center",
+            resizable: true,
+            frozen: true,
+            formatter: function(cell) {
+                const value = cell.getValue();
+                return value || '-';
+            }
+        },
+        {
+            title: "성명",
+            field: "name",
+            widthGrow: 2,
+            minWidth: 80,
+            hozAlign: "center",
+            resizable: true,
+            frozen: true,
+        },
+        {
+            title: "성별",
+            field: "gender",
+            widthGrow: 1,
+            minWidth: 50,
+            hozAlign: "center",
+            resizable: true,
+            frozen: true,
+            formatter: function(cell) {
+                const value = cell.getValue();
+                return value === 'M' ? '남' : (value === 'F' ? '여' : '-');
+            }
+        }
+    ];
+
+    // Result columns used in all activities
+    const resultColumns = [
+        {
+            title: "점수",
+            field: "score",
+            widthGrow: 1.5,
+            minWidth: 60,
+            hozAlign: "center",
+            resizable: true,
+            cssClass: "calculated-field",
+            formatter: function(cell) {
+                return '-'; // Placeholder
+            }
+        },
+        {
+            title: "등급", 
+            field: "evaluation_grade",
+            widthGrow: 1.5,
+            minWidth: 70,
+            hozAlign: "center",
+            resizable: true,
+            cssClass: "calculated-field",
+            formatter: window.PAPSTabulator.gradeFormatter
+        }
+    ];
+
+    return {
+        // 심폐지구력 activities
+        'SHUTTLE_RUN': [
+            ...baseColumns,
+            {
+                title: "왕복오래달리기(회)",
+                field: "measurement_data.shuttle_run",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 150}]
+            },
+            ...resultColumns
+        ],
+
+        'LONG_RUN_WALK': [
+            ...baseColumns,
+            {
+                title: "오래달리기/걷기(분.초)",
+                field: "measurement_data.long_run_walk",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number"
+            },
+            ...resultColumns
+        ],
+
+        'STEP_TEST': [
+            ...baseColumns,
+            {
+                title: "스텝검사",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "촉진",
+                        field: "measurement_data.is_palpation",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "tickCross"
+                    },
+                    {
+                        title: "심박수(1)<br>(회/분)",
+                        field: "measurement_data.step_test_heart_rate_1",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수(2)<br>(회/분)",
+                        field: "measurement_data.step_test_heart_rate_2",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수(3)<br>(회/분)",
+                        field: "measurement_data.step_test_heart_rate_3",
+                        widthGrow: 2,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "PEI",
+                        field: "measurement_data.step_test_pei",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 유연성 activities
+        'SIT_REACH': [
+            ...baseColumns,
+            {
+                title: "앉아윗몸앞으로굽히기(cm)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        field: "measurement_data.sit_reach_first_attempt",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
+                    },
+                    {
+                        title: "2차",
+                        field: "measurement_data.sit_reach_second_attempt",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.sit_reach_best_record",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        'COMPREHENSIVE_FLEXIBILITY': [
+            ...baseColumns,
+            {
+                title: "종합유연성평가(0: 실패, 1: 성공)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "어깨",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.flexibility_shoulder_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.flexibility_shoulder_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "몸통",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.flexibility_body_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.flexibility_body_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "옆구리",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.flexibility_side_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.flexibility_side_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "하체",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "좌",
+                                field: "measurement_data.flexibility_lower_body_left",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            },
+                            {
+                                title: "우",
+                                field: "measurement_data.flexibility_lower_body_right",
+                                widthGrow: 1,
+                                minWidth: 50,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "tickCross"
+                            }
+                        ]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.flexibility_total_score",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 근력·근지구력 activities
+        'PUSH_UP': [
+            ...baseColumns,
+            {
+                title: "(무릎대고)팔굽혀펴기(회)",
+                field: "measurement_data.push_up",
+                widthGrow: 2,
+                minWidth: 140,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
+            },
+            ...resultColumns
+        ],
+
+        'SIT_UP': [
+            ...baseColumns,
+            {
+                title: "윗몸말아올리기(회)",
+                field: "measurement_data.sit_up",
+                widthGrow: 2,
+                minWidth: 120,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
+            },
+            ...resultColumns
+        ],
+
+        'GRIP_STRENGTH': [
+            ...baseColumns,
+            {
+                title: "악력(kg)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "오른쪽",
+                                field: "measurement_data.grip_strength_right_hand_1",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            },
+                            {
+                                title: "왼쪽",
+                                field: "measurement_data.grip_strength_left_hand_1",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "2차",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "오른쪽",
+                                field: "measurement_data.grip_strength_right_hand_2",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            },
+                            {
+                                title: "왼쪽",
+                                field: "measurement_data.grip_strength_left_hand_2",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "악력",
+                        field: "measurement_data.grip_strength_best",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 순발력 activities
+        'FIFTY_METER_RUN': [
+            ...baseColumns,
+            {
+                title: "50m 달리기(초)",
+                field: "measurement_data.fifty_meter_run",
+                widthGrow: 2,
+                minWidth: 100,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 5}, {type: "max", parameters: 30}]
+            },
+            ...resultColumns
+        ],
+
+        'STANDING_LONG_JUMP': [
+            ...baseColumns,
+            {
+                title: "제자리멀리뛰기(cm)",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "1차",
+                        field: "measurement_data.standing_long_jump_first_attempt",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
+                    },
+                    {
+                        title: "2차",
+                        field: "measurement_data.standing_long_jump_second_attempt",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
+                    },
+                    {
+                        title: "평가값",
+                        field: "measurement_data.standing_long_jump_best_record",
+                        widthGrow: 1.5,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    }
+                ]
+            },
+            ...resultColumns
+        ],
+
+        // 비만 activity
+        'BMI': [
+            ...baseColumns,
+            {
+                title: "신장(cm)",
+                field: "measurement_data.bmi_height",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
+            },
+            {
+                title: "체중(kg)",
+                field: "measurement_data.bmi_weight",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 200}]
+            },
+            {
+                title: "BMI(kg/㎡)",
+                field: "measurement_data.bmi_bmi",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                cssClass: "calculated-field",
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return value ? value.toFixed(1) : '-';
+                }
+            },
+            ...resultColumns
+        ],
+
+        // 선택평가 activities (등급 없음)
+        'CARDIO_PRECISION_TEST': [
+            ...baseColumns,
+            {
+                title: "왕복오래달리기",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "심박수(회/분)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "평균",
+                                field: "measurement_data.cardio_precision_avg_heart_rate",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                            },
+                            {
+                                title: "최고",
+                                field: "measurement_data.cardio_precision_max_heart_rate",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                            }
+                        ]
+                    },
+                    {
+                        title: "운동강도(%)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "평균",
+                                field: "measurement_data.cardio_precision_avg_intensity",
+                                widthGrow: 1.5,
+                                minWidth: 70,
+                                hozAlign: "center",
+                                resizable: true,
+                                cssClass: "calculated-field",
+                                formatter: function(cell) {
+                                    const value = cell.getValue();
+                                    return value ? `${value}%` : '-';
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        title: "총 소비열량<br>(kcal)",
+                        field: "measurement_data.cardio_precision_total_calories",
+                        widthGrow: 2,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    },
+                    {
+                        title: "구간별 운동시간(초)",
+                        cssClass: "header-subgroup",
+                        columns: [
+                            {
+                                title: "1구간",
+                                field: "measurement_data.cardio_precision_section_1_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "2구간",
+                                field: "measurement_data.cardio_precision_section_2_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "3구간",
+                                field: "measurement_data.cardio_precision_section_3_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "4구간",
+                                field: "measurement_data.cardio_precision_section_4_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            },
+                            {
+                                title: "5구간",
+                                field: "measurement_data.cardio_precision_section_5_time",
+                                widthGrow: 1.2,
+                                minWidth: 60,
+                                hozAlign: "center",
+                                resizable: true,
+                                editor: "number",
+                                validator: ["numeric", {type: "min", parameters: 0}]
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                title: "3분 휴식",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "심박수1<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_1",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수2<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_2",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "심박수3<br>(회/분)",
+                        field: "measurement_data.cardio_precision_rest_heart_rate_3",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
+                    },
+                    {
+                        title: "PEI",
+                        field: "measurement_data.cardio_precision_pei",
+                        widthGrow: 1.2,
+                        minWidth: 60,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value || '-';
+                        }
+                    }
+                ]
+            }
+        ],
+
+        'BODY_FAT_RATE_TEST': [
+            ...baseColumns,
+            {
+                title: "체지방률평가",
+                cssClass: "header-group",
+                columns: [
+                    {
+                        title: "키(cm)",
+                        field: "measurement_data.body_fat_rate_test_height",
+                        widthGrow: 1.5,
+                        minWidth: 70,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
+                    },
+                    {
+                        title: "몸무게(kg)",
+                        field: "measurement_data.body_fat_rate_test_weight",
+                        widthGrow: 1.5,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 10}, {type: "max", parameters: 300}]
+                    },
+                    {
+                        title: "BMI(kg/m²)",
+                        field: "measurement_data.body_fat_rate_test_bmi",
+                        widthGrow: 1.5,
+                        minWidth: 90,
+                        hozAlign: "center",
+                        resizable: true,
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
+                    },
+                    {
+                        title: "체지방률<br>(%fat)",
+                        field: "measurement_data.body_fat_rate",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 60}]
+                    },
+                    {
+                        title: "근육량(%)",
+                        field: "measurement_data.body_fat_rate_muscle_mass",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    },
+                    {
+                        title: "지방량(%)",
+                        field: "measurement_data.body_fat_rate_fat_mass",
+                        widthGrow: 1.5,
+                        minWidth: 80,
+                        hozAlign: "center",
+                        resizable: true,
+                        editor: "number",
+                        validator: ["numeric", {type: "min", parameters: 0}]
+                    }
+                ]
+            }
+        ],
+
+        'POSTURE_TEST': [
+            ...baseColumns,
+            {
+                title: "어깨 기울기",
+                field: "measurement_data.shoulder_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "골반 기울기",
+                field: "measurement_data.pelvis_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "다리 굴곡",
+                field: "measurement_data.leg_flexion",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "목뼈 기울기",
+                field: "measurement_data.neck_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "상체 기울기",
+                field: "measurement_data.upper_body_tilt",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "골반전후<br>기울기",
+                field: "measurement_data.pelvis_sagittal_tilt",
+                widthGrow: 1.5,
+                minWidth: 80,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "척추 휨정도",
+                field: "measurement_data.spine_curvature",
+                widthGrow: 1.5,
+                minWidth: 90,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
+            },
+            {
+                title: "평가",
+                field: "measurement_data.posture_test_overall_evaluation",
+                widthGrow: 1.5,
+                minWidth: 70,
+                hozAlign: "center",
+                resizable: true,
+                cssClass: "calculated-field",
+                formatter: function(cell) {
+                    const value = cell.getValue();
+                    return value || '-';
+                }
+            },
+            {
+                title: "문진1",
+                field: "measurement_data.posture_test_questionnaire_1",
+                widthGrow: 1,
+                minWidth: 60,
+                hozAlign: "center",
+                resizable: true,
+                editor: "tickCross"
+            },
+            {
+                title: "문진2",
+                field: "measurement_data.posture_test_questionnaire_2",
+                widthGrow: 1,
+                minWidth: 60,
+                hozAlign: "center",
+                resizable: true,
+                editor: "tickCross"
+            }
+        ],
+
+        'SELF_BODY_TEST': [
+            ...baseColumns,
+            {
+                title: "1",
+                field: "measurement_data.self_body_test_question_1",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "2",
+                field: "measurement_data.self_body_test_question_2",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "3",
+                field: "measurement_data.self_body_test_question_3",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "4",
+                field: "measurement_data.self_body_test_question_4",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "5",
+                field: "measurement_data.self_body_test_question_5",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "6",
+                field: "measurement_data.self_body_test_question_6",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "7",
+                field: "measurement_data.self_body_test_question_7",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "8",
+                field: "measurement_data.self_body_test_question_8",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "9",
+                field: "measurement_data.self_body_test_question_9",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "10",
+                field: "measurement_data.self_body_test_question_10",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "11",
+                field: "measurement_data.self_body_test_question_11",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "12",
+                field: "measurement_data.self_body_test_question_12",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "13",
+                field: "measurement_data.self_body_test_question_13",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "14",
+                field: "measurement_data.self_body_test_question_14",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "15",
+                field: "measurement_data.self_body_test_question_15",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "16",
+                field: "measurement_data.self_body_test_question_16",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "17",
+                field: "measurement_data.self_body_test_question_17",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "18",
+                field: "measurement_data.self_body_test_question_18",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "19",
+                field: "measurement_data.self_body_test_question_19",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            },
+            {
+                title: "20",
+                field: "measurement_data.self_body_test_question_20",
+                widthGrow: 1,
+                minWidth: 40,
+                hozAlign: "center",
+                resizable: true,
+                editor: "number",
+                validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
+            }
+        ]
+    };
+};
+
+// Deep clone helper that preserves functions
+window.PAPSTabulator.deepCloneWithFunctions = function(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof Array) return obj.map(item => this.deepCloneWithFunctions(item));
+    if (typeof obj === 'function') return obj;
+    
+    const cloned = {};
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            cloned[key] = this.deepCloneWithFunctions(obj[key]);
+        }
+    }
+    return cloned;
+};
+
+// Build column definitions using pre-defined complete column structures
+window.PAPSTabulator.buildColumns = function(activity, students) {
+    console.log("activity:", activity);
+    if (!activity || !activity.name) {
+        return [];
+    }
+    
+    const activityName = activity.name;
+    console.log("Looking up activityName:", activityName);
+    const columnDefinitions = window.PAPSTabulator.getCompleteColumnDefinitions();
+    
+    // Get pre-defined columns for this activity
+    const predefinedColumns = columnDefinitions[activityName];
+    console.log("Found predefinedColumns:", predefinedColumns ? "YES" : "NO");
+    
+    if (!predefinedColumns) {
+        console.warn(`No column definition found for activity: ${activityName}`);
+        return [];
+    }
+    console.log("predefinedColumns: ", predefinedColumns);
+    
+    // Clone the column definitions to avoid modifying the original (preserving functions)
+    const columns = window.PAPSTabulator.deepCloneWithFunctions(predefinedColumns);
+    
+    // Apply cell edited handlers to editable columns
+    window.PAPSTabulator.applyCellEditedHandlers(columns, activity);
+    
+    return columns;
+};
+
+// Apply cell edited handlers to editable columns recursively
+window.PAPSTabulator.applyCellEditedHandlers = function(columns, activity) {
+    columns.forEach(column => {
+        if (column.columns) {
+            // This is a column group, recurse into sub-columns
+            window.PAPSTabulator.applyCellEditedHandlers(column.columns, activity);
+        } else if (column.editor && !column.cssClass?.includes('calculated-field')) {
+            // This is an editable column, add cell edited handler
+            column.cellEdited = function(cell) {
+                window.PAPSTabulator.onCellEdited(cell, column, activity);
+            };
+        }
+    });
+};
+
+// Build a single column definition using schema data directly
+window.PAPSTabulator.buildSingleColumn = function(field, activity) {
+    // Determine appropriate widthGrow and minWidth based on field type and content
+    let widthGrow = 2; // Default growth factor
+    let minWidth = 80;
+    
+    if (field.type === 'decimal') {
+        widthGrow = 2.5; // More space for decimal numbers
+        minWidth = 90;
+    } else if (field.type === 'boolean') {
+        widthGrow = 1.5; // Less space for checkboxes
+        minWidth = 60;
+    } else if (field.title && field.title.length > 10) {
+        widthGrow = 3; // More space for long titles
+        minWidth = 100;
+    }
+    
+    // Use schema data directly
+    const baseColumn = {
+        title: field.title,  // Use schema title directly
+        field: `measurement_data.${field.field}`,  // Use schema field name property
+        widthGrow: widthGrow,
+        minWidth: minWidth,
+        hozAlign: "center",
+        resizable: true,
+        tooltip: field.title
+    };
+    
+    // Use field.readonly from schema to determine column type
+    if (field.readonly) {
+        // Calculated/readonly column
+        return {
+            ...baseColumn,
+            cssClass: "calculated-field",
+            formatter: function(cell) {
+                const value = cell.getValue();
+                if (value === null || value === undefined || value === '') {
+                    return '-';
+                }
+                
+                // Format based on field type and schema properties
+                if (field.type === 'decimal' && field.decimal_places !== undefined) {
+                    const formatted = parseFloat(value).toFixed(field.decimal_places);
+                    return field.unit ? `${formatted} ${field.unit}` : formatted;
+                }
+                
+                if (field.type === 'boolean') {
+                    return value ? '○' : '×';
+                }
+                
+                // Add unit if specified
+                return field.unit ? `${value} ${field.unit}` : value;
+            }
+        };
+    } else {
+        // Input column
+        return {
+            ...baseColumn,
+            editor: window.PAPSTabulator.getFieldEditor(field),
+            validator: window.PAPSTabulator.getFieldValidator(field),
+            formatter: function(cell) {
+                const value = cell.getValue();
+                if (value === null || value === undefined || value === '') {
+                    return '';
+                }
+                
+                // Format based on field type and schema properties
+                if (field.type === 'decimal' && field.decimal_places !== undefined) {
+                    const formatted = parseFloat(value).toFixed(field.decimal_places);
+                    return field.unit ? `${formatted} ${field.unit}` : formatted;
+                }
+                
+                if (field.type === 'boolean') {
+                    return value ? '○' : '×';
+                }
+                
+                // For input fields, don't show unit in the cell (it can be in placeholder or label)
+                return value;
+            },
+            cellEdited: function(cell) {
+                window.PAPSTabulator.onCellEdited(cell, field, activity);
+            }
+        };
+    }
+};
+
+// Get appropriate editor for field type
+window.PAPSTabulator.getFieldEditor = function(field) {
+    switch (field.type) {
+        case 'integer':
+        case 'decimal':
+            return "number";
+        case 'boolean':
+            return "tickCross";
+        case 'string':
+        default:
+            return "input";
+    }
+};
+
+// Get validator for field
+window.PAPSTabulator.getFieldValidator = function(field) {
+    const validators = [];
+    
+    if (field.required) {
+        validators.push("required");
+    }
+    
+    if (field.type === 'integer' || field.type === 'decimal') {
+        validators.push("numeric");
+        
+        if (field.min !== undefined) {
+            validators.push({type: "min", parameters: field.min});
+        }
+        
+        if (field.max !== undefined) {
+            validators.push({type: "max", parameters: field.max});
+        }
+    }
+    
+    return validators;
+};
+
+// Handle cell edited event
+window.PAPSTabulator.onCellEdited = function(cell, column, activity) {
+    const row = cell.getRow();
+    const studentId = row.getData().id;
+    const value = cell.getValue();
+    
+    // Extract field name from column field path (e.g., "measurement_data.shoulder_left" -> "shoulder_left")
+    const fieldPath = column.field || cell.getField();
+    const fieldName = fieldPath.replace('measurement_data.', '');
+    
+    // Save data to app state (preserve existing functionality)
+    if (window.saveStudentFieldData) {
+        window.saveStudentFieldData(studentId, fieldName, value);
+    }
+    
+    // Set dirty flag
+    if (window.appState) {
+        window.appState.isDirty = true;
+    }
+    
+    // Use new calculation module for automatic calculations
+    if (window.PAPSCalculations && activity) {
+        const measurementData = row.getData().measurement_data || {};
+        const studentGrade = window.appState?.selectedGrade || 7; // 기본값 설정
+        
+        // 새로운 계산 모듈 사용
+        const calculatedData = window.PAPSCalculations.processActivityData(
+            activity.name,
+            measurementData,
+            studentGrade
+        );
+        
+        // 계산된 값으로 테이블 업데이트
+        let hasUpdates = false;
+        Object.keys(calculatedData).forEach(calcFieldName => {
+            if (measurementData[calcFieldName] !== calculatedData[calcFieldName]) {
+                measurementData[calcFieldName] = calculatedData[calcFieldName];
+                hasUpdates = true;
+                
+                // Update the cell in the table if it exists
+                try {
+                    const calcCell = row.getCell(`measurement_data.${calcFieldName}`);
+                    if (calcCell) {
+                        calcCell.setValue(calculatedData[calcFieldName]);
+                    }
+                } catch (error) {
+                    // Cell might not exist in the table, which is fine
+                    console.debug(`Cell measurement_data.${calcFieldName} not found in table`);
+                }
+            }
+        });
+        
+        // Update the row data if there were calculated field updates
+        if (hasUpdates) {
+            const rowData = row.getData();
+            rowData.measurement_data = measurementData;
+            row.update(rowData);
+        }
+    }
+    
+    // Fallback: Trigger calculations using legacy method if new module not available
+    if (!window.PAPSCalculations && window.performAutoCalculation) {
+        window.performAutoCalculation(studentId);
+    }
+    
+    // Update calculated fields in the table (legacy method)
+    window.PAPSTabulator.updateCalculatedFields(row, activity);
+};
+
+// Update calculated fields in a row
+window.PAPSTabulator.updateCalculatedFields = function(row, activity) {
+    if (!activity || !activity.measurement_schema) return;
+    
+    const studentId = row.getData().id;
+    const studentData = window.appState?.studentsData?.[studentId];
+    if (!studentData || !studentData[activity.id]) return;
+    
+    const activityData = studentData[activity.id];
+    const schema = activity.measurement_schema;
+    
+    schema.fields.forEach(field => {
+        if (field.readonly || field.calculated) {
+            const calculatedValue = activityData[field.name];
+            if (calculatedValue !== undefined) {
+                // Update the cell value
+                const cell = row.getCell(`measurement_data.${field.name}`);
+                if (cell) {
+                    cell.setValue(calculatedValue);
+                }
+            }
+        }
+    });
+    
+    // Update score and grade if calculation logic exists
+    // This would integrate with existing evaluation criteria
+};
+
+// Transform student data for Tabulator
+window.PAPSTabulator.transformStudentData = function(students, activity) {
+    if (!students || !Array.isArray(students)) return [];
+    
+    return students.map(student => {
+        const measurementData = student.measurement_data || {};
+        
+        return {
+            id: student.id,
+            number: student.number,
+            name: student.name,
+            gender: student.gender,
+            measurement_data: measurementData,
+            score: null, // Will be calculated
+            grade: null,  // Will be calculated
+            evaluation_grade: student.evaluation_grade || null,
+            measured_at: student.measured_at || null,
+            notes: student.notes || "",
+            record_id: student.record_id || null
+        };
+    });
+};
+
+// Build Ajax URL for data loading
+window.PAPSTabulator.buildAjaxURL = function(sessionId, activityId, classId, grade) {
+    const baseUrl = '/physical_education/api/paps/measurements/by-activity/';
+    
+    // Convert all parameters to strings to ensure consistency
+    const params = new URLSearchParams({
+        session_id: String(sessionId),
+        activity_id: String(activityId),
+        class_id: String(classId),
+        grade: String(grade)
+    });
+    
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+    console.log('생성된 Ajax URL:', fullUrl);
+    
+    return fullUrl;
+};
+
+// Ajax response processor
+window.PAPSTabulator.ajaxResponseProcessor = function(url, params, response) {
+    console.log('Ajax 응답 처리 시작:', { url, params, response });
+    
+    // Check if response is valid
+    if (!response) {
+        console.error('응답이 null 또는 undefined');
+        throw new Error('서버에서 응답을 받지 못했습니다.');
+    }
+    
+    if (!response.success) {
+        console.error('API 호출 실패:', response.error);
+        throw new Error(response.error || 'API 호출에 실패했습니다.');
+    }
+    
+    if (!response.students || !Array.isArray(response.students)) {
+        console.error('학생 데이터가 올바르지 않음:', response.students);
+        throw new Error('올바르지 않은 학생 데이터 형식입니다.');
+    }
+    
+    console.log(`${response.students.length}명의 학생 데이터 처리 중...`);
+    
+    // Transform the server response to Tabulator format
+    const transformedData = window.PAPSTabulator.transformStudentData(response.students);
+    console.log('변환된 테이블 데이터:', transformedData);
+    
+    return transformedData;
+};
+
+// Initialize PAPS Tabulator table with Ajax support
+window.PAPSTabulator.init = function(containerId, activity, options = {}, sessionData = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found:', containerId);
+        return null;
+    }
+    
+    // Check if we have the required state for Ajax loading
+    // Use sessionData first, fallback to window.appState
+    const selectedSession = sessionData.selectedSession || window.appState?.selectedSession;
+    const selectedClass = sessionData.selectedClass || window.appState?.selectedClass;
+    const selectedGrade = sessionData.selectedGrade || window.appState?.selectedGrade;
+    
+    const requiredFields = {
+        useAjax: options.useAjax,
+        selectedSession: selectedSession,
+        selectedClass: selectedClass,
+        selectedGrade: selectedGrade,
+        activityId: activity?.id,
+        sessionDataProvided: Object.keys(sessionData).length > 0,
+        windowAppStateAvailable: !!window.appState
+    };
+    
+    console.log('Ajax 조건 체크:', requiredFields);
+    
+    const useAjax = options.useAjax && 
+                   selectedSession && 
+                   selectedClass && 
+                   selectedGrade &&
+                   activity?.id;
+    
+    console.log('Ajax 모드 사용 여부:', useAjax);
+    
+    // Build columns
+    const columns = window.PAPSTabulator.buildColumns(activity, []);
+    
+    let config = {
+        ...window.PAPSTabulator.config,
+        ...options,
+        columns: columns,
+        currentActivity: activity
+    };
+    
+    if (useAjax) {
+        // Ajax-based configuration
+        const ajaxURL = window.PAPSTabulator.buildAjaxURL(
+            selectedSession,
+            activity.id,
+            selectedClass,
+            selectedGrade
+        );
+        
+        config.ajaxURL = ajaxURL;
+        config.ajaxConfig = {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': window.djangoData?.csrfToken || document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                'Content-Type': 'application/json'
+            }
+        };
+        config.ajaxRequesting = function() {
+            console.log('Ajax 데이터 로딩 시작...', ajaxURL);
+        };
+        config.ajaxResponse = function(url, params, response) {
+            console.log('Ajax 데이터 로딩 완료:', response);
+            return window.PAPSTabulator.ajaxResponseProcessor(url, params, response);
+        };
+        config.ajaxError = function(xhr, textStatus, errorThrown) {
+            console.error('Tabulator Ajax 오류:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                errorThrown: errorThrown,
+                url: ajaxURL
+            });
+            if (window.showMessage) {
+                window.showMessage('error', '측정 데이터 로딩 중 오류가 발생했습니다.');
+            }
+        };
+    } else {
+        // Fallback to empty data for manual loading
+        console.log('Ajax 모드가 아닙니다. 빈 데이터로 테이블 초기화합니다.');
+        config.data = [];
+        config.placeholder = "조회 버튼을 클릭하여 학생 데이터를 불러오세요.";
+    }
+    
+    // Create table
+    const table = new Tabulator(`#${containerId}`, config);
+    
+    // Register for responsive updates
+    if (!window.tabulatorInstances) {
+        window.tabulatorInstances = [];
+    }
+    window.tabulatorInstances.push(table);
+    
+    return table;
+};
+
+// Update table data with Ajax reload
+window.PAPSTabulator.reloadData = function(table, sessionId, activityId, classId, grade) {
+    if (!table) return Promise.reject(new Error('Table not found'));
+    
+    const ajaxURL = window.PAPSTabulator.buildAjaxURL(sessionId, activityId, classId, grade);
+    
+    // Use setData with URL to trigger Ajax reload
+    return table.setData(ajaxURL)
+        .then(() => {
+            console.log('테이블 데이터 새로고침 완료');
+            return table;
+        })
+        .catch(error => {
+            console.error('테이블 데이터 새로고침 실패:', error);
+            throw error;
+        });
+};
+
+// Legacy update function for backward compatibility
+window.PAPSTabulator.updateData = function(table, students, activity) {
+    if (!table) return;
+    
+    const data = window.PAPSTabulator.transformStudentData(students, activity);
+    table.setData(data);
+};
+
+// Get all table data for batch operations
+window.PAPSTabulator.getAllData = function(table) {
+    if (!table) return [];
+    
+    return table.getData();
+};
+
+// Clear all measurement data
+window.PAPSTabulator.clearAllData = function(table, activity) {
+    if (!table || !activity) return;
+    
+    const data = table.getData().map(row => {
+        return {
+            ...row,
+            measurement_data: {},
+            score: null,
+            grade: null
+        };
+    });
+    
+    table.setData(data);
+};
+
+console.log('PAPS Tabulator component loaded successfully');
+</script>
+
+<style>
+/* PAPS Tabulator specific styles - Minimal approach using Bootstrap 5 theme */
+.paps-tabulator-container {
+    width: 100%;
+}
+
+.paps-tabulator-container .tabulator {
+    font-size: 12px;
+    width: 100%;
+}
+
+/* Essential custom styles only */
+
+/* Header text alignment - Center align all header titles */
+.paps-tabulator-container .tabulator-col-title {
+    text-align: center;
+}
+
+/* Column Group Header Styling */
+.paps-tabulator-container .header-group .tabulator-col-title {
+    background-color: #f8fafc;
+    font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 8px 4px;
+}
+
+.paps-tabulator-container .header-subgroup .tabulator-col-title {
+    background-color: #f1f5f9;
+    font-weight: 500;
+    border-bottom: 1px solid #cbd5e1;
+    padding: 6px 4px;
+}
+
+/* Multi-level header border enhancement */
+.paps-tabulator-container .tabulator-col-group {
+    border-right: 1px solid #d1d5db;
+}
+
+.paps-tabulator-container .tabulator-col-group:last-child {
+    border-right: none;
+}
+
+/* Grade colors - Custom functionality not in Bootstrap theme */
+.paps-tabulator-container .grade-1 { color: #dc2626; font-weight: bold; }
+.paps-tabulator-container .grade-2 { color: #ea580c; font-weight: bold; }
+.paps-tabulator-container .grade-3 { color: #ca8a04; font-weight: bold; }
+.paps-tabulator-container .grade-4 { color: #16a34a; font-weight: bold; }
+.paps-tabulator-container .grade-5 { color: #2563eb; font-weight: bold; }
+
+/* Input field focus enhancement */
+.paps-tabulator-container .tabulator-cell input:focus {
+    background: #eff6ff;
+    outline: 1px solid #3b82f6;
+    border-radius: 2px;
+}
+
+/* Validation error styling - Important for user feedback */
+.paps-tabulator-container .tabulator-validation-fail {
+    border: 2px solid #ef4444 !important;
+    background: #fef2f2 !important;
+}
+
+.paps-tabulator-container .tabulator-validation-fail input {
+    color: #dc2626;
+}
+</style>

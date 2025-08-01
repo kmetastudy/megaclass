@@ -1,0 +1,532 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}체육 활동 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen mobile-nav-padding pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 컨텐츠 -->
+    <div class="flex-1 lg:ml-64 transition-all duration-300">
+        
+        <!-- 대시보드 내용 -->
+        <div class="p-3 sm:p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">체육 활동 관리 시스템</h1>
+                <p class="text-sm sm:text-base text-gray-600">PAPS 측정 및 체력 평가를 효율적으로 관리하세요</p>
+            </div>
+            
+            <!-- 통계 카드 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+                <!-- 총 측정회차 -->
+                <div class="dashboard-card">
+                    <div class="flex items-center">
+                        <div class="stat-icon bg-blue-100 text-blue-600">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="ml-3 sm:ml-4">
+                            <div class="stat-number text-xl sm:text-2xl lg:text-3xl text-blue-600">{{ stats.total_sessions }}</div>
+                            <div class="stat-label text-xs sm:text-sm">총 측정회차</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 진행 중인 회차 -->
+                <div class="dashboard-card">
+                    <div class="flex items-center">
+                        <div class="stat-icon bg-green-100 text-green-600">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <div class="ml-3 sm:ml-4">
+                            <div class="stat-number text-xl sm:text-2xl lg:text-3xl text-green-600">{{ stats.active_sessions }}</div>
+                            <div class="stat-label text-xs sm:text-sm">진행 중인 회차</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 이번 달 측정 -->
+                <div class="dashboard-card">
+                    <div class="flex items-center">
+                        <div class="stat-icon bg-purple-100 text-purple-600">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="ml-3 sm:ml-4">
+                            <div class="stat-number text-xl sm:text-2xl lg:text-3xl text-purple-600">{{ stats.this_month_sessions }}</div>
+                            <div class="stat-label text-xs sm:text-sm">이번 달 측정</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 총 측정 기록 -->
+                <div class="dashboard-card">
+                    <div class="flex items-center">
+                        <div class="stat-icon bg-orange-100 text-orange-600">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="ml-3 sm:ml-4">
+                            <div class="stat-number text-xl sm:text-2xl lg:text-3xl text-orange-600">{{ stats.total_records }}</div>
+                            <div class="stat-label text-xs sm:text-sm">총 측정 기록</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 담당 학급 현황 -->
+            <div class="mb-6 sm:mb-8">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">담당 학급 현황</h2>
+                {% if class_info %}
+                    <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                        {% for class in class_info %}
+                        <div class="dashboard-card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900">{{ class.class.name }}</h3>
+                                    <p class="text-sm text-gray-500">{{ class.role }}</p>
+                                    <div class="flex items-center mt-2 space-x-4">
+                                        <span class="text-xs sm:text-sm text-gray-600">
+                                            <i class="fas fa-users mr-1"></i>
+                                            {{ class.student_count }}명
+                                        </span>
+                                        <span class="text-xs sm:text-sm text-green-600">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            최근 {{ class.recent_records }}건
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="stat-icon bg-indigo-100 text-indigo-600">
+                                    <i class="fas fa-school"></i>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="dashboard-card text-center py-8 text-gray-500">
+                        <i class="fas fa-school text-4xl mb-4"></i>
+                        <p>담당 학급이 없습니다.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- 차트 섹션 -->
+            <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
+                <!-- 월별 측정 추이 -->
+                <div class="dashboard-card">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">월별 측정 추이</h3>
+                    <div class="h-48 sm:h-56 md:h-64">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 종목별 측정 현황 -->
+                <div class="dashboard-card">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">종목별 측정 현황</h3>
+                    <div class="h-48 sm:h-56 md:h-64">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 최근 7일 활동 -->
+            <div class="mb-6 sm:mb-8">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">최근 7일 활동</h2>
+                <div class="dashboard-card">
+                    <div class="h-24 sm:h-28 md:h-32">
+                        <canvas id="dailyActivityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 빠른 액션 버튼 -->
+            <div class="mb-6 sm:mb-8">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">빠른 작업</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <a href="{% url 'physical_education:paps_session_list' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-plus-circle mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">새 측정회차</span>
+                    </a>
+                    <a href="{% url 'physical_education:paps_session_activities' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-edit mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">종목 선택</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-search mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">결과 조회</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-chart-line mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">통계 분석</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 최근 측정회차 -->
+            <div class="dashboard-card">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">최근 측정회차</h2>
+                {% if recent_sessions %}
+                    <div class="space-y-4">
+                        {% for item in recent_sessions %}
+                        <div class="recent-item">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <h3 class="font-medium text-gray-900">{{ item.session.name }}</h3>
+                                    <p class="text-sm text-gray-500">{{ item.session.measurement_date|date:"Y년 m월 d일" }}</p>
+                                    <div class="flex items-center space-x-4 mt-1">
+                                        <p class="text-xs text-gray-400">활동 수: {{ item.total_activities }}개</p>
+                                        <p class="text-xs text-gray-400">기록 수: {{ item.completed_records }}개</p>
+                                        {% if item.activity_names %}
+                                            <p class="text-xs sm:text-sm text-blue-600">
+                                                종목: {% for name in item.activity_names %}{{ name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                                {% if item.activity_count > 3 %} 외 {{ item.activity_count|add:"-3" }}개{% endif %}
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    {% if item.session.is_completed %}
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">완료</span>
+                                    {% else %}
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">진행중</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-calendar-times text-4xl mb-4"></i>
+                        <p>아직 생성된 측정회차가 없습니다.</p>
+                        <a href="{% url 'physical_education:paps_session_list' %}" class="text-green-600 hover:text-green-700 font-medium">첫 번째 측정회차를 만들어보세요!</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
+
+{% endblock %}
+
+<style>
+
+    /* 기본 반응형 스타일 */
+    .dashboard-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(229, 231, 235, 1);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+
+    .stat-number {
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: rgba(107, 114, 128, 1);
+        margin-top: 0.25rem;
+    }
+
+    .recent-item {
+        padding: 0.75rem;
+        border: 1px solid rgba(229, 231, 235, 1);
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+        margin-bottom: 0.75rem;
+    }
+
+    .recent-item:hover {
+        background-color: rgba(249, 250, 251, 1);
+        border-color: rgba(209, 213, 219, 1);
+    }
+
+    /* 소형 모바일 디바이스 (320px-480px) */
+    @media (max-width: 480px) {
+        .dashboard-card {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .stat-icon {
+            width: 2rem;
+            height: 2rem;
+            font-size: 0.875rem;
+        }
+        
+        .recent-item {
+            padding: 0.5rem;
+        }
+        
+        /* 빠른 액션 버튼 모바일 최적화 */
+        .quick-action-mobile {
+            flex-direction: column;
+            text-align: center;
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .quick-action-mobile i {
+            margin-bottom: 0.25rem;
+            margin-right: 0;
+        }
+    }
+
+    /* 중형 모바일 디바이스 (481px-640px) */
+    @media (min-width: 481px) and (max-width: 640px) {
+        .dashboard-card {
+            padding: 1rem;
+        }
+        
+        .stat-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            font-size: 1rem;
+        }
+    }
+
+    /* 태블릿 (641px-1024px) */
+    @media (min-width: 641px) and (max-width: 1024px) {
+        .dashboard-card {
+            padding: 1.25rem;
+        }
+        
+        .stat-icon {
+            width: 2.75rem;
+            height: 2.75rem;
+            font-size: 1.125rem;
+        }
+    }
+
+    /* 데스크톱 (1025px+) */
+    @media (min-width: 1025px) {
+        .dashboard-card {
+            padding: 1.5rem;
+        }
+        
+        .stat-icon {
+            width: 3rem;
+            height: 3rem;
+            font-size: 1.25rem;
+        }
+    }
+    
+    /* 터치 타겟 최적화 */
+    @media (max-width: 1023px) {
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        .dashboard-card {
+            cursor: pointer;
+        }
+    }
+    
+    /* 스크롤 성능 최적화 */
+    .scroll-smooth {
+        scroll-behavior: smooth;
+    }
+    
+    /* 포커스 접근성 개선 */
+    .focus-visible:focus {
+        outline: 2px solid #3B82F6;
+        outline-offset: 2px;
+    }
+</style>
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+{% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"></script> {% endcomment %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js가 로드되었는지 확인
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js가 로드되지 않았습니다.');
+        return;
+    }
+
+    // 차트 관련 데이터 준비
+    const chartData = {
+        monthly: {
+            labels: [{% for item in monthly_data %}'{{ item.month }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            data: [{% for item in monthly_data %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        },
+        activity: {
+            labels: [{% for item in activity_stats %}'{{ item.name }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            data: [{% for item in activity_stats %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        },
+        daily: {
+            labels: [{% for item in daily_activity %}'{{ item.date }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            data: [{% for item in daily_activity %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}]
+        }
+    };
+
+    // 차트 색상 팔레트
+    const chartColors = {
+        primary: 'rgba(59, 130, 246, 0.8)',
+        primaryBorder: 'rgba(59, 130, 246, 1)',
+        secondary: 'rgba(16, 185, 129, 0.8)',
+        secondaryBorder: 'rgba(16, 185, 129, 1)',
+        accent: 'rgba(139, 92, 246, 0.8)',
+        accentBorder: 'rgba(139, 92, 246, 1)',
+        gradient: [
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(236, 72, 153, 0.8)',
+            'rgba(14, 165, 233, 0.8)',
+            'rgba(34, 197, 94, 0.8)'
+        ]
+    };
+
+    // 공통 차트 옵션
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+        },
+    };
+
+    // 월별 측정 추이 라인 차트 초기화
+    function initMonthlyChart() {
+        const ctx = document.getElementById('monthlyChart');
+        if (!ctx) return;
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: chartData.monthly.labels,
+                datasets: [{
+                    label: '측정 건수',
+                    data: chartData.monthly.data,
+                    borderColor: chartColors.primaryBorder,
+                    backgroundColor: chartColors.primary,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 종목별 측정 현황 도넛 차트 초기화
+    function initActivityChart() {
+        const ctx = document.getElementById('activityChart');
+        if (!ctx) return;
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: chartData.activity.labels,
+                datasets: [{
+                    data: chartData.activity.data,
+                    backgroundColor: chartColors.gradient,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                ...commonOptions,
+                cutout: '60%',
+                plugins: {
+                    ...commonOptions.plugins,
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 최근 7일 활동 막대 차트 초기화
+    function initDailyActivityChart() {
+        const ctx = document.getElementById('dailyActivityChart');
+        if (!ctx) return;
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: chartData.daily.labels,
+                datasets: [{
+                    label: '측정 건수',
+                    data: chartData.daily.data,
+                    backgroundColor: chartColors.secondary,
+                    borderColor: chartColors.secondaryBorder,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    ...commonOptions.plugins,
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    // 차트 초기화 실행
+    try {
+        initMonthlyChart();
+        initActivityChart();
+        initDailyActivityChart();
+    } catch (error) {
+        console.error('차트 초기화 중 오류 발생:', error);
+    }
+});
+</script>
+{% endblock %}

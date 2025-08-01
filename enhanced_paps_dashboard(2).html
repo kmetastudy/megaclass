@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트체육 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .menu-item.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .submenu-item.active { background-color: #e5e7eb; color: #111827; font-weight: 600; }
+        .submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .submenu.show { max-height: 500px; }
+        .card { transition: all 0.3s ease; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .stat-card.blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .stat-card.green { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .stat-card.orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .stat-card.purple { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #374151; }
+        .donut-chart { position: relative; }
+        .donut-chart canvas { max-height: 300px; }
+        .input-field { transition: all 0.2s ease; }
+        .input-field:focus { transform: scale(1.02); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .btn-primary:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); transform: translateY(-1px); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex min-h-screen">
+        <!-- 좌측 메뉴 -->
+        <aside class="w-64 bg-white shadow-lg">
+            <div class="p-6 bg-gradient-to-r from-blue-600 to-purple-600">
+                <h1 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-running mr-3"></i>스마트체육 대시보드
+                </h1>
+            </div>
+            
+            <nav class="mt-6 px-3">
+                <!-- 홈 -->
+                <button class="menu-item w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mb-2 active" data-target="dashboard">
+                    <i class="fas fa-home w-5 mr-3"></i>
+                    <span>홈</span>
+                </button>
+                
+                <!-- 기록 관리 -->
+                <button class="menu-item w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mb-2" data-target="record-management">
+                    <i class="fas fa-edit w-5 mr-3"></i>
+                    <span>기록 관리</span>
+                </button>
+                
+                <!-- 성적 분석 -->
+                <div class="mb-2">
+                    <button class="menu-toggle w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg" data-menu="statistics">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-bar w-5 mr-3"></i>
+                            <span>성적 분석</span>
+                        </div>
+                        <i class="fas fa-chevron-down transform transition-transform duration-200"></i>
+                    </button>
+                    <div class="submenu ml-4 mt-1" data-submenu="statistics">
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="individual-stats">
+                            <i class="fas fa-user-chart w-4 mr-2"></i>
+                            <span>통계 분석</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="comparative-stats">
+                            <i class="fas fa-chart-line w-4 mr-2"></i>
+                            <span>비교 분석</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 학생 관리 -->
+                <button class="menu-item w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg mb-2" data-target="student-management">
+                    <i class="fas fa-users w-5 mr-3"></i>
+                    <span>학생 관리</span>
+                </button>
+                
+                <!-- 보고서 -->
+                <div class="mb-2">
+                    <button class="menu-toggle w-full flex items-center justify-between px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg" data-menu="reports">
+                        <div class="flex items-center">
+                            <i class="fas fa-file-alt w-5 mr-3"></i>
+                            <span>보고서</span>
+                        </div>
+                        <i class="fas fa-chevron-down transform transition-transform duration-200"></i>
+                    </button>
+                    <div class="submenu ml-4 mt-1" data-submenu="reports">
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="cardio-reports">
+                            <i class="fas fa-heartbeat w-4 mr-2"></i>
+                            <span>심폐지구력</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="flexibility-reports">
+                            <i class="fas fa-dumbbell w-4 mr-2"></i>
+                            <span>유연성</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="strength-reports">
+                            <i class="fas fa-fist-raised w-4 mr-2"></i>
+                            <span>근력 및 근지구력</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="power-reports">
+                            <i class="fas fa-bolt w-4 mr-2"></i>
+                            <span>순발력</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="bmi-reports">
+                            <i class="fas fa-weight w-4 mr-2"></i>
+                            <span>BMI</span>
+                        </button>
+                        <button class="submenu-item w-full flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg mb-1" data-target="neis-reports">
+                            <i class="fas fa-table w-4 mr-2"></i>
+                            <span>NEIS 보고서</span>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="flex-1 p-6">
+            <!-- 홈 대시보드 -->
+            <div id="dashboard" class="content-section">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">대시보드 개요</h2>
+                    <p class="text-gray-600">스마트체육 애플리케이션에 오신 것을 환영합니다.</p>
+                </div>
+
+                <!-- 통계 카드 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stat-card p-6 rounded-xl text-white text-center">
+                        <div class="text-3xl font-bold">30</div>
+                        <div class="text-sm opacity-90 mt-1">총 학급 수</div>
+                    </div>
+                    <div class="stat-card blue p-6 rounded-xl text-white text-center">
+                        <div class="text-3xl font-bold">900</div>
+                        <div class="text-sm opacity-90 mt-1">총 학생 수</div>
+                    </div>
+                    <div class="stat-card green p-6 rounded-xl text-white text-center">
+                        <div class="text-3xl font-bold">7,200</div>
+                        <div class="text-sm opacity-90 mt-1">총 기록 수</div>
+                    </div>
+                    <div class="stat-card orange p-6 rounded-xl text-white text-center">
+                        <div class="text-3xl font-bold">78%</div>
+                        <div class="text-sm opacity-90 mt-1">완료율</div>
+                    </div>
+                </div>
+
+                <!-- 차트 섹션 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- 학년별 현황 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">학년별 현황</h3>
+                        <div class="donut-chart">
+                            <canvas id="grade-chart"></canvas>
+                        </div>
+                        <div class="mt-4 space-y-2 text-sm">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                    <span>4학년</span>
+                                </div>
+                                <span class="font-semibold">300명</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                    <span>5학년</span>
+                                </div>
+                                <span class="font-semibold">300명</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                                    <span>6학년</span>
+                                </div>
+                                <span class="font-semibold">300명</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 학급별 현황 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">학급별 기록 완료율</h3>
+                        <canvas id="class-chart"></canvas>
+                    </div>
+
+                    <!-- 종목별 현황 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">종목별 현황</h3>
+                        <div class="donut-chart">
+                            <canvas id="subject-chart"></canvas>
+                        </div>
+                        <div class="mt-4 grid grid-cols-1 gap-1 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                <span>왕복오래달리기</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span>앉아윗몸앞으로굽히기</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span>윗몸말아올리기</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                <span>제자리 멀리뛰기</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                                <span>50m달리기</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 기록 관리 섹션 -->
+            <div id="record-management" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">기록 관리</h2>
+                
+                <!-- 학생 선택 -->
+                <div class="card bg-white p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">학생 선택</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                            <select id="student-grade" class="w-full p-3 border border-gray-300 rounded-lg input-field">
+                                <option value="">전체</option>
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">반</label>
+                            <select id="student-class" class="w-full p-3 border border-gray-300 rounded-lg input-field">
+                                <option value="">전체</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
+                            <select id="student-select" class="w-full p-3 border border-gray-300 rounded-lg input-field">
+                                <option value="">학생을 선택하세요</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="selected-student-info" class="mt-4 p-3 bg-blue-50 rounded-lg text-center text-blue-800 font-medium hidden">
+                        선택된 학생: - 
+                    </div>
+                </div>
+
+                <!-- 종목별 기록 입력 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 심폐지구력 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">🏃‍♂️</span>
+                            심폐지구력
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">왕복오래달리기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" placeholder="15" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-1">
+                                    <span class="text-gray-500">회</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">오래달리기-걷기</label>
+                                <div class="grid grid-cols-2 gap-1">
+                                    <div class="flex items-center space-x-1">
+                                        <input type="number" placeholder="8" class="w-full p-2 border border-gray-300 rounded-lg input-field text-sm" id="record-2-min">
+                                        <span class="text-gray-500 text-xs">분</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <input type="number" placeholder="30" class="w-full p-2 border border-gray-300 rounded-lg input-field text-sm" id="record-2-sec">
+                                        <span class="text-gray-500 text-xs">초</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">스텝검사(PEI)</label>
+                                <div class="grid grid-cols-2 gap-1">
+                                    <div class="flex items-center space-x-1">
+                                        <input type="number" placeholder="3" class="w-full p-2 border border-gray-300 rounded-lg input-field text-sm" id="record-3-min">
+                                        <span class="text-gray-500 text-xs">분</span>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <input type="number" placeholder="120" class="w-full p-2 border border-gray-300 rounded-lg input-field text-sm" id="record-3-count">
+                                        <span class="text-gray-500 text-xs">회</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 유연성 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">🤸‍♀️</span>
+                            유연성
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">앉아윗몸앞으로굽히기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.1" placeholder="12.5" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-4">
+                                    <span class="text-gray-500">cm</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">종합유연성</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" placeholder="8" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-5">
+                                    <span class="text-gray-500">점</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 근력/근지구력 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">💪</span>
+                            근력/근지구력
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">(무릎대고)팔굽혀펴기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" placeholder="25" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-6">
+                                    <span class="text-gray-500">회</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">윗몸말아올리기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" placeholder="32" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-7">
+                                    <span class="text-gray-500">회</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">악력</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.1" placeholder="28.5" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-8">
+                                    <span class="text-gray-500">kg</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 순발력 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">⚡</span>
+                            순발력
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">50m 달리기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.01" placeholder="7.82" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-9">
+                                    <span class="text-gray-500">초</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">제자리 멀리뛰기</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.1" placeholder="180.0" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="record-10">
+                                    <span class="text-gray-500">cm</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 비만도 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <span class="text-2xl mr-2">📏</span>
+                            비만도
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">신장</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.1" placeholder="140.5" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="height-input">
+                                    <span class="text-gray-500">cm</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">체중</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" step="0.1" placeholder="38.2" class="flex-1 p-3 border border-gray-300 rounded-lg input-field" id="weight-input">
+                                    <span class="text-gray-500">kg</span>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg text-center">
+                                <span class="text-gray-600">BMI: </span>
+                                <span id="bmi-result" class="font-bold text-blue-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 저장 버튼 -->
+                <div class="mt-6 text-center">
+                    <button id="save-records" class="btn-primary text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-200">
+                        <i class="fas fa-save mr-2"></i>
+                        기록 저장
+                    </button>
+                </div>
+            </div>
+
+            <!-- 통계 분석 섹션 -->
+            <div id="individual-stats" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">통계 분석 - 개인별 검색</h2>
+                
+                <!-- 검색 필터 -->
+                <div class="card bg-white p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">학생 검색</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                            <select id="search-grade" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 학년</option>
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">반</label>
+                            <select id="search-class" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 반</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학생 선택</label>
+                            <select id="search-student-list" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">학생을 선택하세요</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="search-student" class="w-full btn-primary text-white px-4 py-3 rounded-lg font-semibold">
+                                <i class="fas fa-search mr-2"></i>검색
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 개인 기록 차트 -->
+                <div class="card bg-white p-6 rounded-xl">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">개인 기록 분석</h3>
+                    <div style="height: 300px;">
+                        <canvas id="individual-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 비교 분석 섹션 -->
+            <div id="comparative-stats" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">비교 분석</h2>
+                
+                <!-- 분석 유형 선택 -->
+                <div class="card bg-white p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">분석 유형 선택</h3>
+                    <div class="flex space-x-4 mb-4">
+                        <button id="grade-analysis" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all">학년별 분석</button>
+                        <button id="class-analysis" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all">학급별 분석</button>
+                        <button id="individual-analysis" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all">개인별 분석</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">종목</label>
+                            <select id="compare-subject" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="running">왕복오래달리기</option>
+                                <option value="situp">윗몸말아올리기</option>
+                                <option value="flexibility">앉아윗몸앞으로굽히기</option>
+                                <option value="jump">제자리 멀리뛰기</option>
+                                <option value="sprint">50m 달리기</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">성별</label>
+                            <select id="compare-gender" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="all">전체</option>
+                                <option value="male">남학생</option>
+                                <option value="female">여학생</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 비교 분석 차트 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">평균 기록 비교</h3>
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">기록 분포</h3>
+                        <canvas id="distribution-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 학생 관리 섹션 -->
+            <div id="student-management" class="content-section hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">학생 관리</h2>
+                    <button id="add-student-btn" class="btn-primary text-white px-4 py-2 rounded-lg font-semibold">
+                        <i class="fas fa-plus mr-2"></i>학생 추가
+                    </button>
+                </div>
+
+                <!-- 필터 -->
+                <div class="card bg-white p-4 rounded-xl mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                            <select id="filter-grade" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 학년</option>
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">반</label>
+                            <select id="filter-class" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 반</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="filter-students" class="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-semibold transition-all">
+                                <i class="fas fa-filter mr-2"></i>필터 적용
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 학생 목록 -->
+                <div class="card bg-white rounded-xl overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">학년</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">반</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">번호</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">성별</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">생년월일</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">기록 현황</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 샘플 데이터 -->
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">김민수</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">남</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2014-03-15</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">완료</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">수정</button>
+                                        <button class="text-red-600 hover:text-red-900">삭제</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">이영희</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">여</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2014-05-22</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">진행중</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <button class="text-indigo-600 hover:text-indigo-900 mr-3">수정</button>
+                                        <button class="text-red-600 hover:text-red-900">삭제</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 심폐지구력 보고서 -->
+            <div id="cardio-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">심폐지구력 보고서</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 왕복오래달리기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">왕복오래달리기</h3>
+                        <canvas id="cardio-chart-1"></canvas>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p>평균 기록: <span class="font-semibold text-blue-600">28.5회</span></p>
+                            <p>최고 기록: <span class="font-semibold text-green-600">45회</span></p>
+                            <p>최저 기록: <span class="font-semibold text-red-600">12회</span></p>
+                        </div>
+                    </div>
+
+                    <!-- 오래달리기-걷기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">오래달리기-걷기</h3>
+                        <canvas id="cardio-chart-2"></canvas>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p>평균 기록: <span class="font-semibold text-blue-600">9분 15초</span></p>
+                            <p>최고 기록: <span class="font-semibold text-green-600">7분 30초</span></p>
+                            <p>최저 기록: <span class="font-semibold text-red-600">12분 45초</span></p>
+                        </div>
+                    </div>
+
+                    <!-- 스텝검사 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">스텝검사(PEI)</h3>
+                        <canvas id="cardio-chart-3"></canvas>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p>평균 기록: <span class="font-semibold text-blue-600">95.2회</span></p>
+                            <p>최고 기록: <span class="font-semibold text-green-600">130회</span></p>
+                            <p>최저 기록: <span class="font-semibold text-red-600">65회</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 유연성 보고서 -->
+            <div id="flexibility-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">유연성 보고서</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 앉아윗몸앞으로굽히기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">앉아윗몸앞으로굽히기</h3>
+                        <canvas id="flexibility-chart"></canvas>
+                        <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-blue-50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-600">14.2cm</div>
+                                <div class="text-sm text-gray-600">평균 기록</div>
+                            </div>
+                            <div class="p-3 bg-green-50 rounded-lg">
+                                <div class="text-2xl font-bold text-green-600">25.8cm</div>
+                                <div class="text-sm text-gray-600">최고 기록</div>
+                            </div>
+                            <div class="p-3 bg-red-50 rounded-lg">
+                                <div class="text-2xl font-bold text-red-600">3.2cm</div>
+                                <div class="text-sm text-gray-600">최저 기록</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 종합유연성 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">종합유연성</h3>
+                        <canvas id="flexibility-chart-2"></canvas>
+                        <div class="mt-4 grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-blue-50 rounded-lg">
+                                <div class="text-2xl font-bold text-blue-600">7.5점</div>
+                                <div class="text-sm text-gray-600">평균 점수</div>
+                            </div>
+                            <div class="p-3 bg-green-50 rounded-lg">
+                                <div class="text-2xl font-bold text-green-600">10점</div>
+                                <div class="text-sm text-gray-600">최고 점수</div>
+                            </div>
+                            <div class="p-3 bg-red-50 rounded-lg">
+                                <div class="text-2xl font-bold text-red-600">4점</div>
+                                <div class="text-sm text-gray-600">최저 점수</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 근력 및 근지구력 보고서 -->
+            <div id="strength-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">근력 및 근지구력 보고서</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 윗몸말아올리기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">윗몸말아올리기</h3>
+                        <canvas id="strength-chart-1"></canvas>
+                    </div>
+
+                    <!-- 악력 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">악력</h3>
+                        <canvas id="strength-chart-2"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 순발력 보고서 -->
+            <div id="power-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">순발력 보고서</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 50m 달리기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">50m 달리기</h3>
+                        <canvas id="power-chart-1"></canvas>
+                    </div>
+
+                    <!-- 제자리 멀리뛰기 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">제자리 멀리뛰기</h3>
+                        <canvas id="power-chart-2"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEIS 보고서 -->
+            <div id="neis-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">NEIS 보고서</h2>
+                
+                <!-- 검색 필터 -->
+                <div class="card bg-white p-6 rounded-xl mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">검색 조건</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학년</label>
+                            <select id="neis-grade" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 학년</option>
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">반</label>
+                            <select id="neis-class" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 반</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">학생</label>
+                            <select id="neis-student" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">전체 학생</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button id="search-neis" class="w-full btn-primary text-white px-4 py-3 rounded-lg font-semibold">
+                                <i class="fas fa-search mr-2"></i>조회
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEIS 데이터 테이블 -->
+                <div class="card bg-white rounded-xl overflow-hidden">
+                    <div class="p-6 border-b">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold text-gray-800">학생 체력측정 결과</h3>
+                            <div class="space-x-2">
+                                <button class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                                    <i class="fas fa-file-excel mr-2"></i>Excel 다운로드
+                                </button>
+                                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+                                    <i class="fas fa-print mr-2"></i>인쇄
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r">학년</th>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r">반</th>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r">번호</th>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r">이름</th>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r">성별</th>
+                                    <th colspan="3" class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-red-50">심폐지구력</th>
+                                    <th colspan="2" class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-blue-50">유연성</th>
+                                    <th colspan="3" class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-green-50">근력 및 근지구력</th>
+                                    <th colspan="2" class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-yellow-50">순발력</th>
+                                    <th rowspan="2" class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase bg-purple-50">BMI</th>
+                                </tr>
+                                <tr>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-red-50">왕복오래<br>달리기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-red-50">오래달리기<br>-걷기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-red-50">스텝검사<br>(PEI)</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-blue-50">앉아윗몸<br>앞으로굽히기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-blue-50">종합<br>유연성</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-green-50">팔굽혀<br>펴기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-green-50">윗몸말아<br>올리기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-green-50">악력</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-yellow-50">50m<br>달리기</th>
+                                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r bg-yellow-50">제자리<br>멀리뛰기</th>
+                                </tr>
+                            </thead>
+                            <tbody id="neis-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BMI 보고서 -->
+            <div id="bmi-reports" class="content-section hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">BMI 보고서</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- BMI 분포 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">BMI 분포</h3>
+                        <div style="height: 300px;">
+                            <canvas id="bmi-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- BMI 통계 -->
+                    <div class="card bg-white p-6 rounded-xl">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">BMI 통계</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <span class="font-medium">저체중 (18.5 미만)</span>
+                                <span class="font-bold text-blue-600">45명 (15%)</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                <span class="font-medium">정상 (18.5-22.9)</span>
+                                <span class="font-bold text-green-600">180명 (60%)</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg">
+                                <span class="font-medium">과체중 (23-24.9)</span>
+                                <span class="font-bold text-yellow-600">60명 (20%)</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                                <span class="font-medium">비만 (25 이상)</span>
+                                <span class="font-bold text-red-600">15명 (5%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 학생 추가 모달 -->
+    <div id="add-student-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">새 학생 추가</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                        <input type="text" id="new-student-name" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="이름을 입력하세요">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">학년</label>
+                            <select id="new-student-grade" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="4">4학년</option>
+                                <option value="5">5학년</option>
+                                <option value="6">6학년</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">반</label>
+                            <select id="new-student-class" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="1">1반</option>
+                                <option value="2">2반</option>
+                                <option value="3">3반</option>
+                                <option value="4">4반</option>
+                                <option value="5">5반</option>
+                                <option value="6">6반</option>
+                                <option value="7">7반</option>
+                                <option value="8">8반</option>
+                                <option value="9">9반</option>
+                                <option value="10">10반</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">번호</label>
+                            <input type="number" id="new-student-number" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="번호" min="1" max="30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">성별</label>
+                            <select id="new-student-gender" class="w-full p-2 border border-gray-300 rounded-lg">
+                                <option value="남">남</option>
+                                <option value="여">여</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">생년월일</label>
+                        <input type="date" id="new-student-birth" class="w-full p-2 border border-gray-300 rounded-lg">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button id="cancel-add-student" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">취소</button>
+                    <button id="confirm-add-student" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">추가</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 성공 알림 모달 -->
+    <div id="success-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <i class="fas fa-check text-green-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">완료</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p id="success-message" class="text-sm text-gray-500">작업이 성공적으로 완료되었습니다.</p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-success-modal" class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-600">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentSection = 'dashboard';
+        let studentRecords = {};
+        let charts = {};
+
+        // 샘플 학생 데이터 생성 (초4,5,6학년, 각 10반, 반당 30명)
+        const sampleStudents = [];
+        const maleNames = ['김민수', '이성호', '박준형', '최동훈', '정우진', '강태영', '윤상현', '임재현', '조영진', '한도윤', '신민철', '오현수', '배성민', '홍진우', '노수혁'];
+        const femaleNames = ['이영희', '김수진', '박미나', '최은지', '정혜원', '강서연', '윤지아', '임채은', '조유나', '한소희', '신예린', '오다인', '배지원', '홍채영', '노예지'];
+
+        for (let grade = 4; grade <= 6; grade++) {
+            for (let classNum = 1; classNum <= 10; classNum++) {
+                for (let studentNum = 1; studentNum <= 30; studentNum++) {
+                    const isMale = studentNum <= 15;
+                    const nameList = isMale ? maleNames : femaleNames;
+                    const name = nameList[Math.floor(Math.random() * nameList.length)] + (Math.floor(Math.random() * 100));
+                    
+                    sampleStudents.push({
+                        grade: grade,
+                        class: classNum,
+                        number: studentNum,
+                        name: name,
+                        gender: isMale ? '남' : '여',
+                        birth: `20${12 + (6 - grade)}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
+                    });
+                }
+            }
+        }
+
+        // 메뉴 네비게이션
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                showSection(item.dataset.target);
+            });
+        });
+
+        // 서브메뉴 토글
+        document.querySelectorAll('.menu-toggle').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const menuName = toggle.dataset.menu;
+                const submenu = document.querySelector(`[data-submenu="${menuName}"]`);
+                const chevron = toggle.querySelector('.fa-chevron-down');
+                
+                submenu.classList.toggle('show');
+                chevron.classList.toggle('rotate-180');
+            });
+        });
+
+        // 서브메뉴 아이템 클릭
+        document.querySelectorAll('.submenu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                showSection(item.dataset.target);
+            });
+        });
+
+        function showSection(sectionId) {
+            // 모든 메뉴 비활성화
+            document.querySelectorAll('.menu-item, .submenu-item').forEach(menu => menu.classList.remove('active'));
+            
+            // 현재 메뉴 활성화
+            const activeItem = document.querySelector(`[data-target="${sectionId}"]`);
+            if (activeItem) activeItem.classList.add('active');
+
+            // 모든 섹션 숨기기
+            document.querySelectorAll('.content-section').forEach(section => section.classList.add('hidden'));
+            
+            // 선택된 섹션 보이기
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+                currentSection = sectionId;
+                
+                // 차트 초기화
+                initializeCharts(sectionId);
+            }
+        }
+
+        // 학년/반 선택 처리
+        document.getElementById('student-grade').addEventListener('change', function() {
+            updateClassOptions('student-class', this.value);
+            updateStudentOptions();
+        });
+
+        document.getElementById('student-class').addEventListener('change', updateStudentOptions);
+
+        function updateClassOptions(selectId, grade) {
+            const classSelect = document.getElementById(selectId);
+            classSelect.innerHTML = '<option value="">전체</option>';
+            
+            if (grade) {
+                for (let i = 1; i <= 10; i++) {
+                    classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
+                }
+            }
+        }
+
+        function updateStudentOptions() {
+            const grade = document.getElementById('student-grade').value;
+            const classNum = document.getElementById('student-class').value;
+            const studentSelect = document.getElementById('student-select');
+            
+            studentSelect.innerHTML = '<option value="">학생을 선택하세요</option>';
+            
+            const filteredStudents = sampleStudents.filter(student => {
+                return (!grade || student.grade == grade) && (!classNum || student.class == classNum);
+            });
+            
+            filteredStudents.forEach((student, index) => {
+                studentSelect.innerHTML += `<option value="${index}">${student.name} (${student.grade}학년 ${student.class}반)</option>`;
+            });
+        }
+
+        // 학생 선택 처리
+        document.getElementById('student-select').addEventListener('change', function() {
+            const studentInfo = document.getElementById('selected-student-info');
+            if (this.value) {
+                const studentIndex = parseInt(this.value);
+                const student = sampleStudents[studentIndex];
+                studentInfo.textContent = `선택된 학생: ${student.name} (${student.grade}학년 ${student.class}반)`;
+                studentInfo.classList.remove('hidden');
+            } else {
+                studentInfo.classList.add('hidden');
+            }
+        });
+
+        // BMI 계산
+        function calculateBMI() {
+            const height = parseFloat(document.getElementById('height-input').value);
+            const weight = parseFloat(document.getElementById('weight-input').value);
+            const bmiResult = document.getElementById('bmi-result');
+
+            if (height > 0 && weight > 0) {
+                const heightM = height / 100;
+                const bmi = weight / (heightM * heightM);
+                bmiResult.textContent = bmi.toFixed(2);
+            } else {
+                bmiResult.textContent = '-';
+            }
+        }
+
+        document.getElementById('height-input').addEventListener('input', calculateBMI);
+        document.getElementById('weight-input').addEventListener('input', calculateBMI);
+
+        // 기록 저장
+        document.getElementById('save-records').addEventListener('click', function() {
+            const studentSelect = document.getElementById('student-select');
+            if (!studentSelect.value) {
+                alert('학생을 먼저 선택해주세요.');
+                return;
+            }
+
+            const studentIndex = parseInt(studentSelect.value);
+            const student = sampleStudents[studentIndex];
+
+            const records = {
+                student: student.name,
+                grade: student.grade,
+                class: student.class,
+                running: document.getElementById('record-1').value || '',
+                longRunMin: document.getElementById('record-2-min').value || '',
+                longRunSec: document.getElementById('record-2-sec').value || '',
+                stepTestMin: document.getElementById('record-3-min').value || '',
+                stepTestCount: document.getElementById('record-3-count').value || '',
+                flexibility: document.getElementById('record-4').value || '',
+                flexibilityTotal: document.getElementById('record-5').value || '',
+                pushUp: document.getElementById('record-6').value || '',
+                sitUp: document.getElementById('record-7').value || '',
+                grip: document.getElementById('record-8').value || '',
+                sprint: document.getElementById('record-9').value || '',
+                jump: document.getElementById('record-10').value || '',
+                height: document.getElementById('height-input').value || '',
+                weight: document.getElementById('weight-input').value || '',
+                bmi: document.getElementById('bmi-result').textContent !== '-' ? document.getElementById('bmi-result').textContent : ''
+            };
+
+            studentRecords[studentIndex] = records;
+
+            document.getElementById('success-message').textContent = `${records.student}의 기록이 성공적으로 저장되었습니다.`;
+            document.getElementById('success-modal').classList.remove('hidden');
+
+            // 입력 필드 초기화
+            document.querySelectorAll('#record-management input').forEach(input => {
+                if (input.type === 'number') input.value = '';
+            });
+            document.getElementById('bmi-result').textContent = '-';
+        });
+
+        // 모달 닫기
+        document.getElementById('close-success-modal').addEventListener('click', function() {
+            document.getElementById('success-modal').classList.add('hidden');
+        });
+
+        // 학생 추가 모달
+        document.getElementById('add-student-btn').addEventListener('click', function() {
+            document.getElementById('add-student-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('cancel-add-student').addEventListener('click', function() {
+            document.getElementById('add-student-modal').classList.add('hidden');
+        });
+
+        document.getElementById('confirm-add-student').addEventListener('click', function() {
+            const name = document.getElementById('new-student-name').value;
+            const grade = document.getElementById('new-student-grade').value;
+            const classNum = document.getElementById('new-student-class').value;
+            const number = document.getElementById('new-student-number').value;
+            const gender = document.getElementById('new-student-gender').value;
+            const birth = document.getElementById('new-student-birth').value;
+
+            if (!name || !number || !birth) {
+                alert('모든 필드를 입력해주세요.');
+                return;
+            }
+
+            const newStudent = {
+                grade: parseInt(grade),
+                class: parseInt(classNum),
+                number: parseInt(number),
+                name: name,
+                gender: gender,
+                birth: birth
+            };
+
+            sampleStudents.push(newStudent);
+            updateStudentTable();
+
+            document.getElementById('add-student-modal').classList.add('hidden');
+            document.getElementById('success-message').textContent = '새 학생이 성공적으로 추가되었습니다.';
+            document.getElementById('success-modal').classList.remove('hidden');
+
+            // 폼 초기화
+            document.getElementById('new-student-name').value = '';
+            document.getElementById('new-student-number').value = '';
+            document.getElementById('new-student-birth').value = '';
+        });
+
+        // 학생 테이블 업데이트
+        function updateStudentTable() {
+            const tbody = document.getElementById('student-table-body');
+            const filterGrade = document.getElementById('filter-grade').value;
+            const filterClass = document.getElementById('filter-class').value;
+
+            const filteredStudents = sampleStudents.filter(student => {
+                return (!filterGrade || student.grade == filterGrade) && (!filterClass || student.class == filterClass);
+            });
+
+            tbody.innerHTML = '';
+            filteredStudents.slice(0, 20).forEach(student => { // 처음 20명만 표시
+                const hasRecord = studentRecords[sampleStudents.indexOf(student)];
+                const status = hasRecord ? 
+                    '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">완료</span>' :
+                    '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">대기</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${student.grade}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${student.class}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${student.number}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${student.gender}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${student.birth}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${status}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="text-indigo-600 hover:text-indigo-900 mr-3">수정</button>
+                            <button class="text-red-600 hover:text-red-900">삭제</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 필터 처리
+        document.getElementById('filter-grade').addEventListener('change', function() {
+            updateClassOptions('filter-class', this.value);
+            updateStudentTable();
+        });
+
+        document.getElementById('filter-students').addEventListener('click', updateStudentTable);
+
+        // 차트 초기화
+        function initializeCharts(sectionId) {
+            switch(sectionId) {
+                case 'dashboard':
+                    initializeDashboardCharts();
+                    break;
+                case 'individual-stats':
+                    // 개별 검색 시 차트가 생성되므로 여기서는 초기화하지 않음
+                    break;
+                case 'comparative-stats':
+                    updateComparisonCharts('grade'); // 기본으로 학년별 분석 표시
+                    break;
+                case 'cardio-reports':
+                    initializeCardioCharts();
+                    break;
+                case 'flexibility-reports':
+                    initializeFlexibilityChart();
+                    break;
+                case 'strength-reports':
+                    initializeStrengthCharts();
+                    break;
+                case 'power-reports':
+                    initializePowerCharts();
+                    break;
+                case 'neis-reports':
+                    initializeNeisReports();
+                    break;
+                case 'bmi-reports':
+                    initializeBMIChart();
+                    break;
+            }
+        }
+
+        function initializeDashboardCharts() {
+            // 학년별 차트
+            const gradeCtx = document.getElementById('grade-chart');
+            if (gradeCtx && !charts.gradeChart) {
+                charts.gradeChart = new Chart(gradeCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            data: [300, 300, 300],
+                            backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        cutout: '60%'
+                    }
+                });
+            }
+
+            // 학급별 차트
+            const classCtx = document.getElementById('class-chart');
+            if (classCtx && !charts.classChart) {
+                charts.classChart = new Chart(classCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['1반', '2반', '3반', '4반', '5반', '6반', '7반', '8반', '9반', '10반'],
+                        datasets: [{
+                            label: '완료율 (%)',
+                            data: [85, 92, 78, 88, 95, 82, 90, 87, 83, 91],
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        }
+                    }
+                });
+            }
+
+            // 종목별 차트
+            const subjectCtx = document.getElementById('subject-chart');
+            if (subjectCtx && !charts.subjectChart) {
+                charts.subjectChart = new Chart(subjectCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['왕복오래달리기', '앉아윗몸앞으로굽히기', '윗몸말아올리기', '제자리 멀리뛰기', '50m달리기'],
+                        datasets: [{
+                            data: [180, 180, 180, 180, 180],
+                            backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        cutout: '60%'
+                    }
+                });
+            }
+        }
+
+        // 검색 필터 처리
+        document.getElementById('search-grade').addEventListener('change', function() {
+            updateClassOptions('search-class', this.value);
+            updateSearchStudentList();
+        });
+
+        document.getElementById('search-class').addEventListener('change', function() {
+            updateSearchStudentList();
+        });
+
+        function updateSearchStudentList() {
+            const grade = document.getElementById('search-grade').value;
+            const classNum = document.getElementById('search-class').value;
+            const studentList = document.getElementById('search-student-list');
+            
+            studentList.innerHTML = '<option value="">학생을 선택하세요</option>';
+            
+            if (grade && classNum) {
+                const filteredStudents = sampleStudents.filter(student => {
+                    return student.grade == grade && student.class == classNum;
+                });
+                
+                filteredStudents.forEach((student, index) => {
+                    const globalIndex = sampleStudents.indexOf(student);
+                    studentList.innerHTML += `<option value="${globalIndex}">${student.name} (${student.number}번)</option>`;
+                });
+            }
+        }
+
+        document.getElementById('search-student').addEventListener('click', function() {
+            const studentIndex = document.getElementById('search-student-list').value;
+
+            if (studentIndex) {
+                const student = sampleStudents[parseInt(studentIndex)];
+                updateIndividualChart(student);
+                showStudentInfo(student);
+            } else {
+                alert('학생을 선택해주세요.');
+            }
+        });
+
+        function showStudentInfo(student) {
+            const chartContainer = document.getElementById('individual-chart').parentElement;
+            const existingInfo = chartContainer.querySelector('.student-info');
+            if (existingInfo) existingInfo.remove();
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'student-info mt-4 p-4 bg-blue-50 rounded-lg';
+            infoDiv.innerHTML = `
+                <h4 class="font-semibold text-blue-800">${student.name} (${student.grade}학년 ${student.class}반)</h4>
+                <p class="text-sm text-blue-600">성별: ${student.gender} | 생년월일: ${student.birth}</p>
+            `;
+            chartContainer.appendChild(infoDiv);
+        }
+
+        function updateIndividualChart(student) {
+            if (charts.individualChart) {
+                charts.individualChart.destroy();
+            }
+            
+            // 샘플 데이터 생성 (실제로는 저장된 기록에서 가져와야 함)
+            const sampleData = [
+                Math.floor(Math.random() * 30) + 20, // 왕복오래달리기
+                Math.floor(Math.random() * 15) + 10, // 앉아윗몸앞으로굽히기
+                Math.floor(Math.random() * 10) + 5,  // 종합유연성
+                Math.floor(Math.random() * 20) + 15, // 팔굽혀펴기
+                Math.floor(Math.random() * 25) + 20, // 윗몸말아올리기
+                Math.floor(Math.random() * 15) + 15, // 악력
+                Math.floor(Math.random() * 3) + 7,   // 50m달리기
+                Math.floor(Math.random() * 50) + 150, // 제자리 멀리뛰기
+                Math.floor(Math.random() * 60) + 90   // 스텝검사
+            ];
+
+            const ctx = document.getElementById('individual-chart');
+            charts.individualChart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['왕복오래달리기(회)', '앉아윗몸앞으로굽히기(cm)', '종합유연성(점)', '팔굽혀펴기(회)', '윗몸말아올리기(회)', '악력(kg)', '50m달리기(초)', '제자리멀리뛰기(cm)', '스텝검사(회)'],
+                    datasets: [{
+                        label: '개인 기록',
+                        data: sampleData,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.6)',   // 왕복오래달리기
+                            'rgba(59, 130, 246, 0.6)',  // 앉아윗몸앞으로굽히기
+                            'rgba(16, 185, 129, 0.6)',  // 종합유연성
+                            'rgba(245, 158, 11, 0.6)',  // 팔굽혀펴기
+                            'rgba(139, 92, 246, 0.6)',  // 윗몸말아올리기
+                            'rgba(236, 72, 153, 0.6)',  // 악력
+                            'rgba(34, 197, 94, 0.6)',   // 50m달리기
+                            'rgba(168, 85, 247, 0.6)',  // 제자리멀리뛰기
+                            'rgba(251, 146, 60, 0.6)'   // 스텝검사
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(34, 197, 94, 1)',
+                            'rgba(168, 85, 247, 1)',
+                            'rgba(251, 146, 60, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '측정값'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 비교 분석 버튼 처리
+        document.getElementById('grade-analysis').addEventListener('click', function() {
+            setActiveAnalysisButton(this);
+            updateComparisonCharts('grade');
+        });
+
+        document.getElementById('class-analysis').addEventListener('click', function() {
+            setActiveAnalysisButton(this);
+            updateComparisonCharts('class');
+        });
+
+        document.getElementById('individual-analysis').addEventListener('click', function() {
+            setActiveAnalysisButton(this);
+            updateComparisonCharts('individual');
+        });
+
+        document.getElementById('compare-gender').addEventListener('change', function() {
+            const currentType = document.querySelector('#grade-analysis.bg-blue-600') ? 'grade' :
+                               document.querySelector('#class-analysis.bg-blue-600') ? 'class' : 'individual';
+            updateComparisonCharts(currentType);
+        });
+
+        function setActiveAnalysisButton(activeButton) {
+            document.querySelectorAll('#grade-analysis, #class-analysis, #individual-analysis').forEach(btn => {
+                btn.className = 'px-6 py-2 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all';
+            });
+            activeButton.className = 'px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all';
+        }
+
+        function updateComparisonCharts(type) {
+            // 기존 차트 제거
+            if (charts.comparisonChart) {
+                charts.comparisonChart.destroy();
+            }
+            if (charts.distributionChart) {
+                charts.distributionChart.destroy();
+            }
+
+            const compCtx = document.getElementById('comparison-chart');
+            const distCtx = document.getElementById('distribution-chart');
+            const gender = document.getElementById('compare-gender').value;
+
+            if (type === 'grade') {
+                let labels, data;
+                if (gender === 'male') {
+                    labels = ['4학년 남학생', '5학년 남학생', '6학년 남학생'];
+                    data = [30, 34, 38];
+                } else if (gender === 'female') {
+                    labels = ['4학년 여학생', '5학년 여학생', '6학년 여학생'];
+                    data = [26, 30, 32];
+                } else {
+                    labels = ['4학년', '5학년', '6학년'];
+                    data = [28, 32, 35];
+                }
+
+                charts.comparisonChart = new Chart(compCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '평균 기록',
+                            data: data,
+                            backgroundColor: gender === 'male' ? 'rgba(59, 130, 246, 0.6)' : 
+                                           gender === 'female' ? 'rgba(236, 72, 153, 0.6)' : 'rgba(59, 130, 246, 0.6)',
+                            borderColor: gender === 'male' ? 'rgba(59, 130, 246, 1)' : 
+                                        gender === 'female' ? 'rgba(236, 72, 153, 1)' : 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                charts.distributionChart = new Chart(distCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['10-15', '16-20', '21-25', '26-30', '31-35', '36-40', '41-45'],
+                        datasets: [{
+                            label: '학생 수',
+                            data: gender === 'male' ? [10, 20, 40, 50, 40, 20, 10] :
+                                  gender === 'female' ? [20, 30, 50, 70, 50, 30, 20] : [15, 25, 45, 60, 45, 25, 15],
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            } else if (type === 'class') {
+                let data;
+                if (gender === 'male') {
+                    data = [32, 30, 34, 31, 33, 29, 35, 32, 30, 33];
+                } else if (gender === 'female') {
+                    data = [28, 26, 30, 27, 29, 25, 31, 28, 26, 29];
+                } else {
+                    data = [30, 28, 32, 29, 31, 27, 33, 30, 28, 31];
+                }
+
+                charts.comparisonChart = new Chart(compCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['1반', '2반', '3반', '4반', '5반', '6반', '7반', '8반', '9반', '10반'],
+                        datasets: [{
+                            label: '평균 기록',
+                            data: data,
+                            backgroundColor: gender === 'male' ? 'rgba(59, 130, 246, 0.6)' : 
+                                           gender === 'female' ? 'rgba(236, 72, 153, 0.6)' : 'rgba(16, 185, 129, 0.6)',
+                            borderColor: gender === 'male' ? 'rgba(59, 130, 246, 1)' : 
+                                        gender === 'female' ? 'rgba(236, 72, 153, 1)' : 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                charts.distributionChart = new Chart(distCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['우수', '보통', '미흡'],
+                        datasets: [{
+                            data: gender === 'male' ? [140, 140, 20] : 
+                                  gender === 'female' ? [100, 180, 20] : [120, 150, 30],
+                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            } else if (type === 'individual') {
+                let names, data;
+                if (gender === 'male') {
+                    names = ['김민수', '박준형', '정우진', '조영진', '한도윤', '신민철', '배성민', '홍진우', '노수혁', '강태영'];
+                    data = [47, 44, 42, 40, 39, 38, 37, 36, 35, 34];
+                } else if (gender === 'female') {
+                    names = ['이영희', '김수진', '박미나', '정혜원', '강서연', '윤지아', '조유나', '한소희', '신예린', '배지원'];
+                    data = [43, 40, 38, 36, 35, 34, 33, 32, 31, 30];
+                } else {
+                    names = ['김민수', '이영희', '박철수', '정미란', '장동건', '최서연', '한도윤', '신예린', '오현수', '배지원'];
+                    data = [45, 42, 40, 38, 37, 36, 35, 34, 33, 32];
+                }
+
+                charts.comparisonChart = new Chart(compCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: names,
+                        datasets: [{
+                            label: '개인 기록',
+                            data: data,
+                            backgroundColor: gender === 'male' ? 'rgba(59, 130, 246, 0.6)' : 
+                                           gender === 'female' ? 'rgba(236, 72, 153, 0.6)' : 'rgba(139, 92, 246, 0.6)',
+                            borderColor: gender === 'male' ? 'rgba(59, 130, 246, 1)' : 
+                                        gender === 'female' ? 'rgba(236, 72, 153, 1)' : 'rgba(139, 92, 246, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { 
+                            y: { beginAtZero: true },
+                            x: { 
+                                ticks: { maxRotation: 45 }
+                            }
+                        }
+                    }
+                });
+
+                charts.distributionChart = new Chart(distCtx.getContext('2d'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: '개인별 기록',
+                            data: Array.from({length: 50}, (_, i) => ({
+                                x: Math.random() * 100,
+                                y: gender === 'male' ? Math.random() * 50 + 20 : 
+                                   gender === 'female' ? Math.random() * 40 + 10 : Math.random() * 50 + 10
+                            })),
+                            backgroundColor: gender === 'male' ? 'rgba(59, 130, 246, 0.6)' : 
+                                           gender === 'female' ? 'rgba(236, 72, 153, 0.6)' : 'rgba(139, 92, 246, 0.6)',
+                            borderColor: gender === 'male' ? 'rgba(59, 130, 246, 1)' : 
+                                        gender === 'female' ? 'rgba(236, 72, 153, 1)' : 'rgba(139, 92, 246, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { 
+                            x: { title: { display: true, text: '학생 번호' } },
+                            y: { title: { display: true, text: '기록' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function initializeCardioCharts() {
+            const cardio1Ctx = document.getElementById('cardio-chart-1');
+            if (cardio1Ctx && !charts.cardio1Chart) {
+                charts.cardio1Chart = new Chart(cardio1Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 횟수',
+                            data: [25, 30, 35],
+                            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const cardio2Ctx = document.getElementById('cardio-chart-2');
+            if (cardio2Ctx && !charts.cardio2Chart) {
+                charts.cardio2Chart = new Chart(cardio2Ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 시간 (분)',
+                            data: [11, 10, 9],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const cardio3Ctx = document.getElementById('cardio-chart-3');
+            if (cardio3Ctx && !charts.cardio3Chart) {
+                charts.cardio3Chart = new Chart(cardio3Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 횟수',
+                            data: [90, 95, 100],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        function initializeFlexibilityChart() {
+            const flexCtx = document.getElementById('flexibility-chart');
+            if (flexCtx && !charts.flexibilityChart) {
+                charts.flexibilityChart = new Chart(flexCtx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년 남', '4학년 여', '5학년 남', '5학년 여', '6학년 남', '6학년 여'],
+                        datasets: [{
+                            label: '평균 기록 (cm)',
+                            data: [10.5, 15.2, 12.8, 17.4, 14.1, 18.9],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const flex2Ctx = document.getElementById('flexibility-chart-2');
+            if (flex2Ctx && !charts.flexibility2Chart) {
+                charts.flexibility2Chart = new Chart(flex2Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년 남', '4학년 여', '5학년 남', '5학년 여', '6학년 남', '6학년 여'],
+                        datasets: [{
+                            label: '평균 점수',
+                            data: [6.5, 7.2, 7.1, 7.8, 7.5, 8.1],
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)',
+                                'rgba(59, 130, 246, 0.6)',
+                                'rgba(236, 72, 153, 0.6)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, max: 10 } }
+                    }
+                });
+            }
+        }
+
+        function initializeStrengthCharts() {
+            const strength1Ctx = document.getElementById('strength-chart-1');
+            if (strength1Ctx && !charts.strength1Chart) {
+                charts.strength1Chart = new Chart(strength1Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 횟수',
+                            data: [25, 30, 35],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const strength2Ctx = document.getElementById('strength-chart-2');
+            if (strength2Ctx && !charts.strength2Chart) {
+                charts.strength2Chart = new Chart(strength2Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 악력 (kg)',
+                            data: [18.5, 22.3, 26.1],
+                            backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        function initializePowerCharts() {
+            const power1Ctx = document.getElementById('power-chart-1');
+            if (power1Ctx && !charts.power1Chart) {
+                charts.power1Chart = new Chart(power1Ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 시간 (초)',
+                            data: [9.2, 8.8, 8.4],
+                            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                            borderColor: 'rgba(139, 92, 246, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            const power2Ctx = document.getElementById('power-chart-2');
+            if (power2Ctx && !charts.power2Chart) {
+                charts.power2Chart = new Chart(power2Ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['4학년', '5학년', '6학년'],
+                        datasets: [{
+                            label: '평균 거리 (cm)',
+                            data: [145, 160, 175],
+                            backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        function initializeBMIChart() {
+            const bmiCtx = document.getElementById('bmi-chart');
+            if (bmiCtx && !charts.bmiChart) {
+                charts.bmiChart = new Chart(bmiCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['저체중', '정상', '과체중', '비만'],
+                        datasets: [{
+                            data: [45, 180, 60, 15],
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        },
+                        cutout: '50%'
+                    }
+                });
+            }
+        }
+
+        // NEIS 보고서 관련 함수들
+        function initializeNeisReports() {
+            updateNeisClassOptions();
+            updateNeisStudentOptions();
+            loadNeisData();
+        }
+
+        // NEIS 필터 이벤트 처리
+        document.getElementById('neis-grade').addEventListener('change', function() {
+            updateNeisClassOptions();
+            updateNeisStudentOptions();
+        });
+
+        document.getElementById('neis-class').addEventListener('change', function() {
+            updateNeisStudentOptions();
+        });
+
+        document.getElementById('search-neis').addEventListener('click', function() {
+            loadNeisData();
+        });
+
+        function updateNeisClassOptions() {
+            const grade = document.getElementById('neis-grade').value;
+            const classSelect = document.getElementById('neis-class');
+            classSelect.innerHTML = '<option value="">전체 반</option>';
+            
+            if (grade) {
+                for (let i = 1; i <= 10; i++) {
+                    classSelect.innerHTML += `<option value="${i}">${i}반</option>`;
+                }
+            }
+        }
+
+        function updateNeisStudentOptions() {
+            const grade = document.getElementById('neis-grade').value;
+            const classNum = document.getElementById('neis-class').value;
+            const studentSelect = document.getElementById('neis-student');
+            
+            studentSelect.innerHTML = '<option value="">전체 학생</option>';
+            
+            if (grade && classNum) {
+                const filteredStudents = sampleStudents.filter(student => {
+                    return student.grade == grade && student.class == classNum;
+                });
+                
+                filteredStudents.forEach(student => {
+                    const globalIndex = sampleStudents.indexOf(student);
+                    studentSelect.innerHTML += `<option value="${globalIndex}">${student.name} (${student.number}번)</option>`;
+                });
+            }
+        }
+
+        function loadNeisData() {
+            const grade = document.getElementById('neis-grade').value;
+            const classNum = document.getElementById('neis-class').value;
+            const studentIndex = document.getElementById('neis-student').value;
+            const tbody = document.getElementById('neis-table-body');
+
+            let filteredStudents = sampleStudents;
+
+            if (studentIndex) {
+                filteredStudents = [sampleStudents[parseInt(studentIndex)]];
+            } else {
+                filteredStudents = sampleStudents.filter(student => {
+                    return (!grade || student.grade == grade) && (!classNum || student.class == classNum);
+                });
+            }
+
+            tbody.innerHTML = '';
+            
+            // 최대 50명까지만 표시
+            filteredStudents.slice(0, 50).forEach(student => {
+                // 샘플 기록 데이터 생성
+                const sampleRecord = {
+                    running: Math.floor(Math.random() * 20) + 20,
+                    longRun: `${Math.floor(Math.random() * 4) + 8}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
+                    stepTest: Math.floor(Math.random() * 50) + 80,
+                    flexibility: (Math.random() * 15 + 5).toFixed(1),
+                    flexibilityTotal: Math.floor(Math.random() * 5) + 5,
+                    pushUp: Math.floor(Math.random() * 15) + 15,
+                    sitUp: Math.floor(Math.random() * 20) + 20,
+                    grip: (Math.random() * 10 + 15).toFixed(1),
+                    sprint: (Math.random() * 2 + 7).toFixed(2),
+                    jump: Math.floor(Math.random() * 50) + 150,
+                    bmi: (Math.random() * 5 + 18).toFixed(1)
+                };
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r">${student.grade}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r">${student.class}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r">${student.number}</td>
+                        <td class="px-4 py-3 text-center text-sm font-medium text-gray-900 border-r">${student.name}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r">${student.gender}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-red-50">${sampleRecord.running}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-red-50">${sampleRecord.longRun}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-red-50">${sampleRecord.stepTest}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-blue-50">${sampleRecord.flexibility}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-blue-50">${sampleRecord.flexibilityTotal}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-green-50">${sampleRecord.pushUp}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-green-50">${sampleRecord.sitUp}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-green-50">${sampleRecord.grip}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-yellow-50">${sampleRecord.sprint}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 border-r bg-yellow-50">${sampleRecord.jump}</td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-900 bg-purple-50">${sampleRecord.bmi}</td>
+                    </tr>
+                `;
+            });
+
+            if (filteredStudents.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="16" class="px-4 py-8 text-center text-gray-500">검색 결과가 없습니다.</td></tr>';
+            }
+        }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            updateClassOptions('student-class', '');
+            updateClassOptions('search-class', '');
+            updateClassOptions('filter-class', '');
+            updateStudentOptions();
+            updateStudentTable();
+            initializeDashboardCharts();
+        });
+    </script>
+</body>
+</html>

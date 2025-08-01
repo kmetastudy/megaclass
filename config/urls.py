@@ -31,6 +31,7 @@ urlpatterns = [
     path('cp/', include('new_cp.urls')),
     path('agent/', include('super_agent.urls')),
     path('ncs/', include('ncs.urls')),
+    path('physical_education/', include('physical_education.urls')),
 
     ]
 #     path('cp/', include('cp.urls')),

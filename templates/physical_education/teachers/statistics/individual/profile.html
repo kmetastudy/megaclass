@@ -1,0 +1,536 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}학생 개인 프로필 - PAPS 통계{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen mobile-nav-padding pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 콘텐츠 -->
+    <div class="flex-1 lg:ml-64 transition-all duration-300">
+        <div class="p-3 sm:p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">학생 개인 프로필</h1>
+                <p class="text-sm sm:text-base text-gray-600">학생별 체력요인 분석 및 측정 히스토리를 확인하세요</p>
+            </div>
+            
+            <!-- 필터 영역 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- 학급 선택 -->
+                    <div>
+                        <label for="class-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            학급 선택
+                        </label>
+                        <select id="class-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">학급을 선택하세요</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" data-grade="{{ class.grade }}">
+                                {{ class.name }} ({{ class.grade_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학생 선택 -->
+                    <div>
+                        <label for="student-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            학생 선택
+                        </label>
+                        <select id="student-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                            <option value="">학급을 먼저 선택하세요</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 회차 선택 -->
+                    <div>
+                        <label for="session-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            측정 회차
+                        </label>
+                        <select id="session-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">최신 회차</option>
+                            {% for session in sessions %}
+                            <option value="{{ session.id }}">
+                                {{ session.name }} ({{ session.measurement_date }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학생 검색 -->
+                    <div>
+                        <label for="student-search" class="block text-sm font-medium text-gray-700 mb-2">
+                            학생 검색
+                        </label>
+                        <input type="text" id="student-search" placeholder="이름 또는 번호로 검색"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <!-- 회차 비교 모드 -->
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="compare-mode" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <label for="compare-mode" class="ml-2 text-sm text-gray-700">회차 비교 모드</label>
+                    </div>
+                    
+                    <button id="search-btn" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-search mr-2"></i>
+                        조회
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 로딩 상태 -->
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">데이터를 불러오는 중...</p>
+            </div>
+            
+            <!-- 결과 영역 -->
+            <div id="results" class="hidden space-y-6">
+                <!-- 학생 정보 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">학생 정보</h2>
+                        <span id="session-info" class="text-sm text-gray-600"></span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600" id="student-name">-</div>
+                            <div class="text-sm text-gray-500">학생명</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600" id="student-class">-</div>
+                            <div class="text-sm text-gray-500">학급</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600" id="average-grade">-</div>
+                            <div class="text-sm text-gray-500">평균 등급</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-purple-600" id="completion-rate">-</div>
+                            <div class="text-sm text-gray-500">완료율</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 차트 영역 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 체력요인별 레이더 차트 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">체력요인별 등급</h3>
+                        <div class="h-64 sm:h-80 flex items-center justify-center">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 측정 기록 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">현재 측정 기록</h3>
+                        <div class="space-y-3" id="current-records">
+                            <!-- 동적으로 생성될 측정 기록 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 최근 측정 히스토리 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">최근 측정 히스토리</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">측정회차</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">종목</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">측정값</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">등급</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">측정일</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 동적으로 생성될 데이터 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 데이터 없음 메시지 -->
+            <div id="no-data" class="hidden text-center py-12">
+                <div class="text-gray-400 text-6xl mb-4">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">측정 데이터가 없습니다</h3>
+                <p class="text-gray-500">선택한 학생의 측정 기록이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 전역 변수
+    let radarChart = null;
+    
+    // DOM 요소들
+    const classSelect = document.getElementById('class-select');
+    const studentSelect = document.getElementById('student-select');
+    const sessionSelect = document.getElementById('session-select');
+    const studentSearch = document.getElementById('student-search');
+    const compareModeCheckbox = document.getElementById('compare-mode');
+    const searchBtn = document.getElementById('search-btn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const noData = document.getElementById('no-data');
+    
+    // 등급별 색상
+    const gradeColors = {
+        1: 'rgba(59, 130, 246, 0.8)',   // 파란색 (1등급)
+        2: 'rgba(34, 197, 94, 0.8)',    // 초록색 (2등급) 
+        3: 'rgba(245, 158, 11, 0.8)',   // 노란색 (3등급)
+        4: 'rgba(249, 115, 22, 0.8)',   // 주황색 (4등급)
+        5: 'rgba(239, 68, 68, 0.8)',    // 빨간색 (5등급)
+        0: 'rgba(156, 163, 175, 0.3)'   // 회색 (미측정)
+    };
+    
+    // 학급 선택 시 학생 목록 로드
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        if (classId) {
+            loadStudents(classId);
+        } else {
+            resetStudentSelect();
+        }
+    });
+    
+    // 학생 검색
+    studentSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const options = studentSelect.querySelectorAll('option');
+        
+        options.forEach(option => {
+            if (option.value === '') return; // 첫 번째 옵션 제외
+            
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    });
+    
+    // 검색 버튼 클릭
+    searchBtn.addEventListener('click', function() {
+        const studentId = studentSelect.value;
+        if (!studentId) {
+            alert('학생을 선택해주세요.');
+            return;
+        }
+        
+        loadProfile();
+    });
+    
+    // 학생 선택 변경 시 자동 검색
+    studentSelect.addEventListener('change', function() {
+        if (this.value) {
+            loadProfile();
+        } else {
+            hideResults();
+        }
+    });
+    
+    // 학생 목록 로드
+    function loadStudents(classId) {
+        fetch(`/physical_education/api/paps/class-students/?class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateStudentSelect(data.students);
+                } else {
+                    alert('오류: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('학생 목록을 불러오는 중 오류가 발생했습니다.');
+            });
+    }
+    
+    // 학생 선택 옵션 생성
+    function populateStudentSelect(students) {
+        studentSelect.innerHTML = '<option value="">학생을 선택하세요</option>';
+        
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = `${student.name} (${student.student_number || '번호없음'})`;
+            studentSelect.appendChild(option);
+        });
+        
+        studentSelect.disabled = false;
+    }
+    
+    // 학생 선택 초기화
+    function resetStudentSelect() {
+        studentSelect.innerHTML = '<option value="">학급을 먼저 선택하세요</option>';
+        studentSelect.disabled = true;
+        hideResults();
+    }
+    
+    // 프로필 데이터 로드
+    function loadProfile() {
+        const studentId = studentSelect.value;
+        const sessionId = sessionSelect.value;
+        const compareMode = compareModeCheckbox.checked;
+        
+        if (!studentId) return;
+        
+        // UI 상태 변경
+        showLoading();
+        hideResults();
+        hideNoData();
+        
+        // API 요청
+        const params = new URLSearchParams({
+            student_id: studentId,
+            session_id: sessionId || '',
+            compare_mode: compareMode
+        });
+        
+        fetch(`/physical_education/api/paps/statistics/individual-profile/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    if (data.data.statistics.measurement_count === 0) {
+                        showNoData();
+                    } else {
+                        displayProfile(data.data);
+                    }
+                } else {
+                    alert('오류: ' + data.error);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            });
+    }
+    
+    // 프로필 결과 표시
+    function displayProfile(data) {
+        // 학생 정보 업데이트
+        document.getElementById('student-name').textContent = data.student_info.name;
+        document.getElementById('student-class').textContent = data.student_info.class;
+        document.getElementById('average-grade').textContent = data.statistics.average_grade + '등급';
+        document.getElementById('completion-rate').textContent = Math.round(data.statistics.completion_rate) + '%';
+        document.getElementById('session-info').textContent = 
+            `${data.session_data.session_name} (${data.session_data.measurement_date})`;
+        
+        // 레이더 차트 업데이트
+        updateRadarChart(data.session_data.radar_data);
+        
+        // 현재 측정 기록 업데이트
+        updateCurrentRecords(data.session_data.records);
+        
+        // 측정 히스토리 테이블 업데이트
+        updateHistoryTable(data.recent_history);
+        
+        // 결과 영역 표시
+        showResults();
+    }
+    
+    // 레이더 차트 업데이트
+    function updateRadarChart(radarData) {
+        const ctx = document.getElementById('radarChart');
+        
+        if (radarChart) {
+            radarChart.destroy();
+        }
+        
+        // 등급별 색상 배열 생성
+        const backgroundColors = radarData.grades.map(grade => gradeColors[grade]);
+        const borderColors = radarData.grades.map(grade => gradeColors[grade].replace('0.8', '1'));
+        
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: radarData.categories,
+                datasets: [{
+                    label: '등급',
+                    data: radarData.grades,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: borderColors,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        min: 0,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value === 0 ? '미측정' : value + '등급';
+                            }
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 현재 측정 기록 업데이트
+    function updateCurrentRecords(records) {
+        const container = document.getElementById('current-records');
+        container.innerHTML = '';
+        
+        if (records.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-center">측정 기록이 없습니다.</p>';
+            return;
+        }
+        
+        records.forEach(record => {
+            const recordDiv = document.createElement('div');
+            recordDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+            
+            recordDiv.innerHTML = `
+                <div>
+                    <div class="font-medium text-gray-900">${record.activity}</div>
+                    <div class="text-sm text-gray-500">${record.category}</div>
+                </div>
+                <div class="text-right">
+                    <div class="font-bold text-lg text-blue-600">${record.value} ${record.unit}</div>
+                    <div class="text-sm font-medium grade-${record.grade}">
+                        ${record.grade}등급
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(recordDiv);
+        });
+    }
+    
+    // 히스토리 테이블 업데이트
+    function updateHistoryTable(history) {
+        const tbody = document.getElementById('history-table-body');
+        tbody.innerHTML = '';
+        
+        if (history.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                    측정 히스토리가 없습니다.
+                </td>
+            `;
+            tbody.appendChild(row);
+            return;
+        }
+        
+        history.forEach(record => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${record.session_name}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${record.activity}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                    ${record.value} ${record.unit}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                    <span class="grade-badge grade-${record.grade}">
+                        ${record.grade}등급
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
+                    ${record.measured_at || '-'}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // UI 상태 관리 함수들
+    function showLoading() {
+        loading.classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        loading.classList.add('hidden');
+    }
+    
+    function showResults() {
+        results.classList.remove('hidden');
+    }
+    
+    function hideResults() {
+        results.classList.add('hidden');
+    }
+    
+    function showNoData() {
+        noData.classList.remove('hidden');
+    }
+    
+    function hideNoData() {
+        noData.classList.add('hidden');
+    }
+});
+</script>
+
+<!-- 등급별 색상 스타일 -->
+<style>
+.grade-1 { color: #3b82f6; }
+.grade-2 { color: #22c55e; }
+.grade-3 { color: #f59e0b; }
+.grade-4 { color: #f97316; }
+.grade-5 { color: #ef4444; }
+
+.grade-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.grade-badge.grade-1 { background-color: #dbeafe; color: #1d4ed8; }
+.grade-badge.grade-2 { background-color: #dcfce7; color: #16a34a; }
+.grade-badge.grade-3 { background-color: #fef3c7; color: #d97706; }
+.grade-badge.grade-4 { background-color: #fed7aa; color: #ea580c; }
+.grade-badge.grade-5 { background-color: #fecaca; color: #dc2626; }
+</style>
+{% endblock %}

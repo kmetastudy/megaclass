@@ -1,0 +1,1343 @@
+{
+  "SHUTTLE_RUN": {
+    "gender_specific": true,
+    "unit": "회",
+    "calculation_field": "shuttle_run",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 19, "max": 25},
+          "grade_4": {"min": 26, "max": 44},
+          "grade_3": {"min": 45, "max": 68},
+          "grade_2": {"min": 69, "max": 95},
+          "grade_1": {"min": 96, "max": 103}
+        },
+        "초5": {
+          "grade_5": {"min": 22, "max": 28},
+          "grade_4": {"min": 29, "max": 49},
+          "grade_3": {"min": 50, "max": 72},
+          "grade_2": {"min": 73, "max": 99},
+          "grade_1": {"min": 100, "max": 107}
+        },
+        "초6": {
+          "grade_5": {"min": 22, "max": 31},
+          "grade_4": {"min": 32, "max": 53},
+          "grade_3": {"min": 54, "max": 77},
+          "grade_2": {"min": 78, "max": 103},
+          "grade_1": {"min": 104, "max": 112}
+        },
+        "중1": {
+          "grade_5": {"min": 15, "max": 19},
+          "grade_4": {"min": 20, "max": 35},
+          "grade_3": {"min": 36, "max": 49},
+          "grade_2": {"min": 50, "max": 63},
+          "grade_1": {"min": 64, "max": 73}
+        },
+        "중2": {
+          "grade_5": {"min": 15, "max": 21},
+          "grade_4": {"min": 22, "max": 37},
+          "grade_3": {"min": 38, "max": 51},
+          "grade_2": {"min": 52, "max": 65},
+          "grade_1": {"min": 66, "max": 75}
+        },
+        "중3": {
+          "grade_5": {"min": 16, "max": 23},
+          "grade_4": {"min": 24, "max": 39},
+          "grade_3": {"min": 40, "max": 53},
+          "grade_2": {"min": 54, "max": 67},
+          "grade_1": {"min": 68, "max": 79}
+        },
+        "고1": {
+          "grade_5": {"min": 16, "max": 25},
+          "grade_4": {"min": 26, "max": 41},
+          "grade_3": {"min": 42, "max": 55},
+          "grade_2": {"min": 56, "max": 69},
+          "grade_1": {"min": 70, "max": 80}
+        },
+        "고2": {
+          "grade_5": {"min": 16, "max": 27},
+          "grade_4": {"min": 28, "max": 43},
+          "grade_3": {"min": 44, "max": 57},
+          "grade_2": {"min": 58, "max": 71},
+          "grade_1": {"min": 72, "max": 81}
+        },
+        "고3": {
+          "grade_5": {"min": 18, "max": 29},
+          "grade_4": {"min": 30, "max": 45},
+          "grade_3": {"min": 46, "max": 59},
+          "grade_2": {"min": 60, "max": 73},
+          "grade_1": {"min": 74, "max": 82}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 16, "max": 20},
+          "grade_4": {"min": 21, "max": 39},
+          "grade_3": {"min": 40, "max": 56},
+          "grade_2": {"min": 57, "max": 76},
+          "grade_1": {"min": 77, "max": 100}
+        },
+        "초5": {
+          "grade_5": {"min": 18, "max": 22},
+          "grade_4": {"min": 23, "max": 44},
+          "grade_3": {"min": 45, "max": 62},
+          "grade_2": {"min": 63, "max": 84},
+          "grade_1": {"min": 85, "max": 104}
+        },
+        "초6": {
+          "grade_5": {"min": 20, "max": 24},
+          "grade_4": {"min": 25, "max": 49},
+          "grade_3": {"min": 50, "max": 68},
+          "grade_2": {"min": 69, "max": 92},
+          "grade_1": {"min": 93, "max": 112}
+        },
+        "중1": {
+          "grade_5": {"min": 10, "max": 13},
+          "grade_4": {"min": 14, "max": 18},
+          "grade_3": {"min": 19, "max": 24},
+          "grade_2": {"min": 25, "max": 34},
+          "grade_1": {"min": 35, "max": 70}
+        },
+        "중2": {
+          "grade_5": {"min": 10, "max": 14},
+          "grade_4": {"min": 15, "max": 20},
+          "grade_3": {"min": 21, "max": 28},
+          "grade_2": {"min": 29, "max": 39},
+          "grade_1": {"min": 40, "max": 75}
+        },
+        "중3": {
+          "grade_5": {"min": 12, "max": 15},
+          "grade_4": {"min": 16, "max": 22},
+          "grade_3": {"min": 23, "max": 32},
+          "grade_2": {"min": 33, "max": 44},
+          "grade_1": {"min": 45, "max": 80}
+        },
+        "고1": {
+          "grade_5": {"min": 13, "max": 16},
+          "grade_4": {"min": 17, "max": 24},
+          "grade_3": {"min": 25, "max": 36},
+          "grade_2": {"min": 37, "max": 49},
+          "grade_1": {"min": 50, "max": 85}
+        },
+        "고2": {
+          "grade_5": {"min": 14, "max": 17},
+          "grade_4": {"min": 18, "max": 26},
+          "grade_3": {"min": 27, "max": 40},
+          "grade_2": {"min": 41, "max": 54},
+          "grade_1": {"min": 55, "max": 90}
+        },
+        "고3": {
+          "grade_5": {"min": 14, "max": 17},
+          "grade_4": {"min": 18, "max": 26},
+          "grade_3": {"min": 27, "max": 40},
+          "grade_2": {"min": 41, "max": 54},
+          "grade_1": {"min": 55, "max": 90}
+        }
+      }
+    }
+  },
+  "LONG_RUN_WALK": {
+    "gender_specific": true,
+    "unit": "초",
+    "calculation_field": "long_run_walk",
+    "grade_type": "numeric",
+    "calculation_method": "lower_better",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초5": {
+          "grade_5": {"min": 480, "max": 640},
+          "grade_4": {"min": 410, "max": 479},
+          "grade_3": {"min": 325, "max": 409},
+          "grade_2": {"min": 282, "max": 324},
+          "grade_1": {"min": 268, "max": 281}
+        },
+        "초6": {
+          "grade_5": {"min": 450, "max": 587},
+          "grade_4": {"min": 380, "max": 449},
+          "grade_3": {"min": 315, "max": 379},
+          "grade_2": {"min": 251, "max": 314},
+          "grade_1": {"min": 243, "max": 250}
+        },
+        "중1": {
+          "grade_5": {"min": 700, "max": 791},
+          "grade_4": {"min": 600, "max": 699},
+          "grade_3": {"min": 503, "max": 599},
+          "grade_2": {"min": 426, "max": 502},
+          "grade_1": {"min": 400, "max": 425}
+        },
+        "중2": {
+          "grade_5": {"min": 680, "max": 774},
+          "grade_4": {"min": 584, "max": 679},
+          "grade_3": {"min": 488, "max": 583},
+          "grade_2": {"min": 417, "max": 487},
+          "grade_1": {"min": 380, "max": 416}
+        },
+        "중3": {
+          "grade_5": {"min": 660, "max": 761},
+          "grade_4": {"min": 568, "max": 659},
+          "grade_3": {"min": 473, "max": 567},
+          "grade_2": {"min": 408, "max": 472},
+          "grade_1": {"min": 370, "max": 407}
+        },
+        "고1": {
+          "grade_5": {"min": 640, "max": 755},
+          "grade_4": {"min": 552, "max": 639},
+          "grade_3": {"min": 458, "max": 551},
+          "grade_2": {"min": 399, "max": 457},
+          "grade_1": {"min": 370, "max": 398}
+        },
+        "고2": {
+          "grade_5": {"min": 620, "max": 721},
+          "grade_4": {"min": 536, "max": 619},
+          "grade_3": {"min": 443, "max": 535},
+          "grade_2": {"min": 390, "max": 442},
+          "grade_1": {"min": 370, "max": 389}
+        },
+        "고3": {
+          "grade_5": {"min": 600, "max": 701},
+          "grade_4": {"min": 520, "max": 599},
+          "grade_3": {"min": 428, "max": 519},
+          "grade_2": {"min": 381, "max": 427},
+          "grade_1": {"min": 362, "max": 380}
+        }
+      },
+      "female": {
+        "초5": {
+          "grade_5": {"min": 540, "max": 720},
+          "grade_4": {"min": 450, "max": 539},
+          "grade_3": {"min": 365, "max": 449},
+          "grade_2": {"min": 315, "max": 364},
+          "grade_1": {"min": 300, "max": 314}
+        },
+        "초6": {
+          "grade_5": {"min": 510, "max": 660},
+          "grade_4": {"min": 420, "max": 509},
+          "grade_3": {"min": 350, "max": 419},
+          "grade_2": {"min": 280, "max": 349},
+          "grade_1": {"min": 270, "max": 279}
+        },
+        "중1": {
+          "grade_5": {"min": 750, "max": 840},
+          "grade_4": {"min": 650, "max": 749},
+          "grade_3": {"min": 540, "max": 649},
+          "grade_2": {"min": 460, "max": 539},
+          "grade_1": {"min": 430, "max": 459}
+        },
+        "중2": {
+          "grade_5": {"min": 730, "max": 820},
+          "grade_4": {"min": 630, "max": 729},
+          "grade_3": {"min": 525, "max": 629},
+          "grade_2": {"min": 450, "max": 524},
+          "grade_1": {"min": 420, "max": 449}
+        },
+        "중3": {
+          "grade_5": {"min": 710, "max": 800},
+          "grade_4": {"min": 610, "max": 709},
+          "grade_3": {"min": 510, "max": 609},
+          "grade_2": {"min": 440, "max": 509},
+          "grade_1": {"min": 410, "max": 439}
+        },
+        "고1": {
+          "grade_5": {"min": 690, "max": 780},
+          "grade_4": {"min": 590, "max": 689},
+          "grade_3": {"min": 495, "max": 589},
+          "grade_2": {"min": 430, "max": 494},
+          "grade_1": {"min": 400, "max": 429}
+        },
+        "고2": {
+          "grade_5": {"min": 670, "max": 760},
+          "grade_4": {"min": 570, "max": 669},
+          "grade_3": {"min": 480, "max": 569},
+          "grade_2": {"min": 420, "max": 479},
+          "grade_1": {"min": 390, "max": 419}
+        },
+        "고3": {
+          "grade_5": {"min": 650, "max": 740},
+          "grade_4": {"min": 550, "max": 649},
+          "grade_3": {"min": 465, "max": 549},
+          "grade_2": {"min": 410, "max": 464},
+          "grade_1": {"min": 380, "max": 409}
+        }
+      }
+    }
+  },
+  "STEP_TEST": {
+    "gender_specific": false,
+    "unit": "PEI",
+    "calculation_field": "step_test_pei",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "all": {
+        "all_grades": {
+          "grade_5": {"min": 44.0, "max": 46.9},
+          "grade_4": {"min": 47.0, "max": 51.9},
+          "grade_3": {"min": 52.0, "max": 61.9},
+          "grade_2": {"min": 62.0, "max": 75.9},
+          "grade_1": {"min": 76.0, "max": 95.0}
+        }
+      }
+    }
+  },
+  "SIT_REACH": {
+    "gender_specific": true,
+    "unit": "cm",
+    "calculation_field": "sit_reach_best_record",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": -7.9, "max": 5.9},
+          "grade_4": {"min": 6.0, "max": 11.9},
+          "grade_3": {"min": 12.0, "max": 16.9},
+          "grade_2": {"min": 17.0, "max": 20.9},
+          "grade_1": {"min": 21.0, "max": 50.0}
+        },
+        "초5": {
+          "grade_5": {"min": -7.9, "max": 6.9},
+          "grade_4": {"min": 7.0, "max": 12.9},
+          "grade_3": {"min": 13.0, "max": 17.9},
+          "grade_2": {"min": 18.0, "max": 21.9},
+          "grade_1": {"min": 22.0, "max": 50.0}
+        },
+        "초6": {
+          "grade_5": {"min": -7.9, "max": 7.9},
+          "grade_4": {"min": 8.0, "max": 13.9},
+          "grade_3": {"min": 14.0, "max": 18.9},
+          "grade_2": {"min": 19.0, "max": 22.9},
+          "grade_1": {"min": 23.0, "max": 50.0}
+        },
+        "중1": {
+          "grade_5": {"min": -7.9, "max": 6.9},
+          "grade_4": {"min": 7.0, "max": 12.9},
+          "grade_3": {"min": 13.0, "max": 17.9},
+          "grade_2": {"min": 18.0, "max": 21.9},
+          "grade_1": {"min": 22.0, "max": 50.0}
+        },
+        "중2": {
+          "grade_5": {"min": -7.9, "max": 7.9},
+          "grade_4": {"min": 8.0, "max": 13.9},
+          "grade_3": {"min": 14.0, "max": 18.9},
+          "grade_2": {"min": 19.0, "max": 22.9},
+          "grade_1": {"min": 23.0, "max": 50.0}
+        },
+        "중3": {
+          "grade_5": {"min": -7.9, "max": 8.9},
+          "grade_4": {"min": 9.0, "max": 14.9},
+          "grade_3": {"min": 15.0, "max": 19.9},
+          "grade_2": {"min": 20.0, "max": 23.9},
+          "grade_1": {"min": 24.0, "max": 50.0}
+        },
+        "고1": {
+          "grade_5": {"min": -7.9, "max": 9.9},
+          "grade_4": {"min": 10.0, "max": 15.9},
+          "grade_3": {"min": 16.0, "max": 20.9},
+          "grade_2": {"min": 21.0, "max": 24.9},
+          "grade_1": {"min": 25.0, "max": 50.0}
+        },
+        "고2": {
+          "grade_5": {"min": -7.9, "max": 10.9},
+          "grade_4": {"min": 11.0, "max": 16.9},
+          "grade_3": {"min": 17.0, "max": 21.9},
+          "grade_2": {"min": 22.0, "max": 25.9},
+          "grade_1": {"min": 26.0, "max": 50.0}
+        },
+        "고3": {
+          "grade_5": {"min": -7.9, "max": 11.9},
+          "grade_4": {"min": 12.0, "max": 17.9},
+          "grade_3": {"min": 18.0, "max": 22.9},
+          "grade_2": {"min": 23.0, "max": 26.9},
+          "grade_1": {"min": 27.0, "max": 50.0}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": -5.9, "max": 8.9},
+          "grade_4": {"min": 9.0, "max": 15.9},
+          "grade_3": {"min": 16.0, "max": 21.9},
+          "grade_2": {"min": 22.0, "max": 26.9},
+          "grade_1": {"min": 27.0, "max": 50.0}
+        },
+        "초5": {
+          "grade_5": {"min": -5.9, "max": 9.9},
+          "grade_4": {"min": 10.0, "max": 16.9},
+          "grade_3": {"min": 17.0, "max": 22.9},
+          "grade_2": {"min": 23.0, "max": 27.9},
+          "grade_1": {"min": 28.0, "max": 50.0}
+        },
+        "초6": {
+          "grade_5": {"min": -5.9, "max": 10.9},
+          "grade_4": {"min": 11.0, "max": 17.9},
+          "grade_3": {"min": 18.0, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 28.9},
+          "grade_1": {"min": 29.0, "max": 50.0}
+        },
+        "중1": {
+          "grade_5": {"min": -5.9, "max": 10.9},
+          "grade_4": {"min": 11.0, "max": 17.9},
+          "grade_3": {"min": 18.0, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 28.9},
+          "grade_1": {"min": 29.0, "max": 50.0}
+        },
+        "중2": {
+          "grade_5": {"min": -5.9, "max": 11.9},
+          "grade_4": {"min": 12.0, "max": 18.9},
+          "grade_3": {"min": 19.0, "max": 24.9},
+          "grade_2": {"min": 25.0, "max": 29.9},
+          "grade_1": {"min": 30.0, "max": 50.0}
+        },
+        "중3": {
+          "grade_5": {"min": -5.9, "max": 12.9},
+          "grade_4": {"min": 13.0, "max": 19.9},
+          "grade_3": {"min": 20.0, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 30.9},
+          "grade_1": {"min": 31.0, "max": 50.0}
+        },
+        "고1": {
+          "grade_5": {"min": -5.9, "max": 13.9},
+          "grade_4": {"min": 14.0, "max": 20.9},
+          "grade_3": {"min": 21.0, "max": 26.9},
+          "grade_2": {"min": 27.0, "max": 31.9},
+          "grade_1": {"min": 32.0, "max": 50.0}
+        },
+        "고2": {
+          "grade_5": {"min": -5.9, "max": 14.9},
+          "grade_4": {"min": 15.0, "max": 21.9},
+          "grade_3": {"min": 22.0, "max": 27.9},
+          "grade_2": {"min": 28.0, "max": 32.9},
+          "grade_1": {"min": 33.0, "max": 50.0}
+        },
+        "고3": {
+          "grade_5": {"min": -5.9, "max": 15.9},
+          "grade_4": {"min": 16.0, "max": 22.9},
+          "grade_3": {"min": 23.0, "max": 28.9},
+          "grade_2": {"min": 29.0, "max": 33.9},
+          "grade_1": {"min": 34.0, "max": 50.0}
+        }
+      }
+    }
+  },
+  "COMPREHENSIVE_FLEXIBILITY": {
+    "gender_specific": false,
+    "unit": "점",
+    "calculation_field": "flexibility_total_score",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "all": {
+        "all_grades": {
+          "grade_5": {"min": 0, "max": 1},
+          "grade_4": {"min": 2, "max": 3},
+          "grade_3": {"min": 4, "max": 5},
+          "grade_2": {"min": 6, "max": 7},
+          "grade_1": {"min": 8, "max": 8}
+        }
+      }
+    }
+  },
+  "BMI": {
+    "gender_specific": true,
+    "unit": "kg/m²",
+    "calculation_field": "bmi_bmi",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"max": 14.2},
+          "grade_4": {"min": 14.3, "max": 20.7},
+          "grade_3": {"min": 20.8, "max": 23.2},
+          "grade_2": {"min": 23.3, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "초5": {
+          "grade_5": {"max": 14.5},
+          "grade_4": {"min": 14.6, "max": 21.4},
+          "grade_3": {"min": 21.5, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "초6": {
+          "grade_5": {"max": 14.8},
+          "grade_4": {"min": 14.9, "max": 22.1},
+          "grade_3": {"min": 22.2, "max": 24.6},
+          "grade_2": {"min": 24.7, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중1": {
+          "grade_5": {"max": 15.3},
+          "grade_4": {"min": 15.4, "max": 23.2},
+          "grade_3": {"min": 23.3, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중2": {
+          "grade_5": {"max": 15.7},
+          "grade_4": {"min": 15.8, "max": 24.3},
+          "grade_3": {"min": 24.4, "max": 27.2},
+          "grade_2": {"min": 27.3, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중3": {
+          "grade_5": {"max": 16.2},
+          "grade_4": {"min": 16.3, "max": 25.4},
+          "grade_3": {"min": 25.5, "max": 28.5},
+          "grade_2": {"min": 28.6, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고1": {
+          "grade_5": {"max": 16.7},
+          "grade_4": {"min": 16.8, "max": 26.5},
+          "grade_3": {"min": 26.6, "max": 29.8},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고2": {
+          "grade_5": {"max": 17.2},
+          "grade_4": {"min": 17.3, "max": 27.6},
+          "grade_3": {"min": 27.7, "max": 29.9},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고3": {
+          "grade_5": {"max": 17.7},
+          "grade_4": {"min": 17.8, "max": 24.9},
+          "grade_3": {"min": 25.0, "max": 29.9},
+          "grade_2": {"min": 25.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"max": 13.9},
+          "grade_4": {"min": 14.0, "max": 19.8},
+          "grade_3": {"min": 19.9, "max": 22.0},
+          "grade_2": {"min": 22.1, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "초5": {
+          "grade_5": {"max": 14.2},
+          "grade_4": {"min": 14.3, "max": 20.6},
+          "grade_3": {"min": 20.7, "max": 23.0},
+          "grade_2": {"min": 23.1, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "초6": {
+          "grade_5": {"max": 14.6},
+          "grade_4": {"min": 14.7, "max": 21.4},
+          "grade_3": {"min": 21.5, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중1": {
+          "grade_5": {"max": 15.1},
+          "grade_4": {"min": 15.2, "max": 22.3},
+          "grade_3": {"min": 22.4, "max": 24.9},
+          "grade_2": {"min": 25.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중2": {
+          "grade_5": {"max": 15.6},
+          "grade_4": {"min": 15.7, "max": 23.2},
+          "grade_3": {"min": 23.3, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "중3": {
+          "grade_5": {"max": 16.2},
+          "grade_4": {"min": 16.3, "max": 24.1},
+          "grade_3": {"min": 24.2, "max": 26.9},
+          "grade_2": {"min": 27.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고1": {
+          "grade_5": {"max": 16.7},
+          "grade_4": {"min": 16.8, "max": 25.0},
+          "grade_3": {"min": 25.1, "max": 27.9},
+          "grade_2": {"min": 28.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고2": {
+          "grade_5": {"max": 17.2},
+          "grade_4": {"min": 17.3, "max": 25.9},
+          "grade_3": {"min": 26.0, "max": 28.9},
+          "grade_2": {"min": 29.0, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        },
+        "고3": {
+          "grade_5": {"max": 17.6},
+          "grade_4": {"min": 17.7, "max": 26.8},
+          "grade_3": {"min": 26.9, "max": 29.9},
+          "grade_2": {"min": 29.9, "max": 29.9},
+          "grade_1": {"min": 30.0}
+        }
+      }
+    }
+  },
+  "PUSH_UP": {
+    "gender_specific": true,
+    "unit": "회",
+    "calculation_field": "push_up",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 0, "max": 6},
+          "grade_4": {"min": 7, "max": 16},
+          "grade_3": {"min": 17, "max": 29},
+          "grade_2": {"min": 30, "max": 44},
+          "grade_1": {"min": 45, "max": 200}
+        },
+        "초5": {
+          "grade_5": {"min": 0, "max": 7},
+          "grade_4": {"min": 8, "max": 18},
+          "grade_3": {"min": 19, "max": 32},
+          "grade_2": {"min": 33, "max": 48},
+          "grade_1": {"min": 49, "max": 200}
+        },
+        "초6": {
+          "grade_5": {"min": 0, "max": 8},
+          "grade_4": {"min": 9, "max": 20},
+          "grade_3": {"min": 21, "max": 35},
+          "grade_2": {"min": 36, "max": 52},
+          "grade_1": {"min": 53, "max": 200}
+        },
+        "중1": {
+          "grade_5": {"min": 0, "max": 9},
+          "grade_4": {"min": 10, "max": 22},
+          "grade_3": {"min": 23, "max": 38},
+          "grade_2": {"min": 39, "max": 56},
+          "grade_1": {"min": 57, "max": 200}
+        },
+        "중2": {
+          "grade_5": {"min": 0, "max": 10},
+          "grade_4": {"min": 11, "max": 24},
+          "grade_3": {"min": 25, "max": 41},
+          "grade_2": {"min": 42, "max": 60},
+          "grade_1": {"min": 61, "max": 200}
+        },
+        "중3": {
+          "grade_5": {"min": 0, "max": 11},
+          "grade_4": {"min": 12, "max": 26},
+          "grade_3": {"min": 27, "max": 44},
+          "grade_2": {"min": 45, "max": 64},
+          "grade_1": {"min": 65, "max": 200}
+        },
+        "고1": {
+          "grade_5": {"min": 0, "max": 12},
+          "grade_4": {"min": 13, "max": 28},
+          "grade_3": {"min": 29, "max": 47},
+          "grade_2": {"min": 48, "max": 68},
+          "grade_1": {"min": 69, "max": 200}
+        },
+        "고2": {
+          "grade_5": {"min": 0, "max": 13},
+          "grade_4": {"min": 14, "max": 30},
+          "grade_3": {"min": 31, "max": 50},
+          "grade_2": {"min": 51, "max": 72},
+          "grade_1": {"min": 73, "max": 200}
+        },
+        "고3": {
+          "grade_5": {"min": 0, "max": 14},
+          "grade_4": {"min": 15, "max": 32},
+          "grade_3": {"min": 33, "max": 53},
+          "grade_2": {"min": 54, "max": 76},
+          "grade_1": {"min": 77, "max": 200}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 0, "max": 4},
+          "grade_4": {"min": 5, "max": 11},
+          "grade_3": {"min": 12, "max": 20},
+          "grade_2": {"min": 21, "max": 30},
+          "grade_1": {"min": 31, "max": 200}
+        },
+        "초5": {
+          "grade_5": {"min": 0, "max": 5},
+          "grade_4": {"min": 6, "max": 13},
+          "grade_3": {"min": 14, "max": 23},
+          "grade_2": {"min": 24, "max": 34},
+          "grade_1": {"min": 35, "max": 200}
+        },
+        "초6": {
+          "grade_5": {"min": 0, "max": 6},
+          "grade_4": {"min": 7, "max": 15},
+          "grade_3": {"min": 16, "max": 26},
+          "grade_2": {"min": 27, "max": 38},
+          "grade_1": {"min": 39, "max": 200}
+        },
+        "중1": {
+          "grade_5": {"min": 0, "max": 7},
+          "grade_4": {"min": 8, "max": 17},
+          "grade_3": {"min": 18, "max": 29},
+          "grade_2": {"min": 30, "max": 42},
+          "grade_1": {"min": 43, "max": 200}
+        },
+        "중2": {
+          "grade_5": {"min": 0, "max": 8},
+          "grade_4": {"min": 9, "max": 19},
+          "grade_3": {"min": 20, "max": 32},
+          "grade_2": {"min": 33, "max": 46},
+          "grade_1": {"min": 47, "max": 200}
+        },
+        "중3": {
+          "grade_5": {"min": 0, "max": 9},
+          "grade_4": {"min": 10, "max": 21},
+          "grade_3": {"min": 22, "max": 35},
+          "grade_2": {"min": 36, "max": 50},
+          "grade_1": {"min": 51, "max": 200}
+        },
+        "고1": {
+          "grade_5": {"min": 0, "max": 10},
+          "grade_4": {"min": 11, "max": 23},
+          "grade_3": {"min": 24, "max": 38},
+          "grade_2": {"min": 39, "max": 54},
+          "grade_1": {"min": 55, "max": 200}
+        },
+        "고2": {
+          "grade_5": {"min": 0, "max": 11},
+          "grade_4": {"min": 12, "max": 25},
+          "grade_3": {"min": 26, "max": 41},
+          "grade_2": {"min": 42, "max": 58},
+          "grade_1": {"min": 59, "max": 200}
+        },
+        "고3": {
+          "grade_5": {"min": 0, "max": 12},
+          "grade_4": {"min": 13, "max": 27},
+          "grade_3": {"min": 28, "max": 44},
+          "grade_2": {"min": 45, "max": 62},
+          "grade_1": {"min": 63, "max": 200}
+        }
+      }
+    }
+  },
+  "SIT_UP": {
+    "gender_specific": true,
+    "unit": "회",
+    "calculation_field": "sit_up",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 0, "max": 13},
+          "grade_4": {"min": 14, "max": 25},
+          "grade_3": {"min": 26, "max": 37},
+          "grade_2": {"min": 38, "max": 49},
+          "grade_1": {"min": 50, "max": 200}
+        },
+        "초5": {
+          "grade_5": {"min": 0, "max": 15},
+          "grade_4": {"min": 16, "max": 28},
+          "grade_3": {"min": 29, "max": 41},
+          "grade_2": {"min": 42, "max": 54},
+          "grade_1": {"min": 55, "max": 200}
+        },
+        "초6": {
+          "grade_5": {"min": 0, "max": 17},
+          "grade_4": {"min": 18, "max": 31},
+          "grade_3": {"min": 32, "max": 45},
+          "grade_2": {"min": 46, "max": 59},
+          "grade_1": {"min": 60, "max": 200}
+        },
+        "중1": {
+          "grade_5": {"min": 0, "max": 19},
+          "grade_4": {"min": 20, "max": 34},
+          "grade_3": {"min": 35, "max": 49},
+          "grade_2": {"min": 50, "max": 64},
+          "grade_1": {"min": 65, "max": 200}
+        },
+        "중2": {
+          "grade_5": {"min": 0, "max": 21},
+          "grade_4": {"min": 22, "max": 37},
+          "grade_3": {"min": 38, "max": 53},
+          "grade_2": {"min": 54, "max": 69},
+          "grade_1": {"min": 70, "max": 200}
+        },
+        "중3": {
+          "grade_5": {"min": 0, "max": 23},
+          "grade_4": {"min": 24, "max": 40},
+          "grade_3": {"min": 41, "max": 57},
+          "grade_2": {"min": 58, "max": 74},
+          "grade_1": {"min": 75, "max": 200}
+        },
+        "고1": {
+          "grade_5": {"min": 0, "max": 25},
+          "grade_4": {"min": 26, "max": 43},
+          "grade_3": {"min": 44, "max": 61},
+          "grade_2": {"min": 62, "max": 79},
+          "grade_1": {"min": 80, "max": 200}
+        },
+        "고2": {
+          "grade_5": {"min": 0, "max": 27},
+          "grade_4": {"min": 28, "max": 46},
+          "grade_3": {"min": 47, "max": 65},
+          "grade_2": {"min": 66, "max": 84},
+          "grade_1": {"min": 85, "max": 200}
+        },
+        "고3": {
+          "grade_5": {"min": 0, "max": 29},
+          "grade_4": {"min": 30, "max": 49},
+          "grade_3": {"min": 50, "max": 69},
+          "grade_2": {"min": 70, "max": 89},
+          "grade_1": {"min": 90, "max": 200}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 0, "max": 10},
+          "grade_4": {"min": 11, "max": 20},
+          "grade_3": {"min": 21, "max": 30},
+          "grade_2": {"min": 31, "max": 40},
+          "grade_1": {"min": 41, "max": 200}
+        },
+        "초5": {
+          "grade_5": {"min": 0, "max": 12},
+          "grade_4": {"min": 13, "max": 23},
+          "grade_3": {"min": 24, "max": 34},
+          "grade_2": {"min": 35, "max": 45},
+          "grade_1": {"min": 46, "max": 200}
+        },
+        "초6": {
+          "grade_5": {"min": 0, "max": 14},
+          "grade_4": {"min": 15, "max": 26},
+          "grade_3": {"min": 27, "max": 38},
+          "grade_2": {"min": 39, "max": 50},
+          "grade_1": {"min": 51, "max": 200}
+        },
+        "중1": {
+          "grade_5": {"min": 0, "max": 16},
+          "grade_4": {"min": 17, "max": 29},
+          "grade_3": {"min": 30, "max": 42},
+          "grade_2": {"min": 43, "max": 55},
+          "grade_1": {"min": 56, "max": 200}
+        },
+        "중2": {
+          "grade_5": {"min": 0, "max": 18},
+          "grade_4": {"min": 19, "max": 32},
+          "grade_3": {"min": 33, "max": 46},
+          "grade_2": {"min": 47, "max": 60},
+          "grade_1": {"min": 61, "max": 200}
+        },
+        "중3": {
+          "grade_5": {"min": 0, "max": 20},
+          "grade_4": {"min": 21, "max": 35},
+          "grade_3": {"min": 36, "max": 50},
+          "grade_2": {"min": 51, "max": 65},
+          "grade_1": {"min": 66, "max": 200}
+        },
+        "고1": {
+          "grade_5": {"min": 0, "max": 22},
+          "grade_4": {"min": 23, "max": 38},
+          "grade_3": {"min": 39, "max": 54},
+          "grade_2": {"min": 55, "max": 70},
+          "grade_1": {"min": 71, "max": 200}
+        },
+        "고2": {
+          "grade_5": {"min": 0, "max": 24},
+          "grade_4": {"min": 25, "max": 41},
+          "grade_3": {"min": 42, "max": 58},
+          "grade_2": {"min": 59, "max": 75},
+          "grade_1": {"min": 76, "max": 200}
+        },
+        "고3": {
+          "grade_5": {"min": 0, "max": 26},
+          "grade_4": {"min": 27, "max": 44},
+          "grade_3": {"min": 45, "max": 62},
+          "grade_2": {"min": 63, "max": 80},
+          "grade_1": {"min": 81, "max": 200}
+        }
+      }
+    }
+  },
+  "GRIP_STRENGTH": {
+    "gender_specific": true,
+    "unit": "kg",
+    "calculation_field": "grip_strength_best",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 0.0, "max": 11.9},
+          "grade_4": {"min": 12.0, "max": 15.9},
+          "grade_3": {"min": 16.0, "max": 19.9},
+          "grade_2": {"min": 20.0, "max": 23.9},
+          "grade_1": {"min": 24.0, "max": 100.0}
+        },
+        "초5": {
+          "grade_5": {"min": 0.0, "max": 13.9},
+          "grade_4": {"min": 14.0, "max": 18.9},
+          "grade_3": {"min": 19.0, "max": 23.9},
+          "grade_2": {"min": 24.0, "max": 28.9},
+          "grade_1": {"min": 29.0, "max": 100.0}
+        },
+        "초6": {
+          "grade_5": {"min": 0.0, "max": 15.9},
+          "grade_4": {"min": 16.0, "max": 21.9},
+          "grade_3": {"min": 22.0, "max": 27.9},
+          "grade_2": {"min": 28.0, "max": 33.9},
+          "grade_1": {"min": 34.0, "max": 100.0}
+        },
+        "중1": {
+          "grade_5": {"min": 0.0, "max": 17.9},
+          "grade_4": {"min": 18.0, "max": 24.9},
+          "grade_3": {"min": 25.0, "max": 31.9},
+          "grade_2": {"min": 32.0, "max": 38.9},
+          "grade_1": {"min": 39.0, "max": 100.0}
+        },
+        "중2": {
+          "grade_5": {"min": 0.0, "max": 19.9},
+          "grade_4": {"min": 20.0, "max": 27.9},
+          "grade_3": {"min": 28.0, "max": 35.9},
+          "grade_2": {"min": 36.0, "max": 43.9},
+          "grade_1": {"min": 44.0, "max": 100.0}
+        },
+        "중3": {
+          "grade_5": {"min": 0.0, "max": 21.9},
+          "grade_4": {"min": 22.0, "max": 30.9},
+          "grade_3": {"min": 31.0, "max": 39.9},
+          "grade_2": {"min": 40.0, "max": 48.9},
+          "grade_1": {"min": 49.0, "max": 100.0}
+        },
+        "고1": {
+          "grade_5": {"min": 0.0, "max": 23.9},
+          "grade_4": {"min": 24.0, "max": 33.9},
+          "grade_3": {"min": 34.0, "max": 43.9},
+          "grade_2": {"min": 44.0, "max": 53.9},
+          "grade_1": {"min": 54.0, "max": 100.0}
+        },
+        "고2": {
+          "grade_5": {"min": 0.0, "max": 25.9},
+          "grade_4": {"min": 26.0, "max": 36.9},
+          "grade_3": {"min": 37.0, "max": 47.9},
+          "grade_2": {"min": 48.0, "max": 58.9},
+          "grade_1": {"min": 59.0, "max": 100.0}
+        },
+        "고3": {
+          "grade_5": {"min": 0.0, "max": 27.9},
+          "grade_4": {"min": 28.0, "max": 39.9},
+          "grade_3": {"min": 40.0, "max": 51.9},
+          "grade_2": {"min": 52.0, "max": 63.9},
+          "grade_1": {"min": 64.0, "max": 100.0}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 0.0, "max": 9.9},
+          "grade_4": {"min": 10.0, "max": 13.9},
+          "grade_3": {"min": 14.0, "max": 17.9},
+          "grade_2": {"min": 18.0, "max": 21.9},
+          "grade_1": {"min": 22.0, "max": 100.0}
+        },
+        "초5": {
+          "grade_5": {"min": 0.0, "max": 11.9},
+          "grade_4": {"min": 12.0, "max": 16.9},
+          "grade_3": {"min": 17.0, "max": 21.9},
+          "grade_2": {"min": 22.0, "max": 26.9},
+          "grade_1": {"min": 27.0, "max": 100.0}
+        },
+        "초6": {
+          "grade_5": {"min": 0.0, "max": 13.9},
+          "grade_4": {"min": 14.0, "max": 19.9},
+          "grade_3": {"min": 20.0, "max": 25.9},
+          "grade_2": {"min": 26.0, "max": 31.9},
+          "grade_1": {"min": 32.0, "max": 100.0}
+        },
+        "중1": {
+          "grade_5": {"min": 0.0, "max": 15.9},
+          "grade_4": {"min": 16.0, "max": 22.9},
+          "grade_3": {"min": 23.0, "max": 29.9},
+          "grade_2": {"min": 30.0, "max": 36.9},
+          "grade_1": {"min": 37.0, "max": 100.0}
+        },
+        "중2": {
+          "grade_5": {"min": 0.0, "max": 17.9},
+          "grade_4": {"min": 18.0, "max": 25.9},
+          "grade_3": {"min": 26.0, "max": 33.9},
+          "grade_2": {"min": 34.0, "max": 41.9},
+          "grade_1": {"min": 42.0, "max": 100.0}
+        },
+        "중3": {
+          "grade_5": {"min": 0.0, "max": 19.9},
+          "grade_4": {"min": 20.0, "max": 28.9},
+          "grade_3": {"min": 29.0, "max": 37.9},
+          "grade_2": {"min": 38.0, "max": 46.9},
+          "grade_1": {"min": 47.0, "max": 100.0}
+        },
+        "고1": {
+          "grade_5": {"min": 0.0, "max": 21.9},
+          "grade_4": {"min": 22.0, "max": 31.9},
+          "grade_3": {"min": 32.0, "max": 41.9},
+          "grade_2": {"min": 42.0, "max": 51.9},
+          "grade_1": {"min": 52.0, "max": 100.0}
+        },
+        "고2": {
+          "grade_5": {"min": 0.0, "max": 23.9},
+          "grade_4": {"min": 24.0, "max": 34.9},
+          "grade_3": {"min": 35.0, "max": 45.9},
+          "grade_2": {"min": 46.0, "max": 56.9},
+          "grade_1": {"min": 57.0, "max": 100.0}
+        },
+        "고3": {
+          "grade_5": {"min": 0.0, "max": 25.9},
+          "grade_4": {"min": 26.0, "max": 37.9},
+          "grade_3": {"min": 38.0, "max": 49.9},
+          "grade_2": {"min": 50.0, "max": 61.9},
+          "grade_1": {"min": 62.0, "max": 100.0}
+        }
+      }
+    }
+  },
+  "FIFTY_METER_RUN": {
+    "gender_specific": true,
+    "unit": "초",
+    "calculation_field": "fifty_meter_run",
+    "grade_type": "numeric",
+    "calculation_method": "lower_better",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 11.60, "max": 30.0},
+          "grade_4": {"min": 10.70, "max": 11.59},
+          "grade_3": {"min": 9.70, "max": 10.69},
+          "grade_2": {"min": 8.90, "max": 9.69},
+          "grade_1": {"min": 5.0, "max": 8.89}
+        },
+        "초5": {
+          "grade_5": {"min": 11.00, "max": 30.0},
+          "grade_4": {"min": 10.20, "max": 10.99},
+          "grade_3": {"min": 9.30, "max": 10.19},
+          "grade_2": {"min": 8.60, "max": 9.29},
+          "grade_1": {"min": 5.0, "max": 8.59}
+        },
+        "초6": {
+          "grade_5": {"min": 10.50, "max": 30.0},
+          "grade_4": {"min": 9.80, "max": 10.49},
+          "grade_3": {"min": 9.00, "max": 9.79},
+          "grade_2": {"min": 8.30, "max": 8.99},
+          "grade_1": {"min": 5.0, "max": 8.29}
+        },
+        "중1": {
+          "grade_5": {"min": 10.00, "max": 30.0},
+          "grade_4": {"min": 9.40, "max": 9.99},
+          "grade_3": {"min": 8.70, "max": 9.39},
+          "grade_2": {"min": 8.10, "max": 8.69},
+          "grade_1": {"min": 5.0, "max": 8.09}
+        },
+        "중2": {
+          "grade_5": {"min": 9.60, "max": 30.0},
+          "grade_4": {"min": 9.00, "max": 9.59},
+          "grade_3": {"min": 8.40, "max": 8.99},
+          "grade_2": {"min": 7.90, "max": 8.39},
+          "grade_1": {"min": 5.0, "max": 7.89}
+        },
+        "중3": {
+          "grade_5": {"min": 9.20, "max": 30.0},
+          "grade_4": {"min": 8.70, "max": 9.19},
+          "grade_3": {"min": 8.10, "max": 8.69},
+          "grade_2": {"min": 7.70, "max": 8.09},
+          "grade_1": {"min": 5.0, "max": 7.69}
+        },
+        "고1": {
+          "grade_5": {"min": 8.90, "max": 30.0},
+          "grade_4": {"min": 8.40, "max": 8.89},
+          "grade_3": {"min": 7.90, "max": 8.39},
+          "grade_2": {"min": 7.50, "max": 7.89},
+          "grade_1": {"min": 5.0, "max": 7.49}
+        },
+        "고2": {
+          "grade_5": {"min": 8.70, "max": 30.0},
+          "grade_4": {"min": 8.20, "max": 8.69},
+          "grade_3": {"min": 7.70, "max": 8.19},
+          "grade_2": {"min": 7.30, "max": 7.69},
+          "grade_1": {"min": 5.0, "max": 7.29}
+        },
+        "고3": {
+          "grade_5": {"min": 8.50, "max": 30.0},
+          "grade_4": {"min": 8.00, "max": 8.49},
+          "grade_3": {"min": 7.50, "max": 7.99},
+          "grade_2": {"min": 7.10, "max": 7.49},
+          "grade_1": {"min": 5.0, "max": 7.09}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 12.20, "max": 30.0},
+          "grade_4": {"min": 11.40, "max": 12.19},
+          "grade_3": {"min": 10.50, "max": 11.39},
+          "grade_2": {"min": 9.80, "max": 10.49},
+          "grade_1": {"min": 5.0, "max": 9.79}
+        },
+        "초5": {
+          "grade_5": {"min": 11.70, "max": 30.0},
+          "grade_4": {"min": 10.90, "max": 11.69},
+          "grade_3": {"min": 10.10, "max": 10.89},
+          "grade_2": {"min": 9.50, "max": 10.09},
+          "grade_1": {"min": 5.0, "max": 9.49}
+        },
+        "초6": {
+          "grade_5": {"min": 11.20, "max": 30.0},
+          "grade_4": {"min": 10.50, "max": 11.19},
+          "grade_3": {"min": 9.80, "max": 10.49},
+          "grade_2": {"min": 9.20, "max": 9.79},
+          "grade_1": {"min": 5.0, "max": 9.19}
+        },
+        "중1": {
+          "grade_5": {"min": 10.80, "max": 30.0},
+          "grade_4": {"min": 10.10, "max": 10.79},
+          "grade_3": {"min": 9.50, "max": 10.09},
+          "grade_2": {"min": 8.90, "max": 9.49},
+          "grade_1": {"min": 5.0, "max": 8.89}
+        },
+        "중2": {
+          "grade_5": {"min": 10.50, "max": 30.0},
+          "grade_4": {"min": 9.80, "max": 10.49},
+          "grade_3": {"min": 9.20, "max": 9.79},
+          "grade_2": {"min": 8.70, "max": 9.19},
+          "grade_1": {"min": 5.0, "max": 8.69}
+        },
+        "중3": {
+          "grade_5": {"min": 10.20, "max": 30.0},
+          "grade_4": {"min": 9.60, "max": 10.19},
+          "grade_3": {"min": 9.00, "max": 9.59},
+          "grade_2": {"min": 8.50, "max": 8.99},
+          "grade_1": {"min": 5.0, "max": 8.49}
+        },
+        "고1": {
+          "grade_5": {"min": 10.00, "max": 30.0},
+          "grade_4": {"min": 9.40, "max": 9.99},
+          "grade_3": {"min": 8.80, "max": 9.39},
+          "grade_2": {"min": 8.30, "max": 8.79},
+          "grade_1": {"min": 5.0, "max": 8.29}
+        },
+        "고2": {
+          "grade_5": {"min": 9.80, "max": 30.0},
+          "grade_4": {"min": 9.20, "max": 9.79},
+          "grade_3": {"min": 8.60, "max": 9.19},
+          "grade_2": {"min": 8.10, "max": 8.59},
+          "grade_1": {"min": 5.0, "max": 8.09}
+        },
+        "고3": {
+          "grade_5": {"min": 9.60, "max": 30.0},
+          "grade_4": {"min": 9.00, "max": 9.59},
+          "grade_3": {"min": 8.40, "max": 8.99},
+          "grade_2": {"min": 7.90, "max": 8.39},
+          "grade_1": {"min": 5.0, "max": 7.89}
+        }
+      }
+    }
+  },
+  "STANDING_LONG_JUMP": {
+    "gender_specific": true,
+    "unit": "cm",
+    "calculation_field": "standing_long_jump_best_record",
+    "grade_type": "numeric",
+    "grade_labels": {
+      "grade_1": "1등급",
+      "grade_2": "2등급",
+      "grade_3": "3등급",
+      "grade_4": "4등급",
+      "grade_5": "5등급"
+    },
+    "criteria": {
+      "male": {
+        "초4": {
+          "grade_5": {"min": 50.0, "max": 99.9},
+          "grade_4": {"min": 100.0, "max": 119.9},
+          "grade_3": {"min": 120.0, "max": 139.9},
+          "grade_2": {"min": 140.0, "max": 159.9},
+          "grade_1": {"min": 160.0, "max": 350.0}
+        },
+        "초5": {
+          "grade_5": {"min": 50.0, "max": 109.9},
+          "grade_4": {"min": 110.0, "max": 129.9},
+          "grade_3": {"min": 130.0, "max": 149.9},
+          "grade_2": {"min": 150.0, "max": 169.9},
+          "grade_1": {"min": 170.0, "max": 350.0}
+        },
+        "초6": {
+          "grade_5": {"min": 50.0, "max": 119.9},
+          "grade_4": {"min": 120.0, "max": 139.9},
+          "grade_3": {"min": 140.0, "max": 159.9},
+          "grade_2": {"min": 160.0, "max": 179.9},
+          "grade_1": {"min": 180.0, "max": 350.0}
+        },
+        "중1": {
+          "grade_5": {"min": 50.0, "max": 129.9},
+          "grade_4": {"min": 130.0, "max": 149.9},
+          "grade_3": {"min": 150.0, "max": 169.9},
+          "grade_2": {"min": 170.0, "max": 189.9},
+          "grade_1": {"min": 190.0, "max": 350.0}
+        },
+        "중2": {
+          "grade_5": {"min": 50.0, "max": 139.9},
+          "grade_4": {"min": 140.0, "max": 159.9},
+          "grade_3": {"min": 160.0, "max": 179.9},
+          "grade_2": {"min": 180.0, "max": 199.9},
+          "grade_1": {"min": 200.0, "max": 350.0}
+        },
+        "중3": {
+          "grade_5": {"min": 50.0, "max": 149.9},
+          "grade_4": {"min": 150.0, "max": 169.9},
+          "grade_3": {"min": 170.0, "max": 189.9},
+          "grade_2": {"min": 190.0, "max": 209.9},
+          "grade_1": {"min": 210.0, "max": 350.0}
+        },
+        "고1": {
+          "grade_5": {"min": 50.0, "max": 159.9},
+          "grade_4": {"min": 160.0, "max": 179.9},
+          "grade_3": {"min": 180.0, "max": 199.9},
+          "grade_2": {"min": 200.0, "max": 219.9},
+          "grade_1": {"min": 220.0, "max": 350.0}
+        },
+        "고2": {
+          "grade_5": {"min": 50.0, "max": 169.9},
+          "grade_4": {"min": 170.0, "max": 189.9},
+          "grade_3": {"min": 190.0, "max": 209.9},
+          "grade_2": {"min": 210.0, "max": 229.9},
+          "grade_1": {"min": 230.0, "max": 350.0}
+        },
+        "고3": {
+          "grade_5": {"min": 50.0, "max": 179.9},
+          "grade_4": {"min": 180.0, "max": 199.9},
+          "grade_3": {"min": 200.0, "max": 219.9},
+          "grade_2": {"min": 220.0, "max": 239.9},
+          "grade_1": {"min": 240.0, "max": 350.0}
+        }
+      },
+      "female": {
+        "초4": {
+          "grade_5": {"min": 50.0, "max": 89.9},
+          "grade_4": {"min": 90.0, "max": 109.9},
+          "grade_3": {"min": 110.0, "max": 129.9},
+          "grade_2": {"min": 130.0, "max": 149.9},
+          "grade_1": {"min": 150.0, "max": 350.0}
+        },
+        "초5": {
+          "grade_5": {"min": 50.0, "max": 99.9},
+          "grade_4": {"min": 100.0, "max": 119.9},
+          "grade_3": {"min": 120.0, "max": 139.9},
+          "grade_2": {"min": 140.0, "max": 159.9},
+          "grade_1": {"min": 160.0, "max": 350.0}
+        },
+        "초6": {
+          "grade_5": {"min": 50.0, "max": 109.9},
+          "grade_4": {"min": 110.0, "max": 129.9},
+          "grade_3": {"min": 130.0, "max": 149.9},
+          "grade_2": {"min": 150.0, "max": 169.9},
+          "grade_1": {"min": 170.0, "max": 350.0}
+        },
+        "중1": {
+          "grade_5": {"min": 50.0, "max": 119.9},
+          "grade_4": {"min": 120.0, "max": 139.9},
+          "grade_3": {"min": 140.0, "max": 159.9},
+          "grade_2": {"min": 160.0, "max": 179.9},
+          "grade_1": {"min": 180.0, "max": 350.0}
+        },
+        "중2": {
+          "grade_5": {"min": 50.0, "max": 129.9},
+          "grade_4": {"min": 130.0, "max": 149.9},
+          "grade_3": {"min": 150.0, "max": 169.9},
+          "grade_2": {"min": 170.0, "max": 189.9},
+          "grade_1": {"min": 190.0, "max": 350.0}
+        },
+        "중3": {
+          "grade_5": {"min": 50.0, "max": 139.9},
+          "grade_4": {"min": 140.0, "max": 159.9},
+          "grade_3": {"min": 160.0, "max": 179.9},
+          "grade_2": {"min": 180.0, "max": 199.9},
+          "grade_1": {"min": 200.0, "max": 350.0}
+        },
+        "고1": {
+          "grade_5": {"min": 50.0, "max": 149.9},
+          "grade_4": {"min": 150.0, "max": 169.9},
+          "grade_3": {"min": 170.0, "max": 189.9},
+          "grade_2": {"min": 190.0, "max": 209.9},
+          "grade_1": {"min": 210.0, "max": 350.0}
+        },
+        "고2": {
+          "grade_5": {"min": 50.0, "max": 159.9},
+          "grade_4": {"min": 160.0, "max": 179.9},
+          "grade_3": {"min": 180.0, "max": 199.9},
+          "grade_2": {"min": 200.0, "max": 219.9},
+          "grade_1": {"min": 220.0, "max": 350.0}
+        },
+        "고3": {
+          "grade_5": {"min": 50.0, "max": 169.9},
+          "grade_4": {"min": 170.0, "max": 189.9},
+          "grade_3": {"min": 190.0, "max": 209.9},
+          "grade_2": {"min": 210.0, "max": 229.9},
+          "grade_1": {"min": 230.0, "max": 350.0}
+        }
+      }
+    }
+  }
+}

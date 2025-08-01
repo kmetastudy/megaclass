@@ -121,6 +121,10 @@ python manage.py test ncs
 - Daily reflection journals
 - Teacher evaluation and badge system
 
+#### 9. **physical_education** - Physical Education app (PAPS)
+- Handle physical education system
+- Teacher PAPS management system
+
 ### Key Integration Points
 
 #### AI Integration
@@ -184,3 +188,30 @@ python manage.py test ncs
 - Korean language settings affect admin interface
 - File uploads have size restrictions (10MB default)
 - Some middleware temporarily disabled for debugging (check settings)
+
+## Critical Rules - DO NOT VIOLATE
+
+- **NEVER create mock data or simplified components** unless explicitly told to do so
+
+- **NEVER replace existing complex components with simplified versions** - always fix the actual problem
+
+- **ALWAYS work with the existing codebase** - do not create new simplified alternatives
+
+- **ALWAYS find and fix the root cause** of issues instead of creating workarounds
+
+- When debugging issues, focus on fixing the existing implementation, not replacing it
+
+- When something doesn't work, debug and fix it - don't start over with a simple version
+
+- **ALWAYS check Tabulator DOCS before making changes** to Tabulator-related components - they have breaking changes
+
+
+## 1. Non-negotiable golden rules
+
+| #: | AI *may* do                                                            | AI *must NOT* do                                                                    |
+|---|------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| G-0 | Whenever unsure about something that's related to the project, ask the developer for clarification before making changes.    |  ❌ Write changes or use tools when you are not sure about something project specific, or if you don't have context for a particular feature/decision. |
+| G-1 | For changes >300 LOC or >3 files, **ask for confirmation**.            | ❌ Refactor large modules without human guidance.                                     |
+| G-2 | Stay within the current task context. Inform the dev if it'd be better to start afresh.                                  | ❌ Continue work from a prior prompt after "new task" – start a fresh session.      |
+
+---

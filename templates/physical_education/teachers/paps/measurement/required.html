@@ -1,0 +1,896 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}PAPS 필수평가 입력{% endblock %}
+
+{% block content %}
+<!-- Include PAPS Tabulator Component -->
+{% include 'physical_education/includes/paps_tabulator_table.html' %}
+<!-- Include PAPS Calculations Module -->
+<script src="{% static 'js/physical_education/paps_calculations.js' %}"></script>
+<div class="flex min-h-screen mobile-nav-padding">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 컨텐츠 -->
+    <div class="flex-1 lg:ml-64">
+        <!-- 페이지 내용 -->
+        <div class="p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">PAPS 필수평가 입력</h1>
+                <p class="text-gray-600">학급별 필수평가 측정 결과를 입력하세요</p>
+            </div>
+            
+            <!-- 메시지 표시 영역 -->
+            <div id="message-area" class="mb-6 hidden">
+                <div class="p-4 rounded-lg border">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <span id="message-text"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 필터 선택 영역 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 학년도 선택 -->
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-gray-700 mb-1">
+                            <span class="text-red-500">*</span> 학년도
+                        </label>
+                        <select id="year-select" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for year in year_range %}
+                                <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학년 선택 -->
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-gray-700 mb-1">
+                            <span class="text-red-500">*</span> 학년
+                        </label>
+                        <select id="grade-select" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for grade_num, grade_display in grade_choices %}
+                                <option value="{{ grade_num }}">{{ grade_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학급 선택 -->
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-gray-700 mb-1">
+                            <span class="text-red-500">*</span> 학급
+                        </label>
+                        <select id="class-select" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for class_info in available_classes %}
+                                <option value="{{ class_info.id }}">{{ class_info.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 측정회차 선택 -->
+                    <div class="flex flex-col">
+                        <label class="text-sm font-medium text-gray-700 mb-1">
+                            <span class="text-red-500">*</span> 측정회차
+                        </label>
+                        <select id="session-select" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for session in available_sessions %}
+                                <option value="{{ session.id }}">{{ session.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 조회 버튼 -->
+                <div class="mt-4 flex justify-end">
+                    <button id="filter-search-btn" class="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <i class="fas fa-search mr-2"></i>조회
+                    </button>
+                </div>
+                
+                <!-- 안내 문구 -->
+                <div class="mt-3 text-xs text-gray-500 space-y-1">
+                    <p>※ 선택한 조건에 따라 해당 학급의 학생 목록이 표시됩니다.</p>
+                    <p>※ 필수평가는 5개 체력요인별로 1개씩 선택된 종목의 결과를 입력합니다.</p>
+                </div>
+            </div>
+            
+            <!-- 데이터 로딩 상태 표시 -->
+            <div id="loading-area" class="text-center py-8 hidden">
+                <div class="inline-flex items-center">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span class="ml-2 text-gray-600">데이터를 불러오는 중...</span>
+                </div>
+            </div>
+            
+            <!-- 메인 콘텐츠 영역 (초기에는 숨김) -->
+            <div id="main-content" class="hidden">
+                <!-- 5개 필수평가 탭 네비게이션 -->
+                <div class="mb-6">
+                    <nav class="flex flex-wrap gap-1 bg-gray-100 rounded-lg p-1">
+                        {% for category in required_categories %}
+                            <button class="tab-btn flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors {% if forloop.first %}active{% endif %}" data-tab="{{ category.id }}">
+                                {{ category.get_name_display }}
+                            </button>
+                        {% endfor %}
+                    </nav>
+                </div>
+                
+                <!-- 현재 선택된 종목 정보 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                        <div>
+                            <div class="font-medium text-blue-900">
+                                현재 종목: <span id="current-activity-name">-</span>
+                            </div>
+                            <div class="text-sm text-blue-700 mt-1">
+                                <span id="current-activity-description">종목을 선택하면 설명이 표시됩니다</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 학생별 측정 입력 영역 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <!-- 헤더 -->
+                    <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-medium text-gray-900">
+                                <span id="students-count">0</span>명의 학생
+                            </h3>
+                            <div class="flex gap-2 text-sm">
+                                <button id="save-all-btn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
+                                    <i class="fas fa-save mr-2"></i>모두 저장
+                                </button>
+                                <button id="clear-all-btn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                                    <i class="fas fa-eraser mr-2"></i>모두 지우기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabulator Table Container -->
+                    <div class="p-4">
+                        <div class="paps-tabulator-container">
+                            <div id="students-tabulator-table">
+                                <!-- Tabulator table이 여기에 동적으로 생성됩니다 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 탭 버튼 스타일 */
+.tab-btn {
+    color: #6b7280;
+    background: transparent;
+}
+
+.tab-btn.active {
+    color: #1f2937;
+    background: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn:hover:not(.active) {
+    color: #374151;
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* 학생 카드 호버 효과 */
+.student-card {
+    transition: all 0.2s ease;
+}
+
+.student-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 입력 필드 포커스 효과 */
+.measurement-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 등급 색상 */
+.grade-1 { color: #dc2626; font-weight: bold; }
+.grade-2 { color: #ea580c; font-weight: bold; }
+.grade-3 { color: #ca8a04; font-weight: bold; }
+.grade-4 { color: #16a34a; font-weight: bold; }
+.grade-5 { color: #2563eb; font-weight: bold; }
+
+/* Tabulator로 대체되어 제거된 기존 Table 스타일들 */
+/* 모든 테이블 관련 스타일은 PAPS Tabulator 컴포넌트에서 처리됨 */
+
+/* 반응형 조정 (Tabulator 기반) */
+@media (max-width: 768px) {
+    .tab-btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+    }
+    
+    /* Tabulator는 내장 responsive 기능 사용 */
+    .paps-tabulator-container {
+        font-size: 11px;
+    }
+}
+</style>
+
+<script>
+// Django에서 전달받은 데이터
+const djangoData = {
+    currentYear: {{ current_year }},
+    gradeChoices: {{ grade_choices_json|safe }},
+    availableClasses: {{ available_classes_json|safe }},
+    availableSessions: {{ available_sessions_json|safe }},
+    requiredCategories: {{ required_categories_json|safe }},
+    csrfToken: '{{ csrf_token }}'
+};
+
+// 앱 상태 관리
+const appState = {
+    selectedYear: djangoData.currentYear,
+    selectedGrade: null,
+    selectedClass: null,
+    selectedSession: null,
+    activeTab: null,
+    activeActivity: null,
+    studentsData: {}, // 계산 로직 호환성을 위해 유지
+    sessionActivities: {},
+    isDirty: false
+};
+
+// DOM 요소들
+let elements = {};
+
+// 초기화 함수
+function init() {
+    // DOM 요소 캐싱
+    elements = {
+        yearSelect: document.getElementById('year-select'),
+        gradeSelect: document.getElementById('grade-select'),
+        classSelect: document.getElementById('class-select'),
+        sessionSelect: document.getElementById('session-select'),
+        filterSearchBtn: document.getElementById('filter-search-btn'),
+        loadingArea: document.getElementById('loading-area'),
+        mainContent: document.getElementById('main-content'),
+        messageArea: document.getElementById('message-area'),
+        messageText: document.getElementById('message-text'),
+        studentsCount: document.getElementById('students-count'),
+        currentActivityName: document.getElementById('current-activity-name'),
+        currentActivityDescription: document.getElementById('current-activity-description'),
+        saveAllBtn: document.getElementById('save-all-btn'),
+        clearAllBtn: document.getElementById('clear-all-btn'),
+        tabulatorContainer: document.getElementById('students-tabulator-table')
+    };
+
+    // 이벤트 리스너 등록
+    setupEventListeners();
+    
+    // 초기 상태 설정
+    initializeState();
+}
+
+// 이벤트 리스너 설정
+function setupEventListeners() {
+    // 필터 조회 버튼
+    elements.filterSearchBtn.addEventListener('click', handleFilterSearch);
+    
+    // 탭 버튼들 (동적으로 생성되므로 이벤트 위임 사용)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('tab-btn')) {
+            const tabName = e.target.dataset.tab;
+            switchTab(tabName);
+        }
+    });
+    
+    // 저장/지우기 버튼
+    elements.saveAllBtn.addEventListener('click', handleSaveAll);
+    elements.clearAllBtn.addEventListener('click', handleClearAll);
+}
+
+// 초기 상태 설정
+function initializeState() {
+    // 필터 값들 초기화
+    appState.selectedYear = parseInt(elements.yearSelect.value);
+    
+    // 첫 번째 카테고리를 기본 탭으로 설정
+    if (djangoData.requiredCategories.length > 0) {
+        appState.activeTab = djangoData.requiredCategories[0].id;
+    }
+    
+    console.log('앱 초기화 완료', appState);
+}
+
+// 필터 조회 처리
+async function handleFilterSearch() {
+    // 로딩 표시
+    showLoading(true);
+    elements.mainContent.classList.add('hidden');
+    
+    // 상태 업데이트
+    appState.selectedYear = parseInt(elements.yearSelect.value);
+    appState.selectedGrade = parseInt(elements.gradeSelect.value);
+    appState.selectedClass = parseInt(elements.classSelect.value);
+    appState.selectedSession = elements.sessionSelect.value;
+    
+    console.log('상태 업데이트 완료:', {
+        selectedYear: appState.selectedYear,
+        selectedGrade: appState.selectedGrade,
+        selectedClass: appState.selectedClass,
+        selectedSession: appState.selectedSession
+    });
+    
+    try {
+        // 학급 존재 여부 및 권한 확인을 위한 기본 검증만 수행
+        const validationResponse = await fetch(`/physical_education/api/students/by-class/?year=${appState.selectedYear}&grade=${appState.selectedGrade}&class=${appState.selectedClass}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': djangoData.csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!validationResponse.ok) {
+            throw new Error('학급 정보를 확인할 수 없습니다.');
+        }
+        
+        const validationData = await validationResponse.json();
+        console.log('학급 검증 데이터:', validationData);
+        
+        // 1. 학생 수 검증
+        if (!validationData.success || !validationData.students || validationData.students.length === 0) {
+            showLoading(false);
+            showAlert('해당 학급에 학생이 없습니다.');
+            return; // mainContent 숨김 유지
+        }
+        
+        // 해당 측정회차의 선택된 종목들 조회
+        const activitiesResponse = await fetch(`/physical_education/api/paps/session-activities/existing/?session_id=${appState.selectedSession}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': djangoData.csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (activitiesResponse.ok) {
+            const activitiesData = await activitiesResponse.json();
+            appState.sessionActivities = {};
+            
+            // 학년별 카테고리별 선택된 종목 정리
+            activitiesData.data.forEach(activity => {
+                if (activity.grade === appState.selectedGrade) {
+                    appState.sessionActivities[activity.category_id] = activity.activity_id;
+                }
+            });
+        }
+        
+        // 2. 종목 설정 검증
+        if (Object.keys(appState.sessionActivities).length === 0) {
+            showLoading(false);
+            showAlert('해당 학년에 대한 측정 종목이 설정되지 않았습니다.\n먼저 측정종목선택 페이지에서 종목을 설정해주세요.');
+            return; // mainContent 숨김 유지
+        }
+        
+        // 모든 검증 통과 후 UI 상태 업데이트
+        showLoading(false);
+        elements.mainContent.classList.remove('hidden');
+        
+        // 학생 수는 Ajax 로드 시 업데이트됨
+        console.log('학급 검증 완료, Ajax를 통해 실제 데이터 로드 예정');
+        
+        // 첫 번째 탭 렌더링 (Ajax 모드로 데이터 로드)
+        if (appState.activeTab) {
+            console.log('첫 번째 탭 렌더링 시작. activeTab:', appState.activeTab);
+            renderCurrentTab();
+        } else {
+            console.warn('activeTab이 설정되지 않았습니다.');
+        }
+        
+        // 성공 메시지 표시
+        showMessage('success', `${getGradeDisplay(appState.selectedGrade)} ${getClassDisplay(appState.selectedClass)} 조회가 완료되었습니다.`);
+        
+    } catch (error) {
+        showLoading(false);
+        showMessage('error', error.message);
+        console.error('데이터 조회 오류:', error);
+    }
+}
+
+// 로딩 상태 표시/숨김
+function showLoading(show) {
+    if (show) {
+        elements.loadingArea.classList.remove('hidden');
+    } else {
+        elements.loadingArea.classList.add('hidden');
+    }
+}
+
+// 메시지 표시
+function showMessage(type, message) {
+    const typeClasses = {
+        success: 'bg-green-50 text-green-800 border-green-200',
+        error: 'bg-red-50 text-red-800 border-red-200',
+        warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+        info: 'bg-blue-50 text-blue-800 border-blue-200'
+    };
+    
+    const iconClasses = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    elements.messageArea.className = `mb-6 ${typeClasses[type]} p-4 rounded-lg border`;
+    elements.messageArea.querySelector('i').className = `fas ${iconClasses[type]} mr-2`;
+    elements.messageText.textContent = message;
+    elements.messageArea.classList.remove('hidden');
+    
+    // 3초 후 자동 숨김
+    setTimeout(() => {
+        elements.messageArea.classList.add('hidden');
+    }, 3000);
+}
+
+// Alert 메시지 표시 (브라우저 기본 alert 사용)
+function showAlert(message) {
+    alert(message);
+}
+
+// 탭 전환 함수
+function switchTab(tabName) {
+    appState.activeTab = tabName;
+    
+    // 탭 버튼 활성화 상태 업데이트
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // 현재 탭 내용 렌더링
+    renderCurrentTab();
+}
+
+// 현재 탭 내용 렌더링
+async function renderCurrentTab() {
+    console.log('=== renderCurrentTab 함수 시작 ===');
+    console.log('appState.activeTab:', appState.activeTab);
+    console.log('appState.sessionActivities:', appState.sessionActivities);
+    
+    // 기본 상태 확인
+    if (!appState.activeTab) {
+        console.log('activeTab이 없음 - 종료');
+        return;
+    }
+    
+    try {
+        // 현재 선택된 종목 정보 가져오기
+        const activityId = appState.sessionActivities[appState.activeTab];
+        console.log('현재 탭의 activityId:', activityId);
+        console.log('Available categories in sessionActivities:', Object.keys(appState.sessionActivities));
+        console.log('Looking for activeTab:', appState.activeTab);
+        console.log('Matching result:', appState.sessionActivities[appState.activeTab] ? 'Found' : 'Not Found');
+        
+        if (!activityId) {
+            console.log('종목이 선택되지 않음 - 종료');
+            showMessage('warning', '해당 체력요인에 대한 종목이 선택되지 않았습니다.');
+            return;
+        }
+        
+        // 종목 정보 조회
+        const apiUrl = `/physical_education/api/paps/activities/${appState.activeTab}/`;
+        console.log('종목 정보 API 호출 시작');
+        console.log('API 호출 URL:', apiUrl);
+        console.log('전달하는 카테고리 ID:', appState.activeTab);
+        
+        const activityResponse = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': djangoData.csrfToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        console.log('API 응답 상태:', activityResponse.status);
+        if (!activityResponse.ok) {
+            console.log('종목 정보 API 호출 실패:', activityResponse.status);
+            throw new Error('종목 정보를 불러올 수 없습니다.');
+        }
+        
+        const activityData = await activityResponse.json();
+        console.log('종목 정보 API 응답:', activityData);
+        
+        // 응답 구조 검증
+        if (!activityData.success) {
+            throw new Error(activityData.error || 'API 호출이 실패했습니다.');
+        }
+        
+        if (!activityData.activities || !Array.isArray(activityData.activities)) {
+            throw new Error('올바르지 않은 API 응답 형식입니다.');
+        }
+        
+        const currentActivity = activityData.activities.find(a => a.id === activityId);
+        console.log('현재 종목 정보:', currentActivity);
+        
+        if (!currentActivity) {
+            console.log('현재 종목을 찾을 수 없음');
+            showMessage('error', '선택된 종목 정보를 찾을 수 없습니다.');
+            return;
+        }
+        
+        appState.activeActivity = currentActivity;
+        console.log('activeActivity 설정 완료');
+        
+        // 현재 종목 정보 업데이트
+        elements.currentActivityName.textContent = currentActivity.display_name;
+        elements.currentActivityDescription.textContent = getActivityDescription(currentActivity);
+        console.log('종목 정보 UI 업데이트 완료');
+        
+        // Tabulator Table 렌더링 (Ajax 기반 데이터 로드)
+        console.log('학생 Tabulator 테이블 렌더링 시작');
+        const sessionData = {
+            selectedSession: appState.selectedSession,
+            selectedClass: appState.selectedClass,
+            selectedGrade: appState.selectedGrade
+        };
+        console.log('renderStudentTable에 전달할 sessionData:', sessionData);
+        renderStudentTable(currentActivity, sessionData);
+        
+        console.log('=== renderCurrentTab 함수 정상 완료 ===');
+        
+    } catch (error) {
+        console.error('=== renderCurrentTab 함수 오류 발생 ===');
+        console.error('오류 내용:', error);
+        showMessage('error', error.message);
+        console.error('탭 렌더링 오류:', error);
+    }
+}
+
+// 종목 설명 생성
+function getActivityDescription(activity) {
+    const schema = activity.measurement_schema;
+    if (!schema || !schema.fields) {
+        return '측정값을 입력하세요';
+    }
+    
+    const fieldNames = schema.fields.map(field => field.label || field.name).join(', ');
+    return `${fieldNames}을(를) 입력하세요`;
+}
+
+// Tabulator table instance
+let currentTabulatorTable = null;
+
+// 학생 Tabulator Table 렌더링 (Ajax 기반)
+function renderStudentTable(activity, sessionData = {}) {
+    console.log('renderStudentTable 함수 시작. activity:', activity);
+    console.log('전달받은 sessionData:', sessionData);
+    console.log('현재 appState 상태:', {
+        selectedSession: appState.selectedSession,
+        selectedClass: appState.selectedClass,
+        selectedGrade: appState.selectedGrade,
+        activeTab: appState.activeTab
+    });
+    
+    if (!activity || !activity.measurement_schema) {
+        console.error('activity 또는 measurement_schema가 없습니다:', activity);
+        const container = document.getElementById('students-tabulator-table');
+        if (container) {
+            container.innerHTML = '<p class="text-gray-500 text-center py-4">종목 정보를 불러올 수 없습니다.</p>';
+        }
+        return;
+    }
+    
+    // Destroy existing table if any
+    if (currentTabulatorTable) {
+        console.log('기존 테이블 제거 중...');
+        currentTabulatorTable.destroy();
+        currentTabulatorTable = null;
+    }
+    
+    // Initialize Tabulator table with Ajax support
+    currentTabulatorTable = window.PAPSTabulator.init(
+        'students-tabulator-table',
+        activity,
+        {
+            // Enable Ajax loading
+            useAjax: true,
+            
+            // Additional configuration options
+            height: "60vh",
+            persistence: false,
+            responsiveLayout: "collapse",
+            responsiveLayoutCollapseStartOpen: false,
+            columnHeaderVertAlign: "middle",
+            tooltips: true,
+            
+            // Event handlers
+            dataChanged: function(data) {
+                // Handle data changes for dirty flag
+                if (appState) {
+                    appState.isDirty = true;
+                }
+            },
+            
+            cellEdited: function(cell) {
+                // Additional handling if needed
+                console.log('셀 편집됨:', cell.getField(), cell.getValue());
+            },
+            
+            // Ajax event handlers
+            ajaxRequesting: function() {
+                console.log('테이블 데이터 로딩 시작...');
+            },
+            
+            ajaxResponse: function(url, params, response) {
+                console.log('테이블 데이터 로딩 완료:', response);
+                if (response.success) {
+                    // Update student count
+                    elements.studentsCount.textContent = response.total || 0;
+                    console.log('학생 수 업데이트:', response.total);
+                }
+                return window.PAPSTabulator.ajaxResponseProcessor(url, params, response);
+            },
+            
+            // Error handling
+            ajaxError: function(xhr, textStatus, errorThrown) {
+                console.error('Tabulator Ajax 오류:', errorThrown);
+                showMessage('error', '측정 데이터 로딩 중 오류가 발생했습니다.');
+            }
+        },
+        sessionData
+    );
+    
+    console.log('Tabulator 테이블 초기화 완료 (Ajax 모드)');
+}
+
+// 학생 카드 렌더링 (모바일용) - Tabulator로 대체
+function renderStudentCards(activity) {
+    // Tabulator의 responsive 기능으로 대체되므로 비워두거나 제거
+    console.log('renderStudentCards는 Tabulator의 responsive 기능으로 대체됨');
+}
+
+// 기존 입력 필드 핸들러들은 Tabulator 컴포넌트에서 처리됨
+// 이 함수들은 이전 버전과의 호환성을 위해 유지
+function handleTableFieldChange(input) {
+    console.log('handleTableFieldChange: Tabulator로 대체됨');
+}
+
+function handleTableFieldInput(input) {
+    console.log('handleTableFieldInput: Tabulator로 대체됨');
+}
+
+function handleFieldChange(input) {
+    console.log('handleFieldChange: Tabulator로 대체됨');
+}
+
+function handleFieldInput(input) {
+    console.log('handleFieldInput: Tabulator로 대체됨');
+}
+
+// 학생 필드 데이터 저장 (Tabulator 호환)
+function saveStudentFieldData(studentId, fieldName, value) {
+    // 기존 appState 구조 유지 (계산 로직과 호환성을 위해)
+    if (!appState.studentsData[studentId]) {
+        appState.studentsData[studentId] = {};
+    }
+    if (!appState.studentsData[studentId][appState.activeActivity.id]) {
+        appState.studentsData[studentId][appState.activeActivity.id] = {};
+    }
+    appState.studentsData[studentId][appState.activeActivity.id][fieldName] = value;
+    
+    // Tabulator 테이블도 업데이트 (양방향 동기화)
+    if (currentTabulatorTable) {
+        const rows = currentTabulatorTable.getRows();
+        const targetRow = rows.find(row => row.getData().id === studentId);
+        if (targetRow) {
+            const currentData = targetRow.getData();
+            if (!currentData.measurement_data) {
+                currentData.measurement_data = {};
+            }
+            currentData.measurement_data[fieldName] = value;
+            // 행 데이터 업데이트 (재렌더링 없이)
+            targetRow.update(currentData);
+        }
+    }
+}
+
+// 자동 계산 수행 (새로운 계산 모듈 사용)
+function performAutoCalculation(studentId) {
+    if (!appState.activeActivity || !window.PAPSCalculations) return;
+    
+    const studentData = appState.studentsData[studentId];
+    if (!studentData || !studentData[appState.activeActivity.id]) return;
+    
+    const activityData = studentData[appState.activeActivity.id];
+    const studentGrade = appState.selectedGrade || 7; // 기본값 설정
+    
+    // 새로운 계산 모듈 사용
+    const calculatedData = window.PAPSCalculations.processActivityData(
+        appState.activeActivity.name,
+        activityData,
+        studentGrade
+    );
+    
+    // 계산된 값들을 activityData에 업데이트
+    Object.keys(calculatedData).forEach(fieldName => {
+        if (activityData[fieldName] !== calculatedData[fieldName]) {
+            activityData[fieldName] = calculatedData[fieldName];
+            updateCalculatedFieldDisplay(studentId, fieldName, calculatedData[fieldName]);
+        }
+    });
+}
+
+// 계산된 필드 표시 업데이트 (Tabulator에서 처리)
+function updateCalculatedFieldDisplay(studentId, fieldName, value) {
+    // Tabulator에서 자동으로 처리됨
+    if (currentTabulatorTable) {
+        const rows = currentTabulatorTable.getRows();
+        const targetRow = rows.find(row => row.getData().id === studentId);
+        if (targetRow) {
+            // PAPSTabulator.updateCalculatedFields에서 처리
+            window.PAPSTabulator.updateCalculatedFields(targetRow, appState.activeActivity);
+        }
+    }
+}
+
+// 모두 저장 처리 (Tabulator 기반)
+async function handleSaveAll() {
+    if (!appState.activeActivity) {
+        showMessage('warning', '저장할 데이터가 없습니다.');
+        return;
+    }
+    
+    if (!currentTabulatorTable) {
+        showMessage('error', '테이블이 초기화되지 않았습니다.');
+        return;
+    }
+    
+    showMessage('info', '데이터를 저장하는 중...');
+    
+    try {
+        // Tabulator에서 데이터 추출
+        const tableData = window.PAPSTabulator.getAllData(currentTabulatorTable);
+        const savePromises = [];
+        
+        // 각 학생의 측정 데이터 저장
+        tableData.forEach(rowData => {
+            const studentId = rowData.id;
+            const measurementData = rowData.measurement_data || {};
+            
+            // 빈 데이터가 아닌 경우만 저장
+            if (Object.keys(measurementData).length > 0) {
+                const savePromise = fetch('/physical_education/api/paps/save-measurement/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': djangoData.csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: appState.selectedSession,
+                        student_id: studentId,
+                        activity_id: appState.activeActivity.id,
+                        measurement_data: measurementData
+                    })
+                });
+                
+                savePromises.push(savePromise);
+            }
+        });
+        
+        if (savePromises.length === 0) {
+            showMessage('warning', '저장할 데이터가 없습니다.');
+            return;
+        }
+        
+        const results = await Promise.all(savePromises);
+        const successCount = results.filter(r => r.ok).length;
+        
+        if (successCount === savePromises.length) {
+            appState.isDirty = false;
+            showMessage('success', `${successCount}건의 측정 데이터가 성공적으로 저장되었습니다.`);
+            
+            // 저장 성공 후 서버에서 최신 데이터로 테이블 새로고침
+            if (currentTabulatorTable && appState.activeActivity) {
+                try {
+                    await window.PAPSTabulator.reloadData(
+                        currentTabulatorTable,
+                        appState.selectedSession,
+                        appState.activeActivity.id,
+                        appState.selectedClass,
+                        appState.selectedGrade
+                    );
+                    console.log('저장 후 테이블 데이터 새로고침 완료');
+                } catch (error) {
+                    console.error('저장 후 테이블 새로고침 실패:', error);
+                    showMessage('warning', '데이터 저장은 완료되었으나 화면 업데이트에 실패했습니다. 페이지를 새로고침해주세요.');
+                }
+            }
+        } else {
+            showMessage('warning', `${successCount}/${savePromises.length}건이 저장되었습니다. 일부 데이터 저장에 실패했습니다.`);
+        }
+        
+    } catch (error) {
+        showMessage('error', '데이터 저장 중 오류가 발생했습니다.');
+        console.error('저장 오류:', error);
+    }
+}
+
+// 모두 지우기 처리 (Tabulator 기반)
+function handleClearAll() {
+    if (!appState.activeActivity) {
+        return;
+    }
+    
+    if (!currentTabulatorTable) {
+        showMessage('error', '테이블이 초기화되지 않았습니다.');
+        return;
+    }
+    
+    if (confirm('현재 탭의 모든 입력 데이터를 지우시겠습니까?')) {
+        // Tabulator 데이터 지우기
+        window.PAPSTabulator.clearAllData(currentTabulatorTable, appState.activeActivity);
+        
+        appState.isDirty = true;
+        showMessage('warning', '현재 탭의 모든 데이터가 지워졌습니다.');
+    }
+}
+
+// 헬퍼 함수들
+function getGradeDisplay(grade) {
+    if (grade <= 6) {
+        return `초등 ${grade}학년`;
+    } else if (grade <= 9) {
+        return `중학 ${grade - 6}학년`;
+    } else {
+        return `고등 ${grade - 9}학년`;
+    }
+}
+
+function getClassDisplay(classId) {
+    const classInfo = djangoData.availableClasses.find(c => c.id === classId);
+    return classInfo ? classInfo.name : `${classId}반`;
+}
+
+// PAPS 등급 포맷 함수
+window.formatBMIGrade = function(grade) {
+    const bmiLabels = {
+        1: "고도비만",
+        2: "경도비만", 
+        3: "과체중",
+        4: "정상",
+        5: "마름"
+    };
+    
+    const label = bmiLabels[grade];
+    if (!label) return '';
+    
+    return `<span class="grade-${grade}">${label}</span>`;
+};
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', init);
+
+// 페이지 이탈 시 경고
+window.addEventListener('beforeunload', (e) => {
+    if (appState.isDirty) {
+        e.preventDefault();
+        e.returnValue = '저장하지 않은 변경사항이 있습니다. 정말 페이지를 떠나시겠습니까?';
+    }
+});
+
+console.log('PAPS 필수평가 입력 페이지 스크립트 로드 완료');
+</script>
+{% endblock %}
