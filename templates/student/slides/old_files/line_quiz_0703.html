@@ -1,0 +1,70 @@
+<!-- Line Matching 퀴즈 문제 템플릿 - 선으로 연결 -->
+<div class="line-quiz-container" id="line-quiz-container" data-theme="default">
+    <!-- 동적 배경 -->
+    <div class="floating-particles" id="particles"></div>
+    
+    <!-- 장식용 이모지 -->
+    <div class="decoration-emoji emoji-1" id="decoration1">🔗</div>
+    <div class="decoration-emoji emoji-2" id="decoration2">✨</div>
+    
+    <!-- 진행률 표시 -->
+    <div class="progress-indicator" id="progress-indicator">
+        <div>진행률: <span id="progress-text">0/0</span></div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <!-- 힌트 버튼 -->
+    <button class="hint-button" id="hint-button" title="힌트 보기">💡</button>
+    
+    <!-- 메인 퀴즈 영역 -->
+    <div class="quiz-main-area">
+        <!-- 문제 제목 -->
+        <div class="title" id="quiz-title">선으로 연결하기 퀴즈</div>
+        
+        <!-- 문제 박스 -->
+        <div class="question-box" id="question-text">
+            {{ slide.content.page|safe }}
+        </div>
+        
+        <!-- 지시사항 박스 -->
+        <div class="instruction-box">
+            👉 왼쪽 항목을 클릭한 후, 오른쪽 항목을 클릭하여 선으로 연결하세요! 👈
+        </div>
+        
+        <!-- 매칭 컨테이너 -->
+        <div class="matching-container" id="matching-container">
+            <!-- 연결선을 그리기 위한 SVG -->
+            <svg class="connection-svg" id="connection-svg">
+                <!-- 연결선들이 여기에 그려집니다 -->
+            </svg>
+            
+            <!-- 왼쪽 아이템들 -->
+            <div class="left-items" id="left-items">
+                <!-- 왼쪽 아이템들이 여기에 동적으로 생성됩니다 -->
+            </div>
+            
+            <!-- 오른쪽 아이템들 -->
+            <div class="right-items" id="right-items">
+                <!-- 오른쪽 아이템들이 여기에 동적으로 생성됩니다 -->
+            </div>
+        </div>
+        
+        <!-- 피드백 영역 -->
+        <div class="feedback feedback-correct" id="feedback-correct">
+            <!-- 정답 메시지가 여기에 표시됩니다 -->
+        </div>
+        
+        <div class="feedback feedback-incorrect" id="feedback-incorrect">
+            <!-- 오답 메시지가 여기에 표시됩니다 -->
+        </div>
+        
+        <div class="feedback feedback-partial" id="feedback-partial">
+            <!-- 부분 정답 메시지가 여기에 표시됩니다 -->
+        </div>
+    </div>
+    
+    <!-- 애니메이션 컨테이너 -->
+    <div class="animation-container" id="animation-container"></div>
+</div>

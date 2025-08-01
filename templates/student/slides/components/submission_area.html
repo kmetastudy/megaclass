@@ -1,0 +1,80 @@
+<!-- submission_area.html - 정리된 제출 영역 템플릿 -->
+
+<!-- 문제가 아닌 콘텐츠용 완료 버튼 -->
+{% if slide.content_type.type_name not in 'multiple-choice,short-answer,multi-input,one_shot_submit,physical_record,ordering,multi-choice,take-action,rolling,ox-quiz,selection,choice,drag,line_matching' %}
+<div class="mt-8 text-center border-t border-gray-200 pt-6">
+    {% if not progress.is_completed %}
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="complete">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base">
+                <i class="fas fa-check mr-2"></i>학습 완료
+            </button>
+        </form>
+    {% else %}
+        <div class="text-green-600 font-medium text-base">
+            <i class="fas fa-check-circle mr-2"></i>이미 학습을 완료했습니다
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- 모든 퀴즈 문제용 통합 제출 버튼 -->
+{% if slide.content_type.type_name in 'multiple-choice,short-answer,multi-choice,ox-quiz,selection,choice,drag,line_matching' %}
+<div id="submission-area" class="mt-8 text-center border-t border-gray-200 pt-6">
+    {% if not is_already_correct %}
+        <!-- 즉시 채점 타입 (ox-quiz, selection, choice, drag,line_matching)은 제출 버튼이 없음 -->
+        {% if slide.content_type.type_name not in 'ox-quiz,selection,choice,drag,line_matching' %}
+            <button id="submit-btn" 
+                    class="submit-button bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base mr-3"
+                    data-qid="{{ slide.content.id }}" 
+                    data-type="{{ slide.content_type.type_name }}"
+                    style="display: {% if existing_answer %}none{% else %}inline-block{% endif %};">
+                <i class="fas fa-paper-plane mr-2"></i>답안 제출
+            </button>
+        {% endif %}
+        
+        <button id="resubmit-btn" 
+                class="resubmit-button bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base"
+                data-qid="{{ slide.content.id }}" 
+                data-type="{{ slide.content_type.type_name }}"
+                style="display: {% if existing_answer and not is_already_correct %}inline-block{% else %}none{% endif %};">
+            <i class="fas fa-redo mr-2"></i>다시 제출
+        </button>
+    {% endif %}
+    
+    <!-- 제출 상태 및 해설 영역 -->
+    <div id="submission-status-wrapper"> 
+        {% if existing_answer %}
+        <div class="mt-4 text-sm text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            이전 제출: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+            {% if existing_answer.is_correct %}
+                <span class="text-green-600 font-medium ml-2">
+                    <i class="fas fa-check-circle"></i> 정답
+                </span>
+            {% elif existing_answer.is_correct == False %}
+                <span class="text-red-600 font-medium ml-2">
+                    <i class="fas fa-times-circle"></i> 오답
+                </span>
+            {% endif %}
+            
+            <!-- 통합된 해설 표시 영역 -->
+            {% comment %} 각 퀴즈 타입별 해설 조건 통합 {% endcomment %}
+            {% with quiz_data=ox_quiz_data|default:choice_quiz_data|default:drag_quiz_data|default:line_quiz_data %}
+                {% if quiz_data.has_solution %}
+                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                    <div class="font-medium text-blue-800 mb-1">
+                        <i class="fas fa-lightbulb mr-1"></i>해설
+                    </div>
+                    <div class="text-blue-700 text-sm leading-relaxed">
+                        {{ quiz_data.solution|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            {% endwith %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

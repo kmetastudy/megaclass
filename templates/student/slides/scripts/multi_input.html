@@ -1,0 +1,160 @@
+<script>
+    $(document).ready(function() {
+        console.log("Multi-input 스크립트가 로드되었습니다.");
+    
+        // --- 1. 학습 이력 복원 (페이지 로드 시) - 수정됨 ---
+        function restorePreviousMultiInputAnswer() {
+            // Django에서 전달된 원본 문자열을 받습니다.
+            let rawAnswerString = '{{ existing_answer.answer|escapejs|default:"{}" }}';
+    
+            // 데이터가 없으면 함수를 종료합니다.
+            if (!rawAnswerString || rawAnswerString === '{}') {
+                console.log('복원할 기존 답안이 없습니다.');
+                return;
+            }
+    
+            let existingAnswer = {};
+            try {
+                // [수정됨] JSON.parse 전에 JavaScript가 인식할 수 없는 Python 값들을 치환합니다.
+                const cleanedJsonString = rawAnswerString
+                    .replace(/\bTrue\b/g, 'true')
+                    .replace(/\bFalse\b/g, 'false')
+                    .replace(/\bNone\b/g, 'null')
+                    .replace(/'/g, '"');
+    
+                // 정리된 문자열을 JSON으로 파싱합니다.
+                existingAnswer = JSON.parse(cleanedJsonString);
+                console.log('성공적으로 파싱된 기존 답안:', existingAnswer);
+    
+            } catch (e) {
+                console.error("JSON 파싱 중 심각한 오류 발생. Django 백엔드에서 json.dumps()를 사용하고 있는지 확인하세요.", {
+                    originalString: rawAnswerString,
+                    error: e
+                });
+                return; // 파싱 실패 시 더 이상 진행하지 않음
+            }
+    
+            // 파싱된 데이터를 사용하여 화면을 복원합니다.
+            try {
+                if (existingAnswer.submitted_answers) {
+                    $('.answer-input').each(function() {
+                        const inputNum = $(this).data('input');
+                        if (existingAnswer.submitted_answers[inputNum] !== undefined) {
+                            $(this).val(existingAnswer.submitted_answers[inputNum]);
+                        }
+                    });
+                }
+                
+                if (existingAnswer.results) {
+                    const score = {{ existing_answer.score|default:0 }};
+                    displayMultiInputResults(existingAnswer.results, score);
+                    
+                    if ({{ existing_answer.is_correct|yesno:"true,false" }}) {
+                        $('#checkAnswers').prop('disabled', true).text('채점 완료');
+                    } else {
+                        $('#checkAnswers').prop('disabled', false).text('다시 확인');
+                    }
+                }
+            } catch (e) {
+                console.error("이전 답변 기록을 화면에 복원하는 중 오류 발생:", e);
+            }
+        }
+    
+        // --- 2. '정답 확인' 버튼 이벤트 핸들러 ---
+        $('.prose').on('click', '#checkAnswers', function() {
+            const studentAnswers = {};
+            let isAllFilled = true;
+    
+            $('.answer-input').each(function() {
+                const inputNum = $(this).data('input');
+                const userAnswer = $(this).val().trim();
+                if (userAnswer === '') isAllFilled = false;
+                studentAnswers[inputNum] = userAnswer;
+            });
+    
+            if (!isAllFilled) {
+                showToast('모든 빈칸에 답을 입력해주세요.', 'error');
+                return;
+            }
+    
+            $(this).prop('disabled', true).text('채점 중...');
+    
+            $.ajax({
+                url: '{% url "student:check_answer" %}',
+                type: 'POST',
+                data: {
+                    'content_id': '{{ slide.content.id }}',
+                    'slide_id': '{{ slide.id }}',
+                    'student_answer': JSON.stringify(studentAnswers),
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        displayMultiInputResults(response.results, response.score);
+                        if (response.is_correct) {
+                            $('#checkAnswers').prop('disabled', true).text('채점 완료');
+                            showToast('모두 정답입니다!', 'success');
+                        } else {
+                            $('#checkAnswers').prop('disabled', false).text('다시 확인');
+                            showToast('틀린 부분이 있습니다. 확인 후 다시 시도해보세요.', 'error');
+                        }
+                    } else {
+                        showToast(response.message || '채점 중 오류가 발생했습니다.', 'error');
+                        $('#checkAnswers').prop('disabled', false).text('정답 확인');
+                    }
+                },
+                error: function() {
+                    showToast('서버와 통신 중 오류가 발생했습니다.', 'error');
+                    $('#checkAnswers').prop('disabled', false).text('정답 확인');
+                }
+            });
+        });
+    
+        // --- 3. 서버 응답을 화면에 표시하는 함수 ---
+        function displayMultiInputResults(results, score) {
+            const rightImageSrc = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTQiIGZpbGw9IiMxMGI5ODEiIHN0cm9rZT0iIzEwYjk4MSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im04IDEybDMgM2w2LTYiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+";
+            const wrongImageSrc = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTQiIGZpbGw9IiNlZjQ0NDQiIHN0cm9rZT0iI2VmNDQ0NCIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxwYXRoIGQ9Im0xMCAxMGwxMCAxMG0wLTEwbC0xMCAxMCIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4=";
+                        
+            let correctCount = 0;
+            const totalCount = Object.keys(results).length;
+    
+            for (const key in results) {
+                const inputElement = $(`[data-input="${key}"]`);
+                if (inputElement.length === 0) continue;
+                
+                const result = results[key];
+                const container = inputElement.closest('.input-container'); 
+                if (container.length === 0) continue;
+    
+                container.css('position', 'relative');
+                const rightGif = container.find('.right-gif').attr('src', rightImageSrc);
+                const wrongGif = container.find('.wrong-gif').attr('src', wrongImageSrc);
+                
+                if (result.is_correct) {
+                    correctCount++;
+                    inputElement.removeClass('border-red-500').addClass('border-green-500 focus:border-green-500 focus:ring-green-500');
+                    rightGif.removeClass('hidden');
+                    wrongGif.addClass('hidden');
+                } else {
+                    inputElement.removeClass('border-green-500').addClass('border-red-500 focus:border-red-500 focus:ring-red-500');
+                    wrongGif.removeClass('hidden');
+                    rightGif.addClass('hidden');
+                }
+            }
+            
+            const resultArea = $('#resultArea');
+            if (resultArea.length > 0) {
+                $('#scoreDisplay').text(score + '점');
+                $('#detailResult').text(`총 ${totalCount}문제 중 ${correctCount}문제 정답`);
+                resultArea.removeClass('hidden');
+                
+                if (!$('#checkAnswers').text().includes('다시')) {
+                    $('html, body').animate({ scrollTop: resultArea.offset().top - 100 }, 500);
+                }
+            }
+        }
+    
+        // --- 페이지 로드 시 학습 이력 복원 함수 실행 ---
+        setTimeout(restorePreviousMultiInputAnswer, 100);
+    });
+    </script>

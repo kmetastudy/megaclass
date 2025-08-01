@@ -1,0 +1,44 @@
+<!-- OX 퀴즈 문제 템플릿 - 개선된 버전 -->
+<div class="ox-quiz-container" id="ox-quiz-container" data-theme="default">
+    <!-- 동적 배경 -->
+    <div class="floating-particles" id="particles"></div>
+    
+    <!-- 장식용 이모지 -->
+    <div class="decoration-emoji emoji-1" id="decoration1">🎯</div>
+    <div class="decoration-emoji emoji-2" id="decoration2">✨</div>
+    
+    <!-- 메인 퀴즈 영역 -->
+    <div class="quiz-main-area">
+        <!-- 문제 제목 -->
+        <div class="quiz-title" id="quiz-title">OX 퀴즈</div>
+        
+        <!-- 문제 박스 -->
+        <div class="question-box" id="question-text">
+            {{ slide.content.page|safe }}
+        </div>
+        
+        <!-- O/X 버튼 컨테이너 -->
+        <div class="button-container">
+            <button class="quiz-button o-button answer" id="o-button" data-clicked="1">
+                <span class="button-text">O</span>
+                <span class="button-label">맞다</span>
+            </button>
+            <button class="quiz-button x-button answer" id="x-button" data-clicked="2">
+                <span class="button-text">X</span>
+                <span class="button-label">틀리다</span>
+            </button>
+        </div>
+        
+        <!-- 피드백 영역 -->
+        <div class="feedback feedback-correct" id="feedback-correct">
+            <!-- 정답 메시지가 여기에 표시됩니다 -->
+        </div>
+        
+        <div class="feedback feedback-incorrect" id="feedback-incorrect">
+            <!-- 오답 메시지가 여기에 표시됩니다 -->
+        </div>
+    </div>
+    
+    <!-- 애니메이션 컨테이너 -->
+    <div class="animation-container" id="animation-container"></div>
+</div>

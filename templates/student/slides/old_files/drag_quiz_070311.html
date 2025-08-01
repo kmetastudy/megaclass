@@ -1,0 +1,1151 @@
+// 완전 기능 드래그앤드롭 퀴즈 JavaScript - 답안 표시 문제 해결
+<script>
+$(document).ready(function() {
+    // 드래그 퀴즈 전용 설정
+    const DRAG_CONFIG = {
+        themes: {
+            science: {
+                keywords: ['과학', '실험', '화학', '물리', '생물', '연구', '이론', '법칙', '가설', '원소', '실험실', '증발', '응결', '승화'],
+                emojis: ['🔬', '⚗️', '🧪', '🔭', '🌡️', '⚛️', '🧬', '💊', '🦠', '🌌'],
+                particles: ['🔬', '⚗️', '🧪', '⚛️', '💡', '🌟'],
+                colors: ['rgba(33, 150, 243, 0.3)', 'rgba(3, 218, 198, 0.3)', 'rgba(0, 188, 212, 0.3)'],
+                itemColors: ['#2196F3', '#03DAC6', '#00BCD4', '#4FC3F7', '#0288D1']
+            },
+            math: {
+                keywords: ['수학', '계산', '공식', '방정식', '기하', '대수', '확률', '통계', '함수', '숫자', '순서', '정렬', '소수', '분수'],
+                emojis: ['➕', '➖', '✖️', '➗', '📐', '📊', '📈', '🔢', '∑', '∞'],
+                particles: ['➕', '➖', '✖️', '➗', '📐', '🔢'],
+                colors: ['rgba(255, 152, 0, 0.3)', 'rgba(255, 193, 7, 0.3)', 'rgba(255, 171, 0, 0.3)'],
+                itemColors: ['#FF9800', '#FFC107', '#FFAB00', '#FFB74D', '#FF8F00']
+            },
+            career: {
+                keywords: ['진로', '직업', '취업', '미래', '꿈', '목표', '계획', '성장', '발전', '능력', '의사', '화가', '요리사', '연결', '매칭'],
+                emojis: ['💼', '👔', '🎯', '📈', '🏆', '🚀', '💡', '🌟', '🔥', '⭐'],
+                particles: ['💼', '🎯', '📈', '🏆', '🚀', '💡'],
+                colors: ['rgba(76, 175, 80, 0.3)', 'rgba(139, 195, 74, 0.3)', 'rgba(102, 187, 106, 0.3)'],
+                itemColors: ['#4CAF50', '#8BC34A', '#66BB6A', '#81C784', '#388E3C']
+            },
+            social: {
+                keywords: ['사회', '역사', '정치', '경제', '문화', '지리', '인권', '민주주의', '선거', '투표', '토론', '집회'],
+                emojis: ['👥', '🏛️', '🗳️', '📊', '🌍', '🏴', '📜', '⚖️', '🕊️', '🤝'],
+                particles: ['👥', '🏛️', '🗳️', '🌍', '📊', '🤝'],
+                colors: ['rgba(233, 30, 99, 0.3)', 'rgba(255, 64, 129, 0.3)', 'rgba(173, 20, 87, 0.3)'],
+                itemColors: ['#E91E63', '#FF4081', '#AD1457', '#F06292', '#C2185B']
+            },
+            default: {
+                keywords: [],
+                emojis: ['🎯', '✨', '⭐', '🌟', '💫', '🎉', '🎊', '🌈', '🦋', '🌺'],
+                particles: ['🎯', '✨', '⭐', '🌟', '💫', '🎉'],
+                colors: ['rgba(255, 255, 255, 0.3)', 'rgba(255, 107, 107, 0.3)', 'rgba(78, 205, 196, 0.3)'],
+                itemColors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#B794F6']
+            }
+        },
+        
+        correctMessages: [
+            "🎉 정답입니다! 👏 완벽한 드래그 실력이에요!",
+            "환상적이에요! 🌟 훌륭한 배치였습니다!",
+            "맞습니다! 🎊 정확한 위치에 배치했어요!",
+            "정답이에요! 💯 최고의 드래그 솜씨예요!",
+            "브라보! 🎭 멋진 드래그 테크닉이었습니다!"
+        ],
+        
+        incorrectMessages: [
+            "🤔 아직 정답이 아니에요! 다시 시도해보세요! 😊",
+            "괜찮아요! 💪 한 번 더 도전해보세요!",
+            "조금 더 생각해볼까요? 🧐 다시 배치해보세요!",
+            "아쉬워요! 😊 다시 한번 드래그해보세요!",
+            "힘내세요! 🌟 올바른 위치를 찾아보세요!"
+        ]
+    };
+    
+    // 전역 변수
+    let dragIsAnswered = false;
+    let currentState = {};
+    let draggedItem = null;
+    let touchItem = null;
+    let extractedItems = [];
+    let questionText = '';
+    let quizType = 'fill-blank'; // 기본값
+    
+    // 🚀 드래그 퀴즈 초기화
+    function initializeDragQuiz() {
+        if ($('#drag-quiz-container').length === 0) return;
+        
+        console.log('🚀 드래그 퀴즈 초기화 시작');
+        
+        // 1. 기존 HTML에서 문제와 드래그 아이템 추출
+        extractQuestionAndItems();
+        
+        // 2. 퀴즈 타입 감지 (개선된 버전)
+        detectQuizType();
+        
+        // 3. 문제 텍스트 분석하여 테마 설정
+        const theme = detectThemeFromText(questionText);
+        applyDragTheme(theme);
+        
+        // 4. 파티클 생성
+        createDragParticles(theme);
+        
+        // 5. 퀴즈 타입에 따라 초기화
+        initializeQuizByType();
+        
+        // 6. 기존 답안 복원
+        restoreDragAnswer();
+        
+        console.log('✅ 드래그 퀴즈 초기화 완료');
+        console.log(`📋 퀴즈 타입: ${quizType}`);
+        console.log(`🎨 테마: ${theme}`);
+    }
+    
+    // 🔍 기존 HTML에서 문제와 아이템 추출 (개선된 버전)
+    function extractQuestionAndItems() {
+        // 문제 텍스트 추출
+        const questionSelectors = [
+            '.quiz-container .question-text',
+            '.quiz-container h1',
+            '.question-box h1',
+            '.question-text'
+        ];
+        
+        for (let selector of questionSelectors) {
+            const element = $(selector);
+            if (element.length > 0) {
+                questionText = element.text().trim();
+                if (questionText) break;
+            }
+        }
+        
+        if (!questionText) {
+            questionText = "드래그앤드롭 문제를 풀어보세요!";
+        }
+        
+        // 드래그 아이템 추출
+        extractedItems = [];
+        $('.options-container .option-button').each(function(index) {
+            const itemText = $(this).find('.option-text').text().trim();
+            const dataClicked = $(this).attr('data-clicked');
+            
+            if (itemText) {
+                extractedItems.push({
+                    id: `item${index + 1}`,
+                    text: itemText,
+                    value: dataClicked || (index + 1).toString()
+                });
+            }
+        });
+        
+        console.log('📝 추출된 문제:', questionText);
+        console.log('📋 추출된 아이템:', extractedItems);
+    }
+    
+    // 🎯 퀴즈 타입 감지 (개선된 버전)
+    function detectQuizType() {
+        const text = questionText.toLowerCase();
+        
+        // 키워드 기반 타입 감지
+        if (text.includes('순서') || text.includes('정렬') || text.includes('배열') || 
+            text.includes('작은 것부터') || text.includes('큰 것부터') ||
+            text.includes('1번째') || text.includes('2번째') || text.includes('3번째')) {
+            quizType = 'sort';
+        } else if (text.includes('연결') || text.includes('매칭') || text.includes('짝') || 
+                   text.includes('과 ') || text.includes('직업과') || text.includes('능력')) {
+            quizType = 'match';
+        } else if (text.includes('빈칸') || text.includes('____') || 
+                   text.includes('<drop-zone') || text.includes('data-zone-id')) {
+            quizType = 'fill-blank';
+        } else {
+            // 기본값은 빈칸채우기
+            quizType = 'fill-blank';
+        }
+        
+        console.log(`🎯 감지된 퀴즈 타입: ${quizType}`);
+    }
+    
+    // 🎨 문제 텍스트에서 테마 감지
+    function detectThemeFromText(text) {
+        let maxScore = 0;
+        let detectedTheme = 'default';
+        
+        Object.keys(DRAG_CONFIG.themes).forEach(theme => {
+            const keywords = DRAG_CONFIG.themes[theme].keywords;
+            let score = 0;
+            
+            keywords.forEach(keyword => {
+                if (text.includes(keyword)) {
+                    score++;
+                }
+            });
+            
+            if (score > maxScore) {
+                maxScore = score;
+                detectedTheme = theme;
+            }
+        });
+        
+        console.log(`🎨 감지된 테마: ${detectedTheme} (점수: ${maxScore})`);
+        return detectedTheme;
+    }
+    
+    // 🎪 드래그 테마 적용
+    function applyDragTheme(theme) {
+        const container = $('#drag-quiz-container');
+        container.attr('data-theme', theme);
+        
+        if (DRAG_CONFIG.themes[theme]) {
+            const themeConfig = DRAG_CONFIG.themes[theme];
+            
+            // 장식 이모지 설정
+            $('#decoration1').text(themeConfig.emojis[0] || '🎯');
+            $('#decoration2').text(themeConfig.emojis[Math.floor(Math.random() * themeConfig.emojis.length)] || '✨');
+        }
+        
+        // 퀴즈 제목 설정
+        const themeNames = {
+            science: '과학',
+            math: '수학',
+            social: '사회',
+            career: '진로',
+            default: '일반'
+        };
+        
+        const typeNames = {
+            'fill-blank': '빈칸채우기',
+            'sort': '순서정렬',
+            'match': '매칭문제'
+        };
+        
+        $('#quiz-title').text(`${themeNames[theme] || '일반'} ${typeNames[quizType] || '드래그앤드롭'} 퀴즈`);
+    }
+    
+    // ✨ 파티클 생성
+    function createDragParticles(theme) {
+        const particleContainer = $('#particles');
+        const themeConfig = DRAG_CONFIG.themes[theme];
+        
+        if (!themeConfig) return;
+        
+        particleContainer.empty();
+        
+        for (let i = 0; i < 20; i++) {
+            const particle = $('<div>').addClass('particle');
+            particle.css({
+                'left': Math.random() * 100 + '%',
+                'width': Math.random() * 10 + 6 + 'px',
+                'height': Math.random() * 10 + 6 + 'px',
+                'background-color': themeConfig.colors[Math.floor(Math.random() * themeConfig.colors.length)],
+                'animation-delay': Math.random() * 15 + 's',
+                'animation-duration': (Math.random() * 10 + 15) + 's'
+            });
+            
+            // 40% 확률로 테마별 이모지 파티클
+            if (Math.random() < 0.4 && themeConfig.particles) {
+                particle.text(themeConfig.particles[Math.floor(Math.random() * themeConfig.particles.length)]);
+                particle.css({
+                    'background-color': 'transparent',
+                    'font-size': '24px',
+                    'width': 'auto',
+                    'height': 'auto'
+                });
+            }
+            
+            particleContainer.append(particle);
+        }
+    }
+    
+    // 🏗️ 퀴즈 타입별 초기화
+    function initializeQuizByType() {
+        switch(quizType) {
+            case 'fill-blank':
+                initializeFillBlank();
+                break;
+            case 'sort':
+                initializeSort();
+                break;
+            case 'match':
+                initializeMatch();
+                break;
+            default:
+                initializeFillBlank();
+        }
+    }
+    
+    // 📝 빈칸채우기 초기화
+    function initializeFillBlank() {
+        console.log('🔧 빈칸채우기 초기화');
+        
+        const questionElement = $('#question-text');
+        let questionHTML = questionText;
+        
+        // drop-zone 태그를 실제 드롭존으로 변환
+        questionHTML = questionHTML.replace(/<drop-zone[^>]*id=['"]([^'"]*)['"][^>]*><\/drop-zone>/g, 
+            '<span class="drop-zone" data-zone-id="$1">빈칸</span>');
+        
+        // 일반적인 빈칸 표시도 드롭존으로 변환
+        questionHTML = questionHTML.replace(/____+/g, '<span class="drop-zone" data-zone-id="blank1">빈칸</span>');
+        questionHTML = questionHTML.replace(/\[빈칸\]/g, '<span class="drop-zone" data-zone-id="blank1">빈칸</span>');
+        
+        questionElement.html(questionHTML);
+        
+        // 드롭존 이벤트 설정
+        setupDropZones();
+        
+        // 드래그 아이템 생성
+        createDragItems();
+        
+        console.log('✅ 빈칸채우기 초기화 완료');
+    }
+    
+    // 🔢 정렬형 초기화 (개선된 버전)
+    function initializeSort() {
+        console.log('🔧 순서정렬 초기화');
+        
+        $('#question-text').html(questionText);
+        $('#sort-container').show();
+        
+        // 정렬 영역 생성
+        const sortContainer = $('#sort-container');
+        sortContainer.empty();
+        
+        for (let i = 1; i <= extractedItems.length; i++) {
+            const zoneElement = $('<div>')
+                .addClass('sort-zone drop-zone')
+                .attr('id', `sort${i}`)
+                .attr('data-zone-id', `order${i}`)
+                .attr('data-order', i)
+                .html(`
+                    <div class="zone-label">${i}번째</div>
+                    <div class="zone-content">여기에 드롭</div>
+                `);
+            
+            sortContainer.append(zoneElement);
+        }
+        
+        // 정렬존 특별 스타일 적용
+        $('.sort-zone').css({
+            'min-height': '100px',
+            'border': '3px dashed #FF9800',
+            'border-radius': '15px',
+            'margin': '10px',
+            'display': 'flex',
+            'flex-direction': 'column',
+            'justify-content': 'center',
+            'align-items': 'center',
+            'background': 'rgba(255, 152, 0, 0.1)',
+            'transition': 'all 0.3s ease'
+        });
+        
+        // 드롭존 이벤트 설정
+        setupDropZones();
+        
+        // 드래그 아이템 생성
+        createDragItems();
+        
+        console.log('✅ 순서정렬 초기화 완료');
+    }
+    
+    // 🔗 매칭형 초기화 (개선된 버전)
+    function initializeMatch() {
+        console.log('🔧 매칭문제 초기화');
+        
+        $('#question-text').html(questionText);
+        $('#match-container').show();
+        
+        const matchContainer = $('#match-container');
+        matchContainer.empty();
+        
+        // 매칭 쌍 정의 (실제로는 문제에서 추출해야 함)
+        const matchPairs = [
+            { left: '의사', right: '의학 지식' },
+            { left: '화가', right: '창의성' },
+            { left: '요리사', right: '미각' }
+        ];
+        
+        matchPairs.forEach((pair, index) => {
+            const rowElement = $('<div>')
+                .addClass('match-row')
+                .html(`
+                    <div class="match-left">${pair.left}</div>
+                    <div class="match-arrow">→</div>
+                    <div class="match-right drop-zone" data-zone-id="match${index + 1}" data-match-id="match${index + 1}">
+                        <span class="match-placeholder">능력을 선택하세요</span>
+                    </div>
+                `);
+            matchContainer.append(rowElement);
+        });
+        
+        // 매칭 영역 특별 스타일 적용
+        $('.match-row').css({
+            'display': 'flex',
+            'align-items': 'center',
+            'margin': '15px 0',
+            'padding': '10px',
+            'background': 'rgba(255, 255, 255, 0.1)',
+            'border-radius': '12px'
+        });
+        
+        $('.match-left').css({
+            'flex': '1',
+            'background': '#4CAF50',
+            'color': 'white',
+            'padding': '15px',
+            'border-radius': '10px',
+            'text-align': 'center',
+            'font-weight': 'bold',
+            'font-size': '18px'
+        });
+        
+        $('.match-arrow').css({
+            'font-size': '24px',
+            'margin': '0 15px',
+            'color': '#4CAF50'
+        });
+        
+        $('.match-right').css({
+            'min-width': '200px',
+            'min-height': '60px',
+            'border': '3px dashed #4CAF50',
+            'border-radius': '10px',
+            'background': 'rgba(76, 175, 80, 0.1)',
+            'display': 'flex',
+            'align-items': 'center',
+            'justify-content': 'center',
+            'transition': 'all 0.3s ease'
+        });
+        
+        // 드롭존 이벤트 설정
+        setupDropZones();
+        
+        // 드래그 아이템 생성
+        createDragItems();
+        
+        console.log('✅ 매칭문제 초기화 완료');
+    }
+    
+    // 🎨 드래그 아이템 생성 (화려한 버전)
+    function createDragItems() {
+        const container = $('#drag-container');
+        const theme = $('#drag-quiz-container').attr('data-theme') || 'default';
+        const themeConfig = DRAG_CONFIG.themes[theme];
+        
+        container.empty();
+        
+        extractedItems.forEach((item, index) => {
+            const itemElement = $('<div>')
+                .addClass('drag-item')
+                .attr('id', item.id)
+                .attr('draggable', 'true')
+                .attr('data-value', item.value)
+                .attr('tabindex', '0')
+                .attr('role', 'button')
+                .attr('aria-label', `드래그 가능한 아이템: ${item.text}`)
+                .text(item.text)
+                .css({
+                    'background': `linear-gradient(135deg, ${themeConfig.itemColors[index % themeConfig.itemColors.length]}, ${adjustBrightness(themeConfig.itemColors[index % themeConfig.itemColors.length], 20)})`,
+                    'color': 'white',
+                    'padding': '12px 20px',
+                    'margin': '8px',
+                    'border-radius': '12px',
+                    'cursor': 'move',
+                    'font-weight': 'bold',
+                    'font-size': '16px',
+                    'box-shadow': '0 4px 12px rgba(0,0,0,0.15)',
+                    'transition': 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    'user-select': 'none',
+                    'position': 'relative',
+                    'overflow': 'hidden'
+                });
+            
+            // 반짝이는 효과 추가
+            const shimmer = $('<div>').css({
+                'position': 'absolute',
+                'top': '0',
+                'left': '-100%',
+                'width': '100%',
+                'height': '100%',
+                'background': 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                'animation': 'shimmer 2s infinite'
+            });
+            itemElement.append(shimmer);
+            
+            // 이벤트 바인딩
+            itemElement.on('dragstart', handleDragStart);
+            itemElement.on('dragend', handleDragEnd);
+            itemElement.on('touchstart', handleTouchStart);
+            itemElement.on('touchmove', handleTouchMove);
+            itemElement.on('touchend', handleTouchEnd);
+            
+            // 호버 효과
+            itemElement.on('mouseenter', function() {
+                if (!$(this).hasClass('placed')) {
+                    $(this).css({
+                        'transform': 'translateY(-5px) scale(1.05)',
+                        'box-shadow': '0 8px 25px rgba(0,0,0,0.25)'
+                    });
+                }
+            }).on('mouseleave', function() {
+                if (!$(this).hasClass('dragging placed')) {
+                    $(this).css({
+                        'transform': 'translateY(0) scale(1)',
+                        'box-shadow': '0 4px 12px rgba(0,0,0,0.15)'
+                    });
+                }
+            });
+            
+            container.append(itemElement);
+            console.log('✨ 드래그 아이템 생성:', item.text);
+        });
+        
+        // 반짝이는 애니메이션 추가
+        $('<style>').prop('type', 'text/css').html(`
+            @keyframes shimmer {
+                0% { left: -100%; }
+                100% { left: 100%; }
+            }
+        `).appendTo('head');
+        
+        // 키보드 지원 설정
+        setupKeyboardSupport();
+    }
+    
+    // 🎯 드롭존 설정 (통합된 버전)
+    function setupDropZones() {
+        $(document).off('dragover drop dragenter dragleave', '.drop-zone, .sort-zone, .match-right');
+        
+        $(document).on('dragover', '.drop-zone, .sort-zone, .match-right', function(e) {
+            e.preventDefault();
+        });
+        
+        $(document).on('dragenter', '.drop-zone, .sort-zone, .match-right', function(e) {
+            e.preventDefault();
+            $(this).addClass('highlight');
+            
+            // 진입 효과
+            $(this).css({
+                'transform': 'scale(1.05)',
+                'box-shadow': '0 0 20px rgba(69, 183, 209, 0.6)'
+            });
+            
+            console.log('🎯 드롭존 진입:', $(this).attr('data-zone-id') || $(this).attr('data-match-id'));
+        });
+        
+        $(document).on('dragleave', '.drop-zone, .sort-zone, .match-right', function(e) {
+            $(this).removeClass('highlight');
+            $(this).css({
+                'transform': '',
+                'box-shadow': ''
+            });
+        });
+        
+        $(document).on('drop', '.drop-zone, .sort-zone, .match-right', handleDrop);
+    }
+    
+    // 🎪 드래그 시작 (화려한 이벤트)
+    function handleDragStart(e) {
+        draggedItem = this;
+        
+        // 모든 아이템의 선택 상태 제거
+        $('.drag-item').removeClass('selected dragging');
+        
+        // 현재 아이템을 선택 상태로 표시
+        $(this).addClass('selected');
+        
+        // 폭죽 효과
+        createMiniFireworks($(this).offset());
+        
+        console.log('🎯 드래그 시작:', $(this).text());
+        
+        // 약간의 지연 후 드래그 상태로 전환
+        setTimeout(() => {
+            $(this).removeClass('selected').addClass('dragging');
+            $(this).css({
+                'transform': 'scale(1.1) rotate(5deg)',
+                'z-index': '1000',
+                'box-shadow': '0 10px 30px rgba(0,0,0,0.3)'
+            });
+        }, 100);
+        
+        e.originalEvent.dataTransfer.setData('text/plain', this.id);
+        
+        // 진동 피드백
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+    }
+    
+    // 🎪 드래그 종료
+    function handleDragEnd(e) {
+        $(this).removeClass('dragging selected');
+        $(this).css({
+            'transform': '',
+            'z-index': '',
+            'box-shadow': '0 4px 12px rgba(0,0,0,0.15)'
+        });
+        
+        $('.drop-zone, .sort-zone, .match-right').removeClass('highlight').css({
+            'transform': '',
+            'box-shadow': ''
+        });
+        
+        console.log('🏁 드래그 종료:', $(this).text());
+    }
+    
+    // 💥 드롭 처리 (화려한 이벤트) - 수정된 버전
+    function handleDrop(e) {
+        e.preventDefault();
+        $(this).removeClass('highlight');
+        
+        if (dragIsAnswered) return;
+        
+        const itemId = e.originalEvent.dataTransfer.getData('text/plain');
+        const item = $('#' + itemId);
+        const zoneId = $(this).attr('data-zone-id') || $(this).attr('data-match-id') || 'zone1';
+        
+        console.log('💥 드롭 성공:', item.text(), '→', zoneId);
+        
+        // 기존 아이템이 있다면 복원
+        if ($(this).attr('data-filled-by')) {
+            const existingItem = $('#' + $(this).attr('data-filled-by'));
+            if (existingItem.length) {
+                existingItem.removeClass('placed').show();
+                restoreItemStyle(existingItem);
+            }
+        }
+        
+        // 성공 폭죽 효과
+        createSuccessExplosion($(this).offset());
+        
+        // 🔧 새 아이템 배치 - 매칭 타입별 처리
+        if ($(this).hasClass('match-right')) {
+            // 매칭 타입: 플레이스홀더 교체
+            $(this).html(`<span class="match-answer">${item.text()}</span>`);
+        } else {
+            // 일반 빈칸/정렬 타입: 텍스트 교체
+            $(this).text(item.text());
+        }
+        
+        $(this).addClass('filled').attr('data-filled-by', itemId);
+        item.addClass('placed').hide();
+        
+        // 성공 효과
+        $(this).addClass('drop-success');
+        setTimeout(() => {
+            $(this).removeClass('drop-success');
+        }, 1000);
+        
+        // 상태 저장
+        currentState[zoneId] = item.attr('data-value') || itemId;
+        
+        console.log('💾 현재 상태:', currentState);
+        
+        // 완료 확인
+        setTimeout(() => checkCompletion(), 300);
+        
+        // 진동 피드백 (성공 패턴)
+        if (navigator.vibrate) {
+            navigator.vibrate([50, 50, 50]);
+        }
+    }
+    
+    // 🌟 미니 폭죽 효과
+    function createMiniFireworks(position) {
+        for (let i = 0; i < 5; i++) {
+            const spark = $('<div>').css({
+                'position': 'fixed',
+                'left': position.left + 'px',
+                'top': position.top + 'px',
+                'width': '4px',
+                'height': '4px',
+                'background': '#FFD700',
+                'border-radius': '50%',
+                'pointer-events': 'none',
+                'z-index': '9999'
+            });
+            
+            $('body').append(spark);
+            
+            const angle = (i / 5) * 2 * Math.PI;
+            const distance = 30;
+            const endX = position.left + Math.cos(angle) * distance;
+            const endY = position.top + Math.sin(angle) * distance;
+            
+            spark.animate({
+                left: endX + 'px',
+                top: endY + 'px',
+                opacity: 0
+            }, 500, function() {
+                $(this).remove();
+            });
+        }
+    }
+    
+    // 💥 성공 폭발 효과
+    function createSuccessExplosion(position) {
+        const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+        
+        for (let i = 0; i < 12; i++) {
+            const particle = $('<div>').css({
+                'position': 'fixed',
+                'left': position.left + 'px',
+                'top': position.top + 'px',
+                'width': '8px',
+                'height': '8px',
+                'background': colors[Math.floor(Math.random() * colors.length)],
+                'border-radius': '50%',
+                'pointer-events': 'none',
+                'z-index': '9999'
+            });
+            
+            $('body').append(particle);
+            
+            const angle = (i / 12) * 2 * Math.PI;
+            const distance = 60 + Math.random() * 40;
+            const endX = position.left + Math.cos(angle) * distance;
+            const endY = position.top + Math.sin(angle) * distance;
+            
+            particle.animate({
+                left: endX + 'px',
+                top: endY + 'px',
+                opacity: 0,
+                transform: 'scale(2)'
+            }, 800, function() {
+                $(this).remove();
+            });
+        }
+    }
+    
+    // 터치 이벤트 처리 (기존과 동일)
+    function handleTouchStart(e) {
+        if (dragIsAnswered) return;
+        
+        touchItem = this;
+        $(this).addClass('selected');
+        
+        // 터치 시작 효과
+        createMiniFireworks($(this).offset());
+        
+        setTimeout(() => {
+            $(this).removeClass('selected').addClass('dragging');
+        }, 100);
+        
+        if (navigator.vibrate) {
+            navigator.vibrate(50);
+        }
+        
+        e.preventDefault();
+    }
+    
+    function handleTouchMove(e) {
+        if (!touchItem) return;
+        e.preventDefault();
+        
+        const touch = e.originalEvent.touches[0];
+        
+        $(touchItem).css({
+            'position': 'fixed',
+            'left': touch.clientX - 60 + 'px',
+            'top': touch.clientY - 30 + 'px',
+            'z-index': '1000',
+            'pointer-events': 'none',
+            'transform': 'scale(1.1) rotate(5deg)',
+            'box-shadow': '0 10px 30px rgba(0,0,0,0.3)'
+        });
+        
+        // 드롭존 하이라이트 처리
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        $('.drop-zone, .sort-zone, .match-right').removeClass('highlight');
+        
+        if (element && ($(element).hasClass('drop-zone') || $(element).hasClass('sort-zone') || $(element).hasClass('match-right'))) {
+            $(element).addClass('highlight');
+            
+            if (navigator.vibrate) {
+                navigator.vibrate(20);
+            }
+        }
+    }
+    
+    function handleTouchEnd(e) {
+        if (!touchItem) return;
+        
+        const touch = e.originalEvent.changedTouches[0];
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        // 스타일 복원
+        restoreItemStyle($(touchItem));
+        
+        // 드롭 처리
+        if (element && ($(element).hasClass('drop-zone') || $(element).hasClass('sort-zone') || $(element).hasClass('match-right'))) {
+            if (navigator.vibrate) {
+                navigator.vibrate([50, 50, 50]);
+            }
+            
+            const fakeEvent = {
+                preventDefault: () => {},
+                originalEvent: {
+                    dataTransfer: {
+                        getData: () => touchItem.id
+                    }
+                }
+            };
+            handleDrop.call(element, fakeEvent);
+        }
+        
+        $('.drop-zone, .sort-zone, .match-right').removeClass('highlight');
+        touchItem = null;
+    }
+    
+    // 아이템 스타일 복원
+    function restoreItemStyle(item) {
+        item.css({
+            'position': '',
+            'left': '',
+            'top': '',
+            'z-index': '',
+            'pointer-events': '',
+            'transform': '',
+            'box-shadow': '0 4px 12px rgba(0,0,0,0.15)'
+        }).removeClass('dragging selected');
+    }
+    
+    // 키보드 접근성 지원
+    function setupKeyboardSupport() {
+        $(document).on('keydown', '.drag-item', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                $('.drag-item').removeClass('selected');
+                $(this).addClass('selected');
+                
+                // 키보드 선택 효과
+                createMiniFireworks($(this).offset());
+                
+                setTimeout(() => {
+                    $(this).removeClass('selected');
+                }, 2000);
+            }
+        });
+    }
+    
+    // ✅ 완료 확인
+    function checkCompletion() {
+        if (dragIsAnswered) return;
+        
+        const totalZones = $('.drop-zone:visible, .sort-zone:visible, .match-right:visible').length;
+        const filledZones = Object.keys(currentState).length;
+        
+        console.log(`📊 완료 확인: ${filledZones}/${totalZones}`);
+        
+        if (filledZones >= totalZones && totalZones > 0) {
+            checkAnswers();
+        }
+    }
+    
+    // 📝 답안 채점
+    function checkAnswers() {
+        if (dragIsAnswered) return;
+        
+        dragIsAnswered = true;
+        console.log('📤 답안 제출:', currentState);
+        
+        const slideId = '{{ slide.id }}';
+        const contentId = '{{ slide.content.id }}';
+        
+        $.ajax({
+            url: '{% url "student:check_answer" %}',
+            type: 'POST',
+            data: {
+                'content_id': contentId,
+                'slide_id': slideId,
+                'student_answer': JSON.stringify(currentState),
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                console.log('✅ 채점 결과:', response);
+                handleDragResult(response);
+            },
+            error: function() {
+                console.error('❌ 채점 오류');
+                showDragToast('채점 중 오류가 발생했습니다.', 'error');
+                resetDragQuiz();
+            }
+        });
+    }
+    
+    // 🎉 결과 처리 (화려한 애니메이션)
+    function handleDragResult(response) {
+        console.log('🎉 결과 처리:', response);
+        
+        // 드롭존 상태 표시
+        $('.drop-zone.filled, .sort-zone.filled, .match-right.filled').each(function() {
+            const zoneId = $(this).attr('data-zone-id') || $(this).attr('data-match-id');
+            if (zoneId && currentState[zoneId]) {
+                $(this).addClass(response.is_correct ? 'correct' : 'incorrect');
+            }
+        });
+        
+        setTimeout(() => {
+            if (response.is_correct) {
+                // 정답 처리 - 대형 폭죽 쇼
+                createGrandFireworks();
+                showDragToast(getRandomMessage(DRAG_CONFIG.correctMessages), 'success');
+                showDragFeedback('correct', getRandomMessage(DRAG_CONFIG.correctMessages));
+                $('#submit-btn, #resubmit-btn').hide();
+                
+                console.log('🎉 정답 처리 완료');
+            } else {
+                // 오답 처리 - 격려 애니메이션
+                createEncouragementAnimation();
+                showDragToast(getRandomMessage(DRAG_CONFIG.incorrectMessages), 'error');
+                showDragFeedback('incorrect', getRandomMessage(DRAG_CONFIG.incorrectMessages));
+                $('#submit-btn').hide();
+                $('#resubmit-btn').show();
+                
+                console.log('💪 오답 처리 완료');
+            }
+        }, 300);
+        
+        updateDragSubmissionStatus(response);
+        
+        if (!response.is_correct) {
+            setTimeout(() => resetDragQuizForRetry(), 8000);
+        }
+    }
+    
+    // 🎆 대형 폭죽 쇼
+    function createGrandFireworks() {
+        const container = $('#animation-container');
+        
+        // 연속 폭죽 3발
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const centerX = Math.random() * window.innerWidth;
+                const centerY = Math.random() * (window.innerHeight * 0.6) + window.innerHeight * 0.2;
+                
+                // 각 폭죽마다 16개의 불꽃
+                for (let j = 0; j < 16; j++) {
+                    const particle = $('<div>').css({
+                        'position': 'fixed',
+                        'left': centerX + 'px',
+                        'top': centerY + 'px',
+                        'width': '12px',
+                        'height': '12px',
+                        'background': `hsl(${Math.random() * 360}, 80%, 60%)`,
+                        'border-radius': '50%',
+                        'pointer-events': 'none',
+                        'z-index': '9999'
+                    });
+                    
+                    $('body').append(particle);
+                    
+                    const angle = (j / 16) * 2 * Math.PI;
+                    const distance = 150 + Math.random() * 100;
+                    const endX = centerX + Math.cos(angle) * distance;
+                    const endY = centerY + Math.sin(angle) * distance;
+                    
+                    particle.animate({
+                        left: endX + 'px',
+                        top: endY + 'px',
+                        opacity: 0,
+                        transform: 'scale(2)'
+                    }, 1500, function() {
+                        $(this).remove();
+                    });
+                }
+            }, i * 400);
+        }
+    }
+    
+    // 💪 격려 애니메이션
+    function createEncouragementAnimation() {
+        const encourageEmojis = ['💪', '🌟', '✨', '🎯', '🚀'];
+        
+        for (let i = 0; i < 10; i++) {
+            setTimeout(() => {
+                const emoji = $('<div>').css({
+                    'position': 'fixed',
+                    'left': Math.random() * window.innerWidth + 'px',
+                    'top': window.innerHeight + 'px',
+                    'font-size': '36px',
+                    'pointer-events': 'none',
+                    'z-index': '9999'
+                });
+                
+                emoji.text(encourageEmojis[Math.floor(Math.random() * encourageEmojis.length)]);
+                $('body').append(emoji);
+                
+                emoji.animate({
+                    top: -100 + 'px',
+                    opacity: 0,
+                    transform: 'scale(1.5) rotate(360deg)'
+                }, 2000, function() {
+                    $(this).remove();
+                });
+            }, i * 200);
+        }
+    }
+    
+    // 피드백 표시
+    function showDragFeedback(type, message) {
+        const feedbackElement = $(`#feedback-${type}`);
+        feedbackElement.html(message).addClass('show');
+    }
+    
+    // 토스트 메시지
+    function showDragToast(message, type = 'info') {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, type);
+        } else {
+            console.log(`Toast [${type}]: ${message}`);
+        }
+    }
+    
+    // 제출 상태 업데이트
+    function updateDragSubmissionStatus(response) {
+        const wrapper = $('#submission-status-wrapper');
+        const statusIcon = response.is_correct
+            ? '<span class="text-green-600"><i class="fas fa-check-circle"></i> 정답</span>'
+            : '<span class="text-red-600"><i class="fas fa-times-circle"></i> 오답</span>';
+        
+        wrapper.html(`
+            <div class="mt-4 text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                마지막 제출: ${response.submitted_at || '방금 전'}
+                ${statusIcon}
+            </div>
+        `);
+    }
+    
+    // 🔄 재시도용 리셋 (수정된 버전)
+    function resetDragQuizForRetry() {
+        {% if not is_already_correct %}
+        console.log('🔄 재시도 준비');
+        
+        dragIsAnswered = false;
+        currentState = {};
+        
+        $('.drop-zone, .sort-zone, .match-right').removeClass('filled highlight correct incorrect')
+                       .removeAttr('data-filled-by');
+        
+        // 타입별 원래 텍스트 복원
+        $('.drop-zone').each(function() {
+            if (!$(this).hasClass('sort-zone') && !$(this).hasClass('match-right')) {
+                $(this).text('빈칸');
+            }
+        });
+        
+        $('.sort-zone').each(function() {
+            const order = $(this).attr('data-order');
+            $(this).html(`
+                <div class="zone-label">${order}번째</div>
+                <div class="zone-content">여기에 드롭</div>
+            `);
+        });
+        
+        $('.match-right').each(function() {
+            $(this).html('<span class="match-placeholder">능력을 선택하세요</span>');
+        });
+        
+        $('.drag-item').removeClass('placed').show();
+        extractedItems.forEach(item => {
+            restoreItemStyle($('#' + item.id));
+        });
+        
+        $('#feedback-correct, #feedback-incorrect').removeClass('show');
+        
+        console.log('✅ 재시도 준비 완료');
+        {% endif %}
+    }
+    
+    // 🔄 기존 답안 복원 (수정된 버전)
+    function restoreDragAnswer() {
+        {% if existing_answer and slide.content_type.type_name == 'drag' %}
+        try {
+            const rawAnswer = '{{ existing_answer.answer|escapejs|default:"{}" }}';
+            console.log('=== 답안 복원 시작 ===');
+            console.log('Raw Answer:', rawAnswer);
+            
+            const answerData = JSON.parse(rawAnswer.replace(/'/g, '"'));
+            console.log('Parsed Answer:', answerData);
+            
+            if (answerData.selected_answer) {
+                currentState = answerData.selected_answer;
+                dragIsAnswered = true;
+                
+                console.log('💾 복원할 상태:', currentState);
+                
+                // 상태 복원 로직 (개선된 버전)
+                Object.keys(currentState).forEach(zoneId => {
+                    const itemValue = currentState[zoneId];
+                    
+                    // 🔧 모든 가능한 드롭존 선택자 확인
+                    const zone = $(`.drop-zone[data-zone-id="${zoneId}"], .sort-zone[data-zone-id="${zoneId}"], .match-right[data-zone-id="${zoneId}"], .match-right[data-match-id="${zoneId}"]`);
+                    const item = $(`.drag-item[data-value="${itemValue}"]`);
+                    
+                    console.log(`🔍 복원 시도: Zone ${zoneId} = Item ${itemValue}`);
+                    console.log(`   Zone 찾음: ${zone.length}개, Item 찾음: ${item.length}개`);
+                    
+                    if (zone.length && item.length) {
+                        // 🎯 타입별 복원 처리
+                        if (zone.hasClass('match-right')) {
+                            // 매칭 타입: HTML 구조로 복원
+                            zone.html(`<span class="match-answer">${item.text()}</span>`);
+                            console.log(`   ✅ 매칭 복원: ${item.text()}`);
+                        } else {
+                            // 일반 빈칸/정렬 타입: 텍스트로 복원
+                            zone.text(item.text());
+                            console.log(`   ✅ 일반 복원: ${item.text()}`);
+                        }
+                        
+                        zone.addClass('filled').attr('data-filled-by', item.attr('id'));
+                        item.addClass('placed').hide();
+                    } else {
+                        console.log(`   ❌ 복원 실패: Zone 또는 Item을 찾을 수 없음`);
+                    }
+                });
+                
+                setTimeout(() => {
+                    {% if is_already_correct %}
+                    $('.drop-zone.filled, .sort-zone.filled, .match-right.filled').addClass('correct');
+                    $('#submit-btn, #resubmit-btn').hide();
+                    showDragFeedback('correct', '🎉 이전 제출: 정답입니다!');
+                    console.log('✅ 정답 상태로 복원 완료');
+                    {% else %}
+                    $('.drop-zone.filled, .sort-zone.filled, .match-right.filled').addClass('incorrect');
+                    $('#submit-btn').hide();
+                    $('#resubmit-btn').show();
+                    showDragFeedback('incorrect', '💪 이전 제출: 오답입니다. 다시 도전해보세요!');
+                    console.log('❌ 오답 상태로 복원 완료');
+                    {% endif %}
+                }, 300);
+            }
+        } catch (e) {
+            console.error('❌ 답안 복원 오류:', e);
+        }
+        {% endif %}
+    }
+    
+    // 유틸리티 함수들
+    function adjustBrightness(color, percent) {
+        const num = parseInt(color.replace("#", ""), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
+    
+    function getRandomMessage(messages) {
+        return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // 이벤트 리스너들
+    $(document).on('click', '#resubmit-btn', function() {
+        if ('{{ slide.content_type.type_name }}' === 'drag') {
+            resetDragQuizForRetry();
+        }
+    });
+    
+    // 초기화 실행
+    initializeDragQuiz();
+});
+</script>

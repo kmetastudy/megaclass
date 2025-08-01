@@ -1,0 +1,47 @@
+<!-- Drag 퀴즈 문제 템플릿 - 드래그앤드롭 -->
+<div class="drag-quiz-container" id="drag-quiz-container" data-theme="default">
+    <!-- 동적 배경 -->
+    <div class="floating-particles" id="particles"></div>
+    
+    <!-- 장식용 이모지 -->
+    <div class="decoration-emoji emoji-1" id="decoration1">🎯</div>
+    <div class="decoration-emoji emoji-2" id="decoration2">✨</div>
+    
+    <!-- 메인 퀴즈 영역 -->
+    <div class="quiz-main-area">
+        <!-- 문제 제목 -->
+        <div class="quiz-title" id="quiz-title">드래그앤드롭 퀴즈</div>
+        
+        <!-- 문제 박스 -->
+        <div class="question-box" id="question-text">
+            {{ slide.content.page|safe }}
+        </div>
+        
+        <!-- 드래그 아이템 컨테이너 -->
+        <div class="drag-items-container" id="drag-container">
+            <!-- 드래그할 아이템들이 여기에 동적으로 생성됩니다 -->
+        </div>
+        
+        <!-- 정렬 컨테이너 (type이 'sort'일 때) -->
+        <div class="sort-container" id="sort-container" style="display: none;">
+            <!-- 정렬 영역들이 여기에 동적으로 생성됩니다 -->
+        </div>
+        
+        <!-- 매칭 컨테이너 (type이 'match'일 때) -->
+        <div class="match-container" id="match-container" style="display: none;">
+            <!-- 매칭 행들이 여기에 동적으로 생성됩니다 -->
+        </div>
+        
+        <!-- 피드백 영역 -->
+        <div class="feedback feedback-correct" id="feedback-correct">
+            <!-- 정답 메시지가 여기에 표시됩니다 -->
+        </div>
+        
+        <div class="feedback feedback-incorrect" id="feedback-incorrect">
+            <!-- 오답 메시지가 여기에 표시됩니다 -->
+        </div>
+    </div>
+    
+    <!-- 애니메이션 컨테이너 -->
+    <div class="animation-container" id="animation-container"></div>
+</div>

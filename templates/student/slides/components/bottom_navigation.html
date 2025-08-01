@@ -1,0 +1,53 @@
+<div class="bottom-indicator">
+    <div class="px-4 sm:px-6 py-1 flex items-center justify-between">
+        <div class="flex-shrink-0">
+            {% if prev_slide %}
+            <a href="{% url 'student:slide_view' prev_slide.id %}" class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm text-sm sm:text-base">
+                <i class="fas fa-chevron-left text-xs sm:text-sm"></i>
+                <span class="hidden sm:inline">이전</span>
+            </a>
+            {% else %}
+            <div class="w-16 sm:w-20"></div>
+            {% endif %}
+        </div>
+        
+        <div class="flex-1 mx-3 sm:mx-6 overflow-hidden">
+            <div class="flex items-center gap-2">
+                <div class="flex-1 flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide justify-center">
+                    {% for s in slide.chasi.teacher_slides.all %}
+                    <div class="progress-dot {% if s.id == slide.id %}current{% endif %}"
+                         onclick="{% if s.id != slide.id %}location.href='{% url 'student:slide_view' s.id %}'{% endif %}"
+                         title="슬라이드 {{ s.slide_number }}"></div>
+                    {% endfor %}
+                </div>
+                <div class="text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap ml-2">
+                    <span class="text-gray-900">{{ slide.slide_number }}</span>/{{ slide.chasi.teacher_slides.count }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-shrink-0">
+            {% if next_slide %}
+            <a href="{% url 'student:slide_view' next_slide.id %}" class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm text-sm sm:text-base">
+                <span class="hidden sm:inline">다음</span>
+                <i class="fas fa-chevron-right text-xs sm:text-sm"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" class="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition shadow-sm text-sm sm:text-base">
+                <span class="hidden sm:inline">완료</span>
+                <i class="fas fa-check text-xs sm:text-sm"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if messages %}
+    <div class="px-4 sm:px-6 pb-2">
+        {% for message in messages %}
+        <div class="text-xs sm:text-sm px-3 py-1.5 rounded-lg mb-1 {% if message.level_tag == 'success' %}bg-green-100 text-green-700{% elif message.level_tag == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,129 @@
+<script>
+    $(document).ready(function() {
+        // --- 변수 및 함수 (ord_ 접두사로 충돌 방지) ---
+        function ord_updateAnswerPreview() {
+            const previewArea = $('#ord_answer-preview');
+            previewArea.empty(); 
+            const userAnswerArray = $("#ord_sortable-container .ord_sortable-item").map(function() {
+                return $(this).data("id");
+            }).get();
+            userAnswerArray.forEach(function(id) {
+                const box = `<div class="w-14 h-14 flex items-center justify-center bg-slate-700 text-white text-2xl font-bold rounded-lg shadow-inner">${id}</div>`;
+                previewArea.append(box);
+            });
+        }
+    
+        // --- ★★★ 기존 답안 복원 함수 추가 ★★★ ---
+        function restoreOrderingAnswer() {
+            {% if existing_answer %}
+            try {
+                const existingAnswerData = {{ existing_answer.answer|safe|default:'{}' }};
+                
+                // 제출된 순서가 있으면 복원
+                if (existingAnswerData.submitted_order) {
+                    const submittedOrder = existingAnswerData.submitted_order.split(',');
+                    const container = $('#ord_sortable-container');
+                    
+                    // 제출된 순서대로 요소를 재배열
+                    submittedOrder.forEach(function(id) {
+                        const item = container.find(`.ord_sortable-item[data-id="${id}"]`);
+                        if (item.length > 0) {
+                            container.append(item);
+                        }
+                    });
+                    
+                    // 미리보기 업데이트
+                    ord_updateAnswerPreview();
+                }
+                
+                // 정답 여부에 따라 UI 표시
+                {% if is_already_correct %}
+                    // 정답인 경우
+                    $('#ord_result-area').removeClass('hidden');
+                    $('#ord_result-gif').attr('src', '/static/img/jungoh/images/right.gif');
+                    $('#ord_submitBtn').hide();
+                    $("#ord_sortable-container").sortable("disable");
+                    $('.ord_sortable-item').removeClass('cursor-grab hover:bg-sky-100').addClass('cursor-not-allowed opacity-80');
+                {% else %}
+                    // 오답인 경우
+                    $('#ord_result-area').removeClass('hidden');
+                    $('#ord_result-gif').attr('src', '/static/img/jungoh/images/wrong.gif');
+                    $('#ord_submitBtn').hide();
+                    $('#ord_retryBtn').removeClass('hidden');
+                {% endif %}
+                
+            } catch (e) {
+                console.error('Ordering 답안 복원 중 오류:', e);
+            }
+            {% endif %}
+        }
+    
+        // --- UI 이벤트 핸들러 ---
+        const proseContainer = $('.prose');
+    
+        // 드래그 앤 드롭 기능 활성화 (기존 답안이 정답이 아닌 경우에만)
+        {% if not is_already_correct %}
+        proseContainer.find("#ord_sortable-container").sortable({
+            placeholder: "sortable-placeholder",
+            axis: "y",
+            update: function(event, ui) {
+                ord_updateAnswerPreview(); // 순서 변경 시마다 미리보기 업데이트
+            }
+        });
+        {% endif %}
+    
+        // 제출하기 버튼 클릭 (AJAX)
+        proseContainer.on('click', '#ord_submitBtn', function() {
+            const submitBtn = $(this);
+            const userAnswerArray = proseContainer.find("#ord_sortable-container .ord_sortable-item").map(function() {
+                return $(this).data("id");
+            }).get();
+            const userAnswerString = userAnswerArray.join(',');
+    
+            submitBtn.prop('disabled', true).text('확인 중...');
+    
+            $.ajax({
+                url: '{% url "student:check_ordering" %}',
+                type: 'POST',
+                data: {
+                    'slide_id': '{{ slide.id }}',
+                    'user_order': userAnswerString,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        proseContainer.find('#ord_result-area').removeClass('hidden');
+                        if (response.is_correct) {
+                            proseContainer.find('#ord_result-gif').attr('src', '/static/img/jungoh/images/right.gif');
+                            submitBtn.hide();
+                            proseContainer.find("#ord_sortable-container").sortable("disable");
+                            proseContainer.find('.ord_sortable-item').removeClass('cursor-grab hover:bg-sky-100').addClass('cursor-not-allowed opacity-80');
+                        } else {
+                            proseContainer.find('#ord_result-gif').attr('src', '/static/img/jungoh/images/wrong.gif');
+                            submitBtn.hide();
+                            proseContainer.find('#ord_retryBtn').removeClass('hidden');
+                        }
+                    } else {
+                        showToast(response.message || '오류가 발생했습니다.', 'error');
+                        submitBtn.prop('disabled', false).text('정답 확인!');
+                    }
+                },
+                error: function() {
+                    showToast('서버와 통신 중 오류가 발생했습니다.', 'error');
+                    submitBtn.prop('disabled', false).text('정답 확인!');
+                }
+            });
+        });
+    
+        // 다시 풀기 버튼 클릭
+        proseContainer.on('click', '#ord_retryBtn', function() {
+            $(this).addClass('hidden');
+            proseContainer.find('#ord_submitBtn').show().prop('disabled', false).text('정답 확인!');
+            proseContainer.find('#ord_result-area').addClass('hidden');
+        });
+    
+        // 페이지 로드 시 초기 미리보기 업데이트 및 기존 답안 복원
+        ord_updateAnswerPreview();
+        restoreOrderingAnswer();
+    });
+    </script>

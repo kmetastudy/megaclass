@@ -820,11 +820,254 @@ def learning_course_view_0608(request, course_id):
 
 
 
+def slide_view(request, slide_id):
+    """슬라이드 학습 페이지"""
+    try:
+        student = request.user.student
+        
+        # 슬라이드 조회
+        slide = get_object_or_404(
+            ChasiSlide.objects.select_related(
+                'chasi__sub_chapter__chapter__subject',
+                'content',
+                'content_type'
+            ),
+            id=slide_id
+        )
+        
+        # 코스 가져오기
+        course = slide.chasi.sub_chapter.chapter.subject
+        
+        # 권한 확인
+        has_access = CourseAssignment.objects.filter(
+            course=course
+        ).filter(
+            Q(assigned_class=student.school_class) | Q(assigned_student=student)
+        ).exists()
+        
+        if not has_access:
+            messages.error(request, '해당 슬라이드에 접근 권한이 없습니다.')
+            return redirect('student:course_list')
+        
+        # 진도 체크 및 생성
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            slide=slide,
+            defaults={'view_count': 0}
+        )
+        
+        # 처음 시작하는 경우
+        if not progress.started_at:
+            progress.started_at = timezone.now()
+        
+        # 조회수 증가
+        progress.view_count = getattr(progress, 'view_count', 0) + 1
+        progress.save()
+        
+        # 기존 답안 확인 - 가장 최근 답안
+        existing_answer = StudentAnswer.objects.filter(
+            student=student,
+            slide=slide
+        ).order_by('-submitted_at').first()
 
+        # 🔧 기존 답안 JSON 처리 (간단한 버전)
+        existing_answer_json = None
+        if existing_answer and existing_answer.answer:
+            try:
+                # answer 필드가 문자열이면 그대로 사용, dict면 JSON으로 변환
+                if isinstance(existing_answer.answer, str):
+                    existing_answer_json = existing_answer.answer
+                else:
+                    existing_answer_json = json.dumps(existing_answer.answer)
+                
+                print(f"✅ 기존 답안 JSON 준비 완료: {existing_answer_json[:100]}...")
+                
+            except Exception as e:
+                print(f"❌ 기존 답안 JSON 처리 실패: {e}")
+                existing_answer_json = None
+
+        # # 🔧 기존 답안 데이터 파싱 (JSON 파싱 오류 해결)
+        # existing_answer_data = None
+        # if existing_answer and existing_answer.answer:
+        #     try:
+        #         if isinstance(existing_answer.answer, str):
+        #             existing_answer_data = json.loads(existing_answer.answer)
+        #         elif isinstance(existing_answer.answer, dict):
+        #             existing_answer_data = existing_answer.answer
+        #         else:
+        #             print(f"⚠️ 예상치 못한 답안 데이터 타입: {type(existing_answer.answer)}")
+                    
+        #         print(f"✅ 답안 데이터 파싱 성공: {slide.content_type.type_name}")
+                
+        #     except (json.JSONDecodeError, TypeError) as e:
+        #         print(f"❌ 답안 데이터 파싱 실패: {e}")
+        #         existing_answer_data = None
+
+        # 이미 정답을 맞혔는지 여부를 확인
+        is_already_correct = False
+        if existing_answer and existing_answer.is_correct:
+            is_already_correct = True
+        
+        # 노트 가져오기
+        note = StudentNote.objects.filter(
+            student=student,
+            slide=slide
+        ).first()
+
+        # POST 요청 처리 - 문제가 없는 콘텐츠의 '완료' 버튼 처리
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            
+            if action == 'complete':
+                # 문제가 없는 슬라이드의 진도 완료 처리
+                if not progress.is_completed:
+                    progress.is_completed = True
+                    progress.completed_at = timezone.now()
+                    progress.save()
+                    messages.success(request, '학습을 완료했습니다.')
+                    
+                # 다음 슬라이드로 이동
+                next_slide = ChasiSlide.objects.filter(
+                    chasi=slide.chasi,
+                    slide_number__gt=slide.slide_number
+                ).order_by('slide_number').first()
+                
+                if next_slide:
+                    return redirect('student:slide_view', slide_id=next_slide.id)
+                else:
+                    return redirect('student:learning_course', course_id=course.id)
+      
+        # 이전/다음 슬라이드
+        prev_slide = ChasiSlide.objects.filter(
+            chasi=slide.chasi,
+            slide_number__lt=slide.slide_number
+        ).order_by('-slide_number').first()
+        
+        next_slide = ChasiSlide.objects.filter(
+            chasi=slide.chasi,
+            slide_number__gt=slide.slide_number
+        ).order_by('slide_number').first()
+        
+        # 현재 슬라이드 위치
+        total_slides_in_chasi = slide.chasi.teacher_slides.count()
+        
+        # 객관식 옵션 처리 - content의 meta_data 필드 확인
+        options = []
+        if slide.content_type.type_name == 'multiple-choice':
+            if hasattr(slide.content, 'meta_data') and isinstance(slide.content.meta_data, dict):
+                options = slide.content.meta_data.get('options', [])
+        
+        physical_result = None
+        if slide.content_type.type_name == 'physical_record' and existing_answer:
+            try:
+                physical_result = StudentPhysicalResult.objects.filter(
+                    student=student,
+                    slide=slide
+                ).first()
+            except:
+                pass
+
+        # OX 퀴즈용 추가 데이터 처리
+        ox_quiz_data = None
+        if slide.content_type.type_name == 'ox-quiz':
+            try:
+                answer_data = json.loads(slide.content.answer)
+                ox_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                ox_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+
+        # Choice 퀴즈용 추가 데이터 처리
+        choice_quiz_data = None
+        if slide.content_type.type_name == 'choice':
+            try:
+                answer_data = json.loads(slide.content.answer)
+                choice_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                choice_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+        
+        # drag 타입 특별 처리 - choice형과 동일한 구조
+        drag_quiz_data = None
+        if slide.content_type.type_name == 'drag':
+            try:
+                correct_answer_data = json.loads(slide.content.correct_answer)
+                solution = correct_answer_data.get('solution', '')
+                drag_quiz_data = {
+                    'has_solution': bool(solution),
+                    'solution': solution
+                }
+            except:
+                drag_quiz_data = {'has_solution': False, 'solution': ''}
+                
+        # 🔧 line_matching 타입 특별 처리 (개선된 버전)
+        line_quiz_data = None
+        if slide.content_type.type_name == 'line_matching':
+            try:
+                correct_answer_data = json.loads(slide.content.answer)
+                solution = correct_answer_data.get('solution', '')
+                line_quiz_data = {
+                    'has_solution': bool(solution),
+                    'solution': solution,
+                    'correct_answer': correct_answer_data.get('answer', {}),
+                    'total_connections': len(correct_answer_data.get('answer', {}))
+                }
+                print(f"✅ line_matching 데이터 준비 완료: {line_quiz_data}")
+            except Exception as e:
+                print(f"❌ line_matching 데이터 파싱 실패: {e}")
+                line_quiz_data = {
+                    'has_solution': False, 
+                    'solution': '',
+                    'correct_answer': {},
+                    'total_connections': 0
+                }
+
+        context = {
+            'slide': slide,
+            'progress': progress,
+            'existing_answer': existing_answer,
+            'existing_answer_data': existing_answer_json, 
+            'existing_answer_json': existing_answer_json,  # 🔧 파싱된 답안 데이터 추가
+            'note': note,
+            'prev_slide': prev_slide,
+            'next_slide': next_slide,
+            'total_slides_in_chasi': total_slides_in_chasi,
+            'options': options,
+            'course': course,
+            'is_already_correct': is_already_correct,
+            'physical_result': physical_result,
+            'ox_quiz_data': ox_quiz_data,
+            'choice_quiz_data': choice_quiz_data,
+            'drag_quiz_data': drag_quiz_data,
+            'line_quiz_data': line_quiz_data,
+        }
+        
+        return render(request, 'student/slide_view.html', context)
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in slide_view: {str(e)}")
+        print(traceback.format_exc())
+        messages.error(request, f'오류가 발생했습니다: {str(e)}')
+        return redirect('student:course_list')
 
 @login_required
 @student_required
-def slide_view(request, slide_id):
+def slide_view_0703(request, slide_id):
     """슬라이드 학습 페이지"""
     try:
         student = request.user.student

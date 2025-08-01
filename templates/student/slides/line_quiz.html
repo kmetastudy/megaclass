@@ -1,0 +1,34 @@
+<!-- line_quiz.html - 수정된 선 매칭 퀴즈 템플릿 -->
+{% if existing_answer_data and slide.content_type.type_name == 'line_matching' %}
+{{ existing_answer_data|json_script:"existing-answer-data" }}
+{% endif %}
+<div class="line-matching-quiz-container">
+    <!-- 실제 문제 내용 출력 (DB에서 가져온 HTML 구조 그대로 사용) -->
+    <div class="question-content">
+        {{ slide.content.page|safe }}
+    </div>
+    
+    <!-- 연결선을 그릴 SVG -->
+    <svg class="connection-svg" id="connection-svg"></svg>
+    
+    <!-- 피드백 영역 -->
+    <div class="feedback-area">
+        <div class="feedback feedback-correct" id="feedback-correct"></div>
+        <div class="feedback feedback-incorrect" id="feedback-incorrect"></div>
+        <div class="feedback feedback-partial" id="feedback-partial"></div>
+    </div>
+    
+    <!-- 진행률 표시 -->
+    <div class="progress-indicator" id="progress-indicator">
+        <div>진행률: <span id="progress-text">0/0</span></div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <!-- 힌트 버튼 -->
+    <button class="hint-button" id="hint-button" title="힌트 보기">💡</button>
+    
+    <!-- 재시도 버튼 -->
+    <button class="retry-button" id="retry-button" title="다시 시도" style="display: none;">🔄</button>
+</div>
