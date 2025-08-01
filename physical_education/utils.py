@@ -46,6 +46,90 @@ def safe_float(value: Union[str, int, float, Decimal]) -> float:
     return float(value)
 
 
+# ==================== 종목별 측정값 추출 ====================
+
+def get_measurement_value(activity_name: str, measurement_data: Dict[str, Any]) -> Optional[float]:
+    """종목별로 다른 JSON 키에서 실제 측정값 추출"""
+    if not measurement_data:
+        return None
+        
+    # 종목별 주요 측정값 키 매핑
+    value_mapping = {
+        'SHUTTLE_RUN': 'shuttle_run',
+        'LONG_RUN_WALK': 'long_run_walk', 
+        'STEP_TEST': 'step_test_pei',  # PEI 값 사용
+        'SIT_REACH': 'sit_reach_best_record',
+        'COMPREHENSIVE_FLEXIBILITY': 'flexibility_total_score',
+        'PUSH_UP': 'push_up',
+        'SIT_UP': 'sit_up', 
+        'GRIP_STRENGTH': 'grip_strength_best',
+        'FIFTY_METER_RUN': 'fifty_meter_run',
+        'STANDING_LONG_JUMP': 'standing_long_jump_best_record',
+        'BMI': 'bmi_bmi',
+        'CARDIO_PRECISION_TEST': 'cardio_precision_pei',
+        'BODY_FAT_RATE_TEST': 'body_fat_rate',  # 체지방률
+        'POSTURE_TEST': 'posture_total_score',  # 자세평가 총점
+        'SELF_BODY_TEST': 'self_body_total_score',  # 자기신체평가 총점
+    }
+    
+    key = value_mapping.get(activity_name)
+    if not key:
+        return None
+        
+    value = measurement_data.get(key)
+    if value is None:
+        return None
+        
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def get_activity_display_name(activity_name: str) -> str:
+    """종목 코드를 한글 이름으로 변환"""
+    name_mapping = {
+        'SHUTTLE_RUN': '왕복오래달리기',
+        'LONG_RUN_WALK': '오래달리기 걷기',
+        'STEP_TEST': '스텝검사',
+        'SIT_REACH': '앉아윗몸앞으로굽히기',
+        'COMPREHENSIVE_FLEXIBILITY': '종합유연성',
+        'PUSH_UP': '팔굽혀펴기',
+        'SIT_UP': '윗몸 말아올리기',
+        'GRIP_STRENGTH': '악력',
+        'FIFTY_METER_RUN': '50m 달리기',
+        'STANDING_LONG_JUMP': '제자리멀리뛰기',
+        'BMI': '체질량 지수(BMI) 측정',
+        'CARDIO_PRECISION_TEST': '심폐지구력정밀평가',
+        'BODY_FAT_RATE_TEST': '체지방률평가',
+        'POSTURE_TEST': '자세평가',
+        'SELF_BODY_TEST': '자기신체평가',
+    }
+    return name_mapping.get(activity_name, activity_name)
+
+
+def get_activity_unit(activity_name: str) -> str:
+    """종목별 단위 반환"""
+    unit_mapping = {
+        'SHUTTLE_RUN': '회',
+        'LONG_RUN_WALK': '분.초',
+        'STEP_TEST': 'PEI',
+        'SIT_REACH': 'cm',
+        'COMPREHENSIVE_FLEXIBILITY': '점',
+        'PUSH_UP': '회',
+        'SIT_UP': '회',
+        'GRIP_STRENGTH': 'kg',
+        'FIFTY_METER_RUN': '초',
+        'STANDING_LONG_JUMP': 'cm',
+        'BMI': 'kg/m²',
+        'CARDIO_PRECISION_TEST': 'PEI',
+        'BODY_FAT_RATE_TEST': '%',
+        'POSTURE_TEST': '점',
+        'SELF_BODY_TEST': '점',
+    }
+    return unit_mapping.get(activity_name, '')
+
+
 # ==================== 자동 값 계산 함수 ====================
 
 def calculate_bmi(height_cm: Union[float, Decimal], weight_kg: Union[float, Decimal]) -> Decimal:

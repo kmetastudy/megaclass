@@ -1,0 +1,628 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}종목별 성장 추이 - PAPS 통계{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen mobile-nav-padding pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 콘텐츠 -->
+    <div class="flex-1 lg:ml-64 transition-all duration-300">
+        <div class="p-3 sm:p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">종목별 성장 추이</h1>
+                <p class="text-sm sm:text-base text-gray-600">학생별 종목 기록의 시간에 따른 변화를 확인하세요</p>
+            </div>
+            
+            <!-- 필터 영역 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- 학급 선택 -->
+                    <div>
+                        <label for="class-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            학급 선택
+                        </label>
+                        <select id="class-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">학급을 선택하세요</option>
+                            {% for class in classes %}
+                            <option value="{{ class.id }}" data-grade="{{ class.grade }}">
+                                {{ class.name }} ({{ class.grade_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학생 선택 -->
+                    <div>
+                        <label for="student-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            학생 선택
+                        </label>
+                        <select id="student-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" disabled>
+                            <option value="">학급을 먼저 선택하세요</option>
+                        </select>
+                    </div>
+                    
+                    <!-- 종목 선택 -->
+                    <div>
+                        <label for="activity-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            종목 선택
+                        </label>
+                        <select id="activity-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">종목을 선택하세요</option>
+                            {% for activity in activities %}
+                            <option value="{{ activity.id }}" data-unit="{{ activity.unit }}">
+                                {{ activity.display_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학년도 선택 -->
+                    <div>
+                        <label for="year-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            학년도 선택
+                        </label>
+                        <select id="year-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">전체 기간</option>
+                            {% for year in school_years %}
+                            <option value="{{ year }}">{{ year }}년도</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 학생 검색 및 조회 버튼 -->
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="flex-1 max-w-md">
+                        <input type="text" id="student-search" placeholder="이름 또는 번호로 검색"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <button id="search-btn" class="ml-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        조회
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 로딩 상태 -->
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">데이터를 불러오는 중...</p>
+            </div>
+            
+            <!-- 결과 영역 -->
+            <div id="results" class="hidden space-y-6">
+                <!-- 학생 및 종목 정보 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">성장 분석</h2>
+                        <div class="text-sm text-gray-600">
+                            <span id="student-info"></span> | <span id="activity-info"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600" id="total-measurements">0</div>
+                            <div class="text-sm text-gray-500">총 측정 횟수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600" id="average-growth">0%</div>
+                            <div class="text-sm text-gray-500">평균 성장률</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600" id="best-record">-</div>
+                            <div class="text-sm text-gray-500">최고 기록</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-red-600" id="worst-record">-</div>
+                            <div class="text-sm text-gray-500">최저 기록</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 차트 영역 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 기록 변화 라인 차트 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">기록 변화 추이</h3>
+                        <div class="h-64 sm:h-80">
+                            <canvas id="recordChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 등급 변화 영역 차트 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">등급 변화 추이</h3>
+                        <div class="h-64 sm:h-80">
+                            <canvas id="gradeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 상세 데이터 테이블 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">측정 기록 상세</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">측정회차</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">측정일</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">기록</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">등급</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">성장률</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 동적으로 생성될 데이터 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 데이터 없음 메시지 -->
+            <div id="no-data" class="hidden text-center py-12">
+                <div class="text-gray-400 text-6xl mb-4">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">측정 데이터가 없습니다</h3>
+                <p class="text-gray-500">선택한 조건에 해당하는 측정 기록이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 전역 변수
+    let recordChart = null;
+    let gradeChart = null;
+    
+    // DOM 요소들
+    const classSelect = document.getElementById('class-select');
+    const studentSelect = document.getElementById('student-select');
+    const activitySelect = document.getElementById('activity-select');
+    const yearSelect = document.getElementById('year-select');
+    const studentSearch = document.getElementById('student-search');
+    const searchBtn = document.getElementById('search-btn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const noData = document.getElementById('no-data');
+    
+    // 차트 색상 팔레트
+    const chartColors = {
+        primary: 'rgba(59, 130, 246, 0.8)',
+        primaryBorder: 'rgba(59, 130, 246, 1)',
+        secondary: 'rgba(16, 185, 129, 0.8)',
+        secondaryBorder: 'rgba(16, 185, 129, 1)',
+        success: 'rgba(34, 197, 94, 0.8)',
+        warning: 'rgba(245, 158, 11, 0.8)',
+        danger: 'rgba(239, 68, 68, 0.8)'
+    };
+    
+    // 등급별 색상
+    const gradeColors = {
+        1: 'rgba(59, 130, 246, 0.8)',   // 파란색
+        2: 'rgba(34, 197, 94, 0.8)',    // 초록색
+        3: 'rgba(245, 158, 11, 0.8)',   // 노란색
+        4: 'rgba(249, 115, 22, 0.8)',   // 주황색
+        5: 'rgba(239, 68, 68, 0.8)'     // 빨간색
+    };
+    
+    // 학급 선택 시 학생 목록 로드
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+        if (classId) {
+            loadStudents(classId);
+        } else {
+            resetStudentSelect();
+        }
+    });
+    
+    // 학생 검색
+    studentSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const options = studentSelect.querySelectorAll('option');
+        
+        options.forEach(option => {
+            if (option.value === '') return;
+            
+            const text = option.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    });
+    
+    // 검색 버튼 클릭
+    searchBtn.addEventListener('click', function() {
+        const studentId = studentSelect.value;
+        const activityId = activitySelect.value;
+        
+        if (!studentId) {
+            alert('학생을 선택해주세요.');
+            return;
+        }
+        
+        if (!activityId) {
+            alert('종목을 선택해주세요.');
+            return;
+        }
+        
+        loadGrowthData();
+    });
+    
+    // 종목 선택 변경 시 자동 검색
+    activitySelect.addEventListener('change', function() {
+        if (this.value && studentSelect.value) {
+            loadGrowthData();
+        } else {
+            hideResults();
+        }
+    });
+    
+    // 학생 목록 로드
+    function loadStudents(classId) {
+        fetch(`/physical_education/api/paps/class-students/?class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateStudentSelect(data.students);
+                } else {
+                    alert('오류: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('학생 목록을 불러오는 중 오류가 발생했습니다.');
+            });
+    }
+    
+    // 학생 선택 옵션 생성
+    function populateStudentSelect(students) {
+        studentSelect.innerHTML = '<option value="">학생을 선택하세요</option>';
+        
+        students.forEach(student => {
+            const option = document.createElement('option');
+            option.value = student.id;
+            option.textContent = `${student.name} (${student.student_number || '번호없음'})`;
+            studentSelect.appendChild(option);
+        });
+        
+        studentSelect.disabled = false;
+    }
+    
+    // 학생 선택 초기화
+    function resetStudentSelect() {
+        studentSelect.innerHTML = '<option value="">학급을 먼저 선택하세요</option>';
+        studentSelect.disabled = true;
+        hideResults();
+    }
+    
+    // 성장 데이터 로드
+    function loadGrowthData() {
+        const studentId = studentSelect.value;
+        const activityId = activitySelect.value;
+        const schoolYear = yearSelect.value;
+        
+        if (!studentId || !activityId) return;
+        
+        // UI 상태 변경
+        showLoading();
+        hideResults();
+        hideNoData();
+        
+        // API 요청
+        const params = new URLSearchParams({
+            student_id: studentId,
+            activity_id: activityId,
+            school_year: schoolYear || ''
+        });
+        
+        fetch(`/physical_education/api/paps/statistics/individual-growth/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    if (data.data.growth_data.statistics.total_measurements === 0) {
+                        showNoData();
+                    } else {
+                        displayGrowthData(data.data);
+                    }
+                } else {
+                    alert('오류: ' + data.error);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            });
+    }
+    
+    // 성장 데이터 표시
+    function displayGrowthData(data) {
+        // 기본 정보 업데이트
+        document.getElementById('student-info').textContent = 
+            `${data.student_info.name} (${data.student_info.class})`;
+        document.getElementById('activity-info').textContent = 
+            `${data.activity_info.name}`;
+        
+        // 통계 정보 업데이트
+        const stats = data.growth_data.statistics;
+        document.getElementById('total-measurements').textContent = stats.total_measurements + '회';
+        document.getElementById('average-growth').textContent = 
+            (stats.average_growth > 0 ? '+' : '') + stats.average_growth + '%';
+        document.getElementById('best-record').textContent = 
+            stats.best_record + ' ' + data.activity_info.unit;
+        document.getElementById('worst-record').textContent = 
+            stats.worst_record + ' ' + data.activity_info.unit;
+        
+        // 성장률에 따른 색상 변경
+        const avgGrowthElement = document.getElementById('average-growth');
+        if (stats.average_growth > 0) {
+            avgGrowthElement.className = 'text-xl font-bold text-green-600';
+        } else if (stats.average_growth < 0) {
+            avgGrowthElement.className = 'text-xl font-bold text-red-600';
+        } else {
+            avgGrowthElement.className = 'text-xl font-bold text-gray-600';
+        }
+        
+        // 차트 업데이트
+        updateRecordChart(data);
+        updateGradeChart(data);
+        
+        // 테이블 업데이트
+        updateDetailTable(data);
+        
+        // 결과 영역 표시
+        showResults();
+    }
+    
+    // 기록 변화 라인 차트 업데이트
+    function updateRecordChart(data) {
+        const ctx = document.getElementById('recordChart');
+        
+        if (recordChart) {
+            recordChart.destroy();
+        }
+        
+        const records = data.growth_data.records;
+        
+        recordChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: records.map(r => r.session_name),
+                datasets: [{
+                    label: `기록 (${data.activity_info.unit})`,
+                    data: records.map(r => r.value),
+                    backgroundColor: chartColors.primary,
+                    borderColor: chartColors.primaryBorder,
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.1,
+                    pointBackgroundColor: chartColors.primaryBorder,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const record = records[context.dataIndex];
+                                if (record.growth_rate !== null) {
+                                    const sign = record.growth_rate > 0 ? '+' : '';
+                                    return `성장률: ${sign}${record.growth_rate}%`;
+                                }
+                                return null;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: data.activity_info.unit
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '측정회차'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 등급 변화 영역 차트 업데이트
+    function updateGradeChart(data) {
+        const ctx = document.getElementById('gradeChart');
+        
+        if (gradeChart) {
+            gradeChart.destroy();
+        }
+        
+        const records = data.growth_data.records;
+        
+        gradeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: records.map(r => r.session_name),
+                datasets: [{
+                    label: '등급',
+                    data: records.map(r => r.grade),
+                    backgroundColor: chartColors.secondary,
+                    borderColor: chartColors.secondaryBorder,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.1,
+                    pointBackgroundColor: records.map(r => gradeColors[r.grade]),
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        min: 1,
+                        max: 5,
+                        reverse: true, // 1등급이 위로 오도록
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value + '등급';
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '등급'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '측정회차'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 상세 테이블 업데이트
+    function updateDetailTable(data) {
+        const tbody = document.getElementById('detail-table-body');
+        tbody.innerHTML = '';
+        
+        const records = data.growth_data.records;
+        
+        records.forEach(record => {
+            const row = document.createElement('tr');
+            
+            // 성장률 표시
+            let growthDisplay = '-';
+            let growthClass = 'text-gray-500';
+            
+            if (record.growth_rate !== null) {
+                const sign = record.growth_rate > 0 ? '+' : '';
+                growthDisplay = `${sign}${record.growth_rate}%`;
+                
+                if (record.growth_rate > 0) {
+                    growthDisplay += ' ↗️';
+                    growthClass = 'text-green-600 font-medium';
+                } else if (record.growth_rate < 0) {
+                    growthDisplay += ' ↘️';
+                    growthClass = 'text-red-600 font-medium';
+                }
+            }
+            
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${record.session_name}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
+                    ${record.date}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-medium text-gray-900">
+                    ${record.value} ${data.activity_info.unit}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                    <span class="grade-badge grade-${record.grade}">
+                        ${record.grade}등급
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center ${growthClass}">
+                    ${growthDisplay}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // UI 상태 관리 함수들
+    function showLoading() {
+        loading.classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        loading.classList.add('hidden');
+    }
+    
+    function showResults() {
+        results.classList.remove('hidden');
+    }
+    
+    function hideResults() {
+        results.classList.add('hidden');
+    }
+    
+    function showNoData() {
+        noData.classList.remove('hidden');
+    }
+    
+    function hideNoData() {
+        noData.classList.add('hidden');
+    }
+});
+</script>
+
+<!-- 등급별 색상 스타일 -->
+<style>
+.grade-1 { color: #3b82f6; }
+.grade-2 { color: #22c55e; }
+.grade-3 { color: #f59e0b; }
+.grade-4 { color: #f97316; }
+.grade-5 { color: #ef4444; }
+
+.grade-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.grade-badge.grade-1 { background-color: #dbeafe; color: #1d4ed8; }
+.grade-badge.grade-2 { background-color: #dcfce7; color: #16a34a; }
+.grade-badge.grade-3 { background-color: #fef3c7; color: #d97706; }
+.grade-badge.grade-4 { background-color: #fed7aa; color: #ea580c; }
+.grade-badge.grade-5 { background-color: #fecaca; color: #dc2626; }
+</style>
+{% endblock %}

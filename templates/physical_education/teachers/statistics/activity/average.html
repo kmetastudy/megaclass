@@ -1,0 +1,425 @@
+{% extends "teacher/base.html" %}
+
+{% block title %}종목별 평균 기록 - PAPS 통계{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen mobile-nav-padding pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
+    <!-- 공통 사이드바 -->
+    {% include "physical_education/teachers/partials/sidebar.html" %}
+    
+    <!-- 메인 콘텐츠 -->
+    <div class="flex-1 lg:ml-64 transition-all duration-300">
+        <div class="p-3 sm:p-4 lg:p-6">
+            <!-- 페이지 헤더 -->
+            <div class="mb-6 sm:mb-8">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">종목별 평균 기록</h1>
+                <p class="text-sm sm:text-base text-gray-600">종목별 학년별 평균 기록 및 분포를 확인하세요</p>
+            </div>
+            
+            <!-- 필터 영역 -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- 종목 선택 -->
+                    <div>
+                        <label for="activity-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            종목 선택
+                        </label>
+                        <select id="activity-select" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">종목을 선택하세요</option>
+                            {% for activity in activities %}
+                            <option value="{{ activity.id }}" data-unit="{{ activity.unit }}">
+                                {{ activity.display_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 학년 필터 -->
+                    <div>
+                        <label for="grade-filter" class="block text-sm font-medium text-gray-700 mb-2">
+                            학년 필터
+                        </label>
+                        <select id="grade-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">전체 학년</option>
+                            {% for grade in grades %}
+                            <option value="{{ grade.value }}">{{ grade.display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- 성별 필터 (미래 확장용, 현재는 남성만) -->
+                    <div>
+                        <label for="gender-filter" class="block text-sm font-medium text-gray-700 mb-2">
+                            성별 필터
+                        </label>
+                        <select id="gender-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="M">남학생</option>
+                            <!-- 향후 확장: <option value="F">여학생</option> -->
+                            <!-- 향후 확장: <option value="all">전체</option> -->
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 검색 버튼 -->
+                <div class="mt-4 flex justify-end">
+                    <button id="search-btn" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-search mr-2"></i>
+                        조회
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 로딩 상태 -->
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">데이터를 불러오는 중...</p>
+            </div>
+            
+            <!-- 결과 영역 -->
+            <div id="results" class="hidden">
+                <!-- 통계 요약 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">통계 요약</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="stat-total">0</div>
+                            <div class="text-sm text-gray-500">총 학생 수</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" id="stat-average">0</div>
+                            <div class="text-sm text-gray-500">평균</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600" id="stat-min">0</div>
+                            <div class="text-sm text-gray-500">최솟값</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-red-600" id="stat-max">0</div>
+                            <div class="text-sm text-gray-500">최댓값</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600" id="stat-stddev">0</div>
+                            <div class="text-sm text-gray-500">표준편차</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 차트 영역 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- 학년별 평균 막대 차트 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">학년별 평균 기록</h3>
+                        <div class="h-64 sm:h-80">
+                            <canvas id="gradeAverageChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 기록 분포 히스토그램 -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">기록 분포</h3>
+                        <div class="h-64 sm:h-80">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 상세 데이터 테이블 -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">학년별 상세 통계</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학년</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">학생 수</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">평균 기록</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detail-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- 동적으로 생성될 데이터 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 데이터 없음 메시지 -->
+            <div id="no-data" class="hidden text-center py-12">
+                <div class="text-gray-400 text-6xl mb-4">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">데이터가 없습니다</h3>
+                <p class="text-gray-500">선택한 조건에 해당하는 측정 기록이 없습니다.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모바일 하단 네비게이션 -->
+{% include "physical_education/teachers/partials/mobile_nav.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 전역 변수
+    let gradeChart = null;
+    let distributionChart = null;
+    
+    // DOM 요소들
+    const activitySelect = document.getElementById('activity-select');
+    const gradeFilter = document.getElementById('grade-filter');
+    const genderFilter = document.getElementById('gender-filter');
+    const searchBtn = document.getElementById('search-btn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const noData = document.getElementById('no-data');
+    
+    // 차트 색상 팔레트
+    const chartColors = {
+        primary: 'rgba(59, 130, 246, 0.8)',
+        primaryBorder: 'rgba(59, 130, 246, 1)',
+        secondary: 'rgba(16, 185, 129, 0.8)',
+        secondaryBorder: 'rgba(16, 185, 129, 1)',
+        gradient: [
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(236, 72, 153, 0.8)',
+            'rgba(14, 165, 233, 0.8)',
+            'rgba(34, 197, 94, 0.8)'
+        ]
+    };
+    
+    // 검색 버튼 클릭 이벤트
+    searchBtn.addEventListener('click', function() {
+        const activityId = activitySelect.value;
+        if (!activityId) {
+            alert('종목을 선택해주세요.');
+            return;
+        }
+        
+        loadStatistics();
+    });
+    
+    // 종목 선택 변경 시 자동 검색
+    activitySelect.addEventListener('change', function() {
+        if (this.value) {
+            loadStatistics();
+        } else {
+            hideResults();
+        }
+    });
+    
+    // 통계 데이터 로드
+    function loadStatistics() {
+        const activityId = activitySelect.value;
+        const grade = gradeFilter.value;
+        const gender = genderFilter.value;
+        
+        if (!activityId) return;
+        
+        // UI 상태 변경
+        showLoading();
+        hideResults();
+        hideNoData();
+        
+        // API 요청
+        const params = new URLSearchParams({
+            activity_id: activityId,
+            grade: grade,
+            gender: gender
+        });
+        
+        fetch(`/physical_education/api/paps/statistics/activity-average/?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                
+                if (data.success) {
+                    if (data.data.statistics.total_count === 0) {
+                        showNoData();
+                    } else {
+                        displayResults(data.data);
+                    }
+                } else {
+                    alert('오류: ' + data.error);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
+            });
+    }
+    
+    // 결과 표시
+    function displayResults(data) {
+        // 통계 요약 업데이트
+        document.getElementById('stat-total').textContent = data.statistics.total_count;
+        document.getElementById('stat-average').textContent = data.statistics.average + ' ' + data.unit;
+        document.getElementById('stat-min').textContent = data.statistics.min + ' ' + data.unit;
+        document.getElementById('stat-max').textContent = data.statistics.max + ' ' + data.unit;
+        document.getElementById('stat-stddev').textContent = data.statistics.std_dev;
+        
+        // 차트 업데이트
+        updateGradeChart(data);
+        updateDistributionChart(data);
+        
+        // 테이블 업데이트
+        updateDetailTable(data);
+        
+        // 결과 영역 표시
+        showResults();
+    }
+    
+    // 학년별 평균 차트 업데이트
+    function updateGradeChart(data) {
+        const ctx = document.getElementById('gradeAverageChart');
+        
+        if (gradeChart) {
+            gradeChart.destroy();
+        }
+        
+        gradeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.grade_averages.map(item => item.grade_display),
+                datasets: [{
+                    label: `평균 기록 (${data.unit})`,
+                    data: data.grade_averages.map(item => item.average),
+                    backgroundColor: chartColors.primary,
+                    borderColor: chartColors.primaryBorder,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: data.unit
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: '학년'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 분포 히스토그램 업데이트
+    function updateDistributionChart(data) {
+        const ctx = document.getElementById('distributionChart');
+        
+        if (distributionChart) {
+            distributionChart.destroy();
+        }
+        
+        distributionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.distribution.map(item => item.range),
+                datasets: [{
+                    label: '학생 수',
+                    data: data.distribution.map(item => item.count),
+                    backgroundColor: chartColors.secondary,
+                    borderColor: chartColors.secondaryBorder,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '학생 수'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: `기록 범위 (${data.unit})`
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // 상세 테이블 업데이트
+    function updateDetailTable(data) {
+        const tbody = document.getElementById('detail-table-body');
+        tbody.innerHTML = '';
+        
+        data.grade_averages.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    ${item.grade_display}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${item.count}명
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    ${item.average} ${data.unit}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // UI 상태 관리 함수들
+    function showLoading() {
+        loading.classList.remove('hidden');
+    }
+    
+    function hideLoading() {
+        loading.classList.add('hidden');
+    }
+    
+    function showResults() {
+        results.classList.remove('hidden');
+    }
+    
+    function hideResults() {
+        results.classList.add('hidden');
+    }
+    
+    function showNoData() {
+        noData.classList.remove('hidden');
+    }
+    
+    function hideNoData() {
+        noData.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

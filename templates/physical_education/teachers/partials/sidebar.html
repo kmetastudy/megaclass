@@ -29,18 +29,18 @@
             <div class="space-y-1">
                 <button class="flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors" 
                         onclick="toggleMenu('paps-menu')"
-                        aria-expanded="{% if 'paps' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                        aria-expanded="{% if 'paps' in request.resolver_match.url_name or 'average' in request.resolver_match.url_name or 'distribution' in request.resolver_match.url_name or 'profile' in request.resolver_match.url_name or 'growth' in request.resolver_match.url_name or 'compare' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
                         aria-controls="paps-menu">
                     <div class="flex items-center">
                         <i class="fas fa-chart-line mr-3" aria-hidden="true"></i>
                         PAPS
                     </div>
                     <i class="fas fa-chevron-down transform transition-transform duration-200 
-                             {% if 'paps' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                             {% if 'paps' in request.resolver_match.url_name or 'average' in request.resolver_match.url_name or 'distribution' in request.resolver_match.url_name or 'profile' in request.resolver_match.url_name or 'growth' in request.resolver_match.url_name or 'compare' in request.resolver_match.url_name %}rotate-180{% endif %}" 
                        id="paps-chevron" aria-hidden="true"></i>
                 </button>
                 
-                <div id="paps-menu" class="ml-6 space-y-1 {% if 'paps' not in request.resolver_match.url_name %}hidden{% endif %}">
+                <div id="paps-menu" class="ml-6 space-y-1 {% if 'paps' not in request.resolver_match.url_name and 'average' not in request.resolver_match.url_name and 'distribution' not in request.resolver_match.url_name and 'profile' not in request.resolver_match.url_name and 'growth' not in request.resolver_match.url_name and 'compare' not in request.resolver_match.url_name %}hidden{% endif %}">
                     <!-- 측정종목관리 -->
                     <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
                             onclick="toggleMenu('measurement-menu')"
@@ -111,6 +111,133 @@
                            aria-current="{% if request.resolver_match.url_name == 'paps_optional_measurement' %}page{% endif %}">
                             학급별선택평가입력
                         </a>
+                    </div>
+                    
+                    <!-- 통계 -->
+                    <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                            onclick="toggleMenu('statistics-menu')"
+                            aria-expanded="{% if 'individual_profile' in request.resolver_match.url_name or 'individual_growth' in request.resolver_match.url_name or 'class_compare' in request.resolver_match.url_name or 'class_distribution' in request.resolver_match.url_name or 'activity_average' in request.resolver_match.url_name or 'grade_distribution' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                            aria-controls="statistics-menu">
+                        <span>통계</span>
+                        <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                 {% if 'individual_profile' in request.resolver_match.url_name or 'individual_growth' in request.resolver_match.url_name or 'class_compare' in request.resolver_match.url_name or 'class_distribution' in request.resolver_match.url_name or 'activity_average' in request.resolver_match.url_name or 'grade_distribution' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                           id="statistics-chevron" aria-hidden="true"></i>
+                    </button>
+                    
+                    <div id="statistics-menu" class="ml-4 space-y-1 {% if 'individual_profile' not in request.resolver_match.url_name and 'individual_growth' not in request.resolver_match.url_name and 'class_compare' not in request.resolver_match.url_name and 'class_distribution' not in request.resolver_match.url_name and 'activity_average' not in request.resolver_match.url_name and 'grade_distribution' not in request.resolver_match.url_name %}hidden{% endif %}">
+                        <!-- 개인별 통계 -->
+                        <div class="space-y-1">
+                            <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                                    onclick="toggleMenu('individual-stats-menu')"
+                                    aria-expanded="{% if 'individual_profile' in request.resolver_match.url_name or 'individual_growth' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                                    aria-controls="individual-stats-menu">
+                                <span>개인별 통계</span>
+                                <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                         {% if 'individual_profile' in request.resolver_match.url_name or 'individual_growth' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                                   id="individual-stats-chevron" aria-hidden="true"></i>
+                            </button>
+                            
+                            <div id="individual-stats-menu" class="ml-4 space-y-1 {% if 'individual_profile' not in request.resolver_match.url_name and 'individual_growth' not in request.resolver_match.url_name %}hidden{% endif %}">
+                                <a href="{% url 'physical_education:individual_profile' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'individual_profile' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'individual_profile' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'individual_profile' %}page{% endif %}">
+                                    학생 개인 프로필
+                                </a>
+                                <a href="{% url 'physical_education:individual_growth' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'individual_growth' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'individual_growth' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'individual_growth' %}page{% endif %}">
+                                    종목별 성장 추이
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 학급별 통계 -->
+                        <div class="space-y-1">
+                            <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                                    onclick="toggleMenu('class-stats-menu')"
+                                    aria-expanded="{% if 'class_compare' in request.resolver_match.url_name or 'class_distribution' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                                    aria-controls="class-stats-menu">
+                                <span>학급별 통계</span>
+                                <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                         {% if 'class_compare' in request.resolver_match.url_name or 'class_distribution' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                                   id="class-stats-chevron" aria-hidden="true"></i>
+                            </button>
+                            
+                            <div id="class-stats-menu" class="ml-4 space-y-1 {% if 'class_compare' not in request.resolver_match.url_name and 'class_distribution' not in request.resolver_match.url_name %}hidden{% endif %}">
+                                <a href="{% url 'physical_education:class_compare' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'class_compare' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'class_compare' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'class_compare' %}page{% endif %}">
+                                    학급 평균 비교
+                                </a>
+                                <a href="{% url 'physical_education:class_distribution' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'class_distribution' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'class_distribution' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'class_distribution' %}page{% endif %}">
+                                    체력요인별 분포
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 종목별 분석 -->
+                        <div class="space-y-1">
+                            <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                                    onclick="toggleMenu('activity-analysis-menu')"
+                                    aria-expanded="{% if 'activity_average' in request.resolver_match.url_name or 'grade_distribution' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+                                    aria-controls="activity-analysis-menu">
+                                <span>종목별 분석</span>
+                                <i class="fas fa-chevron-down transform transition-transform duration-200 text-xs
+                                         {% if 'activity_average' in request.resolver_match.url_name or 'grade_distribution' in request.resolver_match.url_name %}rotate-180{% endif %}" 
+                                   id="activity-analysis-chevron" aria-hidden="true"></i>
+                            </button>
+                            
+                            <div id="activity-analysis-menu" class="ml-4 space-y-1 {% if 'activity_average' not in request.resolver_match.url_name and 'grade_distribution' not in request.resolver_match.url_name %}hidden{% endif %}">
+                                <a href="{% url 'physical_education:activity_average' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'activity_average' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'activity_average' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'activity_average' %}page{% endif %}">
+                                    종목별 평균 기록
+                                </a>
+                                <a href="{% url 'physical_education:grade_distribution' %}" 
+                                   class="block px-4 py-2 text-sm rounded-lg transition-colors sidebar-link
+                                          {% if request.resolver_match.url_name == 'grade_distribution' %}
+                                              text-blue-600 bg-blue-50 font-medium cursor-default
+                                          {% else %}
+                                              text-gray-500 hover:bg-gray-50
+                                          {% endif %}"
+                                   data-current="{% if request.resolver_match.url_name == 'grade_distribution' %}true{% else %}false{% endif %}"
+                                   aria-current="{% if request.resolver_match.url_name == 'grade_distribution' %}page{% endif %}">
+                                    등급 분포 현황
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

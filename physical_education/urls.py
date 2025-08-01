@@ -68,4 +68,80 @@ urlpatterns = [
         apis.api_get_existing_activities,
         name="api_get_existing_activities",
     ),
+    
+    # PAPS 통계 페이지
+    # 개인별 통계
+    path(
+        "teachers/statistics/individual/profile/",
+        views.individual_profile_view,
+        name="individual_profile",
+    ),
+    path(
+        "teachers/statistics/individual/growth/",
+        views.individual_growth_view,
+        name="individual_growth",
+    ),
+    # 학급별 통계
+    path(
+        "teachers/statistics/class/compare/",
+        views.class_compare_view,
+        name="class_compare",
+    ),
+    path(
+        "teachers/statistics/class/distribution/",
+        views.class_distribution_view,
+        name="class_distribution",
+    ),
+    # 종목별 분석
+    path(
+        "teachers/statistics/activity/average/",
+        views.activity_average_view,
+        name="activity_average",
+    ),
+    path(
+        "teachers/statistics/activity/grade-distribution/",
+        views.grade_distribution_view,
+        name="grade_distribution",
+    ),
+    
+    # PAPS 통계 API
+    # 개인별 통계용 학생 목록 API
+    path(
+        "api/paps/class-students/",
+        views.api_get_class_students,
+        name="api_get_class_students",
+    ),
+    # 개인별 통계 API
+    path(
+        "api/paps/statistics/individual-profile/",
+        views.api_individual_profile,
+        name="api_individual_profile",
+    ),
+    path(
+        "api/paps/statistics/individual-growth/",
+        views.api_individual_growth,
+        name="api_individual_growth",
+    ),
+    # 학급별 통계 API
+    path(
+        "api/paps/statistics/class-compare/",
+        views.api_class_compare,
+        name="api_class_compare",
+    ),
+    path(
+        "api/paps/statistics/class-distribution/",
+        views.api_class_distribution,
+        name="api_class_distribution",
+    ),
+    # 종목별 분석 API
+    path(
+        "api/paps/statistics/activity-average/",
+        views.api_activity_average,
+        name="api_activity_average",
+    ),
+    path(
+        "api/paps/statistics/grade-distribution/",
+        views.api_grade_distribution,
+        name="api_grade_distribution",
+    ),
 ]
