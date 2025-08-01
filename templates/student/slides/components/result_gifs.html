@@ -1,0 +1,13 @@
+{% if slide.content_type.type_name in 'multiple-choice,short-answer,multi-choice' and existing_answer %}
+<div class="text-center mt-6 absolute top-10 left-10">
+    {% if is_already_correct %}
+    <img id="right-gif" src="/static/img/jungoh/images/right.gif" alt="정답" class="result-gif mx-auto mb-4">
+    {% else %}
+    <img id="wrong-gif" src="/static/img/jungoh/images/wrong.gif" alt="오답" class="result-gif mx-auto mb-4">
+    {% endif %}
+</div>
+{% elif slide.content_type.type_name == 'one_shot_submit' %}
+    {% if is_already_correct %}
+    <img id="submitted-gif" src="/static/img/gifs/submitted.gif" alt="제출완료" class="result-gif mx-auto mb-4 absolute top-0 right-10">
+    {% endif %}
+{% endif %}

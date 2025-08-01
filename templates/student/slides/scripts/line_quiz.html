@@ -1,0 +1,691 @@
+// 디버깅이 강화된 선 매칭 퀴즈 JavaScript
+<script>
+$(document).ready(function() {
+    // 선 매칭 퀴즈 전용 변수
+    let lineIsAnswered = false;
+    let selectedLeft = null;
+    let connections = {};
+    let tempLine = null;
+    let isDrawingMode = false;
+    let correctMatches = {};
+    let hintUsed = false;
+    let currentScore = 0;
+    let maxScore = 0;
+    
+    // 🔍 디버깅 정보 출력
+    function printDebugInfo() {
+        console.log('🔍 === 디버깅 정보 ===');
+        console.log('Content Type:', '{{ slide.content_type.type_name }}');
+        console.log('Existing Answer:', '{{ existing_answer|yesno:"있음,없음" }}');
+        console.log('Existing Answer Data:', '{{ existing_answer_data|yesno:"있음,없음" }}');
+        console.log('Existing Answer JSON:', '{{ existing_answer_json|yesno:"있음,없음" }}');
+        console.log('Is Already Correct:', '{{ is_already_correct }}');
+        
+        {% if existing_answer %}
+        console.log('Existing Answer ID:', '{{ existing_answer.id }}');
+        console.log('Existing Answer Is Correct:', '{{ existing_answer.is_correct }}');
+        {% endif %}
+        
+        {% if existing_answer_json %}
+        console.log('Raw Existing Answer JSON:', '{{ existing_answer_json }}');
+        {% endif %}
+        
+        console.log('🔍 === 디버깅 정보 끝 ===');
+    }
+    
+    // 🚀 선 매칭 퀴즈 초기화
+    function initializeLineQuiz() {
+        // 선 매칭 퀴즈가 아닌 경우 종료
+        if ('{{ slide.content_type.type_name }}' !== 'line_matching') {
+            return;
+        }
+        
+        console.log('🚀 선 매칭 퀴즈 초기화 시작');
+        
+        // 0. 디버깅 정보 출력
+        printDebugInfo();
+        
+        // 1. 기존 HTML 구조 정리
+        setupHTMLStructure();
+        
+        // 2. 서버에서 정답 데이터 가져오기
+        loadCorrectAnswers();
+        
+        // 3. 이벤트 설정
+        setupEvents();
+        
+        // 4. 진행률 초기화
+        updateProgress();
+        
+        // 5. 기존 답안 복원
+        restoreAnswer();
+        
+        console.log('✅ 선 매칭 퀴즈 초기화 완료');
+    }
+    
+    // 🏗️ HTML 구조 정리
+    function setupHTMLStructure() {
+        console.log('🏗️ HTML 구조 정리 시작');
+        
+        const container = $('.quiz-container');
+        if (!container.length) return;
+        
+        // 좌우 배치를 위한 래퍼 추가
+        const leftItems = container.find('.left-items');
+        const rightItems = container.find('.right-items');
+        
+        if (leftItems.length && rightItems.length && !container.find('.matching-wrapper').length) {
+            leftItems.add(rightItems).wrapAll('<div class="matching-wrapper"></div>');
+        }
+        
+        // 아이템들에 필요한 속성 추가
+        leftItems.find('.match-item').each(function() {
+            $(this).attr('data-side', 'left');
+            if (!$(this).attr('data-item-id')) {
+                $(this).attr('data-item-id', 'left' + ($(this).index() + 1));
+            }
+        });
+        
+        rightItems.find('.match-item').each(function() {
+            $(this).attr('data-side', 'right');
+            if (!$(this).attr('data-item-id')) {
+                $(this).attr('data-item-id', 'right' + ($(this).index() + 1));
+            }
+        });
+        
+        // SVG 연결선 컨테이너가 없으면 추가
+        if (!container.find('.connection-svg').length) {
+            container.find('.matching-wrapper').append('<svg class="connection-svg" id="connection-svg"></svg>');
+        }
+        
+        console.log('✅ HTML 구조 정리 완료');
+    }
+    
+    // 🎯 서버에서 정답 데이터 로드
+    function loadCorrectAnswers() {
+        try {
+            {% if slide.content.answer %}
+            const answerData = JSON.parse('{{ slide.content.answer|escapejs }}');
+            if (answerData && answerData.answer) {
+                correctMatches = answerData.answer;
+                maxScore = Object.keys(correctMatches).length;
+                console.log('✅ 정답 데이터 로드 성공:', correctMatches);
+            } else {
+                throw new Error('정답 데이터 형식 오류');
+            }
+            {% else %}
+            throw new Error('서버에 정답 데이터가 없음');
+            {% endif %}
+        } catch (e) {
+            console.warn('⚠️ 서버 정답 데이터 파싱 실패:', e);
+            // 기본 정답 데이터 생성
+            correctMatches = {};
+            $('.quiz-container .left-items .match-item').each(function(index) {
+                const leftId = $(this).attr('data-item-id');
+                const rightId = 'right' + (index + 1);
+                correctMatches[leftId] = rightId;
+            });
+            maxScore = Object.keys(correctMatches).length;
+        }
+        
+        console.log('🎯 정답 매칭:', correctMatches);
+        console.log('📊 최대 점수:', maxScore);
+    }
+    
+    // 🎯 이벤트 설정
+    function setupEvents() {
+        console.log('🎯 이벤트 설정 시작');
+        
+        // 기존 이벤트 제거
+        $(document).off('click', '.quiz-container .match-item');
+        
+        // 새로운 이벤트 설정
+        $(document).on('click', '.quiz-container .match-item[data-side="left"]', handleLeftClick);
+        $(document).on('click', '.quiz-container .match-item[data-side="right"]', handleRightClick);
+        
+        // 마우스 이동 이벤트
+        $('.quiz-container .matching-wrapper').on('mousemove', handleMouseMove);
+        
+        // 힌트 버튼 이벤트
+        $(document).on('click', '.hint-button', showHint);
+        
+        // 재시도 버튼 이벤트
+        $(document).on('click', '.retry-button', resetQuiz);
+        
+        // 윈도우 리사이즈 이벤트
+        $(window).on('resize', function() {
+            setTimeout(redrawAllLines, 100);
+        });
+        
+        console.log('✅ 이벤트 설정 완료');
+    }
+    
+    // 🖱️ 왼쪽 아이템 클릭 처리
+    function handleLeftClick(e) {
+        if (lineIsAnswered) return;
+        
+        const itemId = $(this).attr('data-item-id');
+        console.log('🖱️ 왼쪽 아이템 클릭:', itemId);
+        
+        // 이미 연결된 아이템인지 확인
+        if (connections[itemId]) {
+            removeConnection(itemId);
+            return;
+        }
+        
+        // 이전 선택 초기화
+        $('.quiz-container .match-item').removeClass('selected');
+        
+        // 현재 아이템 선택
+        $(this).addClass('selected');
+        selectedLeft = itemId;
+        isDrawingMode = true;
+        
+        // 임시 선 제거
+        removeTempLine();
+        
+        console.log('✅ 왼쪽 아이템 선택:', itemId);
+    }
+    
+    // 🖱️ 오른쪽 아이템 클릭 처리
+    function handleRightClick(e) {
+        if (lineIsAnswered || !selectedLeft) return;
+        
+        const rightId = $(this).attr('data-item-id');
+        console.log('🖱️ 오른쪽 아이템 클릭:', rightId);
+        
+        // 이미 연결된 오른쪽 아이템인지 확인
+        const existingLeft = Object.keys(connections).find(key => connections[key] === rightId);
+        if (existingLeft) {
+            removeConnection(existingLeft);
+        }
+        
+        // 연결 생성
+        createConnection(selectedLeft, rightId);
+        
+        // 선택 상태 초기화
+        $('.quiz-container .match-item').removeClass('selected');
+        selectedLeft = null;
+        isDrawingMode = false;
+        
+        // 임시 선 제거
+        removeTempLine();
+        
+        // 진행률 업데이트
+        updateProgress();
+        
+        // 모든 연결 완료 확인
+        setTimeout(checkAllConnections, 300);
+        
+        console.log('✅ 연결 생성 완료');
+    }
+    
+    // 🎨 연결 생성
+    function createConnection(leftId, rightId) {
+        connections[leftId] = rightId;
+        
+        const leftElement = $(`.quiz-container .match-item[data-item-id="${leftId}"]`);
+        const rightElement = $(`.quiz-container .match-item[data-item-id="${rightId}"]`);
+        
+        // 아이템 스타일 변경
+        leftElement.addClass('connected');
+        rightElement.addClass('connected');
+        
+        // 연결선 그리기
+        drawConnectionLine(leftId, rightId);
+        
+        console.log('🎨 연결 생성:', leftId, '→', rightId);
+    }
+    
+    // 🗑️ 연결 제거
+    function removeConnection(leftId) {
+        const rightId = connections[leftId];
+        if (!rightId) return;
+        
+        delete connections[leftId];
+        
+        const leftElement = $(`.quiz-container .match-item[data-item-id="${leftId}"]`);
+        const rightElement = $(`.quiz-container .match-item[data-item-id="${rightId}"]`);
+        
+        // 아이템 스타일 복원
+        leftElement.removeClass('connected error');
+        rightElement.removeClass('connected error');
+        
+        // 연결선 제거
+        $(`.connection-line[data-left="${leftId}"]`).remove();
+        
+        // 진행률 업데이트
+        updateProgress();
+        
+        console.log('🗑️ 연결 제거:', leftId, '→', rightId);
+    }
+    
+    // 📏 연결선 그리기
+    function drawConnectionLine(leftId, rightId) {
+        const svg = $('#connection-svg');
+        const leftElement = $(`.quiz-container .match-item[data-item-id="${leftId}"]`);
+        const rightElement = $(`.quiz-container .match-item[data-item-id="${rightId}"]`);
+        
+        if (!leftElement.length || !rightElement.length || !svg.length) return;
+        
+        const container = $('.quiz-container .matching-wrapper');
+        const containerRect = container[0].getBoundingClientRect();
+        const leftRect = leftElement[0].getBoundingClientRect();
+        const rightRect = rightElement[0].getBoundingClientRect();
+        
+        // 연결점 계산
+        const startX = leftRect.right - containerRect.left;
+        const startY = leftRect.top + leftRect.height / 2 - containerRect.top;
+        const endX = rightRect.left - containerRect.left;
+        const endY = rightRect.top + rightRect.height / 2 - containerRect.top;
+        
+        // 기존 선 제거
+        svg.find(`[data-left="${leftId}"]`).remove();
+        
+        // 곡선 경로 생성
+        const controlX1 = startX + (endX - startX) * 0.3;
+        const controlY1 = startY;
+        const controlX2 = startX + (endX - startX) * 0.7;
+        const controlY2 = endY;
+        
+        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        
+        // SVG path 생성
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('class', 'connection-line');
+        path.setAttribute('data-left', leftId);
+        path.setAttribute('data-right', rightId);
+        
+        svg[0].appendChild(path);
+        
+        // 애니메이션 효과
+        try {
+            const pathLength = path.getTotalLength();
+            path.style.strokeDasharray = pathLength;
+            path.style.strokeDashoffset = pathLength;
+            
+            $(path).animate({
+                'stroke-dashoffset': 0
+            }, 500, function() {
+                path.style.strokeDasharray = 'none';
+            });
+        } catch (e) {
+            console.warn('연결선 애니메이션 실패:', e);
+        }
+        
+        console.log('📏 연결선 그리기 완료:', leftId, '→', rightId);
+    }
+    
+    // 🎨 임시 선 그리기
+    function handleMouseMove(e) {
+        if (!isDrawingMode || !selectedLeft) return;
+        
+        const svg = $('#connection-svg');
+        const leftElement = $(`.quiz-container .match-item[data-item-id="${selectedLeft}"]`);
+        
+        if (!leftElement.length || !svg.length) return;
+        
+        const container = $('.quiz-container .matching-wrapper');
+        const containerRect = container[0].getBoundingClientRect();
+        const leftRect = leftElement[0].getBoundingClientRect();
+        
+        const startX = leftRect.right - containerRect.left;
+        const startY = leftRect.top + leftRect.height / 2 - containerRect.top;
+        const endX = e.clientX - containerRect.left;
+        const endY = e.clientY - containerRect.top;
+        
+        // 기존 임시 선 제거
+        removeTempLine();
+        
+        // 곡선 경로 생성
+        const controlX1 = startX + (endX - startX) * 0.3;
+        const controlY1 = startY;
+        const controlX2 = startX + (endX - startX) * 0.7;
+        const controlY2 = endY;
+        
+        const pathData = `M ${startX} ${startY} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
+        
+        // SVG path 생성
+        tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        tempLine.setAttribute('d', pathData);
+        tempLine.setAttribute('class', 'connection-line temp');
+        
+        svg[0].appendChild(tempLine);
+    }
+    
+    // 🗑️ 임시 선 제거
+    function removeTempLine() {
+        if (tempLine) {
+            tempLine.remove();
+            tempLine = null;
+        }
+    }
+    
+    // 📊 진행률 업데이트
+    function updateProgress() {
+        const currentConnections = Object.keys(connections).length;
+        const progressPercent = Math.round((currentConnections / maxScore) * 100);
+        
+        $('#progress-text').text(`${currentConnections}/${maxScore}`);
+        $('#progress-fill').css('width', progressPercent + '%');
+        
+        console.log('📊 진행률 업데이트:', currentConnections, '/', maxScore);
+    }
+    
+    // ✅ 모든 연결 완료 확인
+    function checkAllConnections() {
+        if (lineIsAnswered) return;
+        
+        const currentConnections = Object.keys(connections).length;
+        
+        if (currentConnections >= maxScore) {
+            setTimeout(checkAnswers, 500);
+        }
+    }
+    
+    // 📝 정답 확인 및 채점
+    function checkAnswers() {
+        if (lineIsAnswered) return;
+        
+        lineIsAnswered = true;
+        
+        let correctCount = 0;
+        
+        // 각 연결 확인
+        Object.keys(connections).forEach(leftId => {
+            const rightId = connections[leftId];
+            const isCorrect = correctMatches[leftId] === rightId;
+            
+            const leftElement = $(`.quiz-container .match-item[data-item-id="${leftId}"]`);
+            const rightElement = $(`.quiz-container .match-item[data-item-id="${rightId}"]`);
+            const lineElement = $(`.connection-line[data-left="${leftId}"]`);
+            
+            if (isCorrect) {
+                correctCount++;
+                leftElement.addClass('connected').removeClass('error');
+                rightElement.addClass('connected').removeClass('error');
+                lineElement.addClass('connected').removeClass('error');
+            } else {
+                leftElement.addClass('error').removeClass('connected');
+                rightElement.addClass('error').removeClass('connected');
+                lineElement.addClass('error').removeClass('connected');
+            }
+        });
+        
+        // 결과 처리
+        const finalScore = Math.round((correctCount / maxScore) * 100);
+        const isAllCorrect = correctCount === maxScore;
+        
+        if (isAllCorrect) {
+            showFeedback('correct', '🎉 완벽합니다! 모든 연결이 정확해요!', finalScore);
+            createFireworks();
+        } else if (correctCount > 0) {
+            showFeedback('partial', `👍 ${correctCount}개 정답! 조금 더 힘내세요!`, finalScore);
+        } else {
+            showFeedback('incorrect', '🤔 다시 한번 생각해보세요!', finalScore);
+        }
+        
+        // 재시도 버튼 표시
+        $('#retry-button').show();
+        
+        // 서버로 결과 전송
+        sendAnswerToServer(connections, isAllCorrect, finalScore);
+        
+        console.log('📝 채점 완료:', correctCount, '/', maxScore);
+    }
+    
+    // 📢 피드백 표시
+    function showFeedback(type, message, score) {
+        const feedbackElement = $(`#feedback-${type}`);
+        let feedbackHTML = message;
+        
+        if (score !== undefined) {
+            feedbackHTML += `<div style="margin-top: 10px; font-size: 18px;">점수: ${score}점</div>`;
+        }
+        
+        feedbackElement.html(feedbackHTML).addClass('show');
+        
+        // 다른 피드백 숨기기
+        $('.feedback').not(feedbackElement).removeClass('show');
+    }
+    
+    // 🎆 폭죽 효과
+    function createFireworks() {
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const particle = $('<div>').css({
+                    'position': 'fixed',
+                    'left': Math.random() * window.innerWidth + 'px',
+                    'top': window.innerHeight + 'px',
+                    'font-size': '30px',
+                    'pointer-events': 'none',
+                    'z-index': '9999'
+                });
+                
+                particle.text(['🎉', '✨', '🌟', '🎊'][Math.floor(Math.random() * 4)]);
+                $('body').append(particle);
+                
+                particle.animate({
+                    top: -100 + 'px',
+                    left: (Math.random() * window.innerWidth) + 'px',
+                    opacity: 0
+                }, 2000, function() {
+                    $(this).remove();
+                });
+            }, i * 200);
+        }
+    }
+    
+    // 💡 힌트 표시
+    function showHint() {
+        if (hintUsed || lineIsAnswered) return;
+        
+        // 연결되지 않은 첫 번째 정답 찾기
+        let hintPair = null;
+        for (let leftId in correctMatches) {
+            if (!connections[leftId]) {
+                hintPair = { left: leftId, right: correctMatches[leftId] };
+                break;
+            }
+        }
+        
+        if (!hintPair) return;
+        
+        const leftElement = $(`.quiz-container .match-item[data-item-id="${hintPair.left}"]`);
+        const rightElement = $(`.quiz-container .match-item[data-item-id="${hintPair.right}"]`);
+        
+        // 힌트 효과
+        leftElement.addClass('hint');
+        rightElement.addClass('hint');
+        
+        setTimeout(() => {
+            leftElement.removeClass('hint');
+            rightElement.removeClass('hint');
+        }, 4500);
+        
+        hintUsed = true;
+        $('.hint-button').css('opacity', '0.5').prop('disabled', true);
+        
+        console.log('💡 힌트 표시:', hintPair.left, '→', hintPair.right);
+    }
+    
+    // 🔄 퀴즈 리셋
+    function resetQuiz() {
+        console.log('🔄 퀴즈 리셋');
+        
+        lineIsAnswered = false;
+        selectedLeft = null;
+        connections = {};
+        isDrawingMode = false;
+        hintUsed = false;
+        currentScore = 0;
+        
+        // 피드백 숨기기
+        $('.feedback').removeClass('show');
+        
+        // 아이템 상태 초기화
+        $('.quiz-container .match-item').removeClass('selected connected error hint');
+        
+        // 연결선 제거
+        $('#connection-svg').empty();
+        
+        // 임시 선 제거
+        removeTempLine();
+        
+        // 힌트 버튼 복원
+        $('.hint-button').css('opacity', '1').prop('disabled', false);
+        
+        // 재시도 버튼 숨기기
+        $('#retry-button').hide();
+        
+        // 진행률 초기화
+        updateProgress();
+        
+        console.log('✅ 퀴즈 리셋 완료');
+    }
+    
+    // 🔄 모든 연결선 다시 그리기
+    function redrawAllLines() {
+        Object.keys(connections).forEach(leftId => {
+            const rightId = connections[leftId];
+            drawConnectionLine(leftId, rightId);
+        });
+    }
+    
+    // 📡 서버로 결과 전송
+    async function sendAnswerToServer(answers, isCorrect, score) {
+        console.log('📡 서버로 결과 전송');
+        
+        const slideId = '{{ slide.id }}';
+        const contentId = '{{ slide.content.id }}';
+        
+        try {
+            const response = await $.ajax({
+                url: '{% url "student:check_answer" %}',
+                type: 'POST',
+                data: {
+                    'content_id': contentId,
+                    'slide_id': slideId,
+                    'student_answer': JSON.stringify(answers),
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                }
+            });
+            
+            console.log('✅ 서버 응답:', response);
+            updateSubmissionStatus(response);
+            
+        } catch (error) {
+            console.error('❌ 서버 전송 오류:', error);
+        }
+    }
+    
+    // 📊 제출 상태 업데이트
+    function updateSubmissionStatus(response) {
+        const wrapper = $('#submission-status-wrapper');
+        const statusIcon = response.is_correct
+            ? '<span class="text-green-600"><i class="fas fa-check-circle"></i> 정답</span>'
+            : '<span class="text-red-600"><i class="fas fa-times-circle"></i> 오답</span>';
+        
+        wrapper.html(`
+            <div class="mt-4 text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                제출 완료: ${response.submitted_at || '방금 전'}
+                ${statusIcon}
+                (점수: ${response.score || 0}점)
+            </div>
+        `);
+    }
+    
+    // 🔄 기존 답안 복원 (다중 조건 확인)
+    function restoreAnswer() {
+        console.log('🔄 답안 복원 시작 - 조건 확인');
+        
+        // 조건 1: existing_answer_json 확인
+        {% if existing_answer_json %}
+        console.log('📋 existing_answer_json 존재함');
+        try {
+            const existingAnswerData = JSON.parse('{{ existing_answer_json|escapejs }}');
+            console.log('🔄 JSON 파싱 성공:', existingAnswerData);
+            
+            if (existingAnswerData && existingAnswerData.selected_answer) {
+                restoreConnectionsFromData(existingAnswerData);
+                return;
+            }
+        } catch (e) {
+            console.error('❌ JSON 파싱 실패:', e);
+        }
+        {% else %}
+        console.log('⚠️ existing_answer_json 없음');
+        {% endif %}
+        
+        // 조건 2: existing_answer 직접 확인
+        {% if existing_answer %}
+        console.log('📋 existing_answer 존재함');
+        try {
+            const rawAnswer = '{{ existing_answer.answer|escapejs }}';
+            console.log('🔄 Raw answer:', rawAnswer);
+            
+            const parsedAnswer = JSON.parse(rawAnswer);
+            console.log('🔄 Parsed answer:', parsedAnswer);
+            
+            if (parsedAnswer && parsedAnswer.selected_answer) {
+                restoreConnectionsFromData(parsedAnswer);
+                return;
+            }
+        } catch (e) {
+            console.error('❌ 직접 파싱 실패:', e);
+        }
+        {% else %}
+        console.log('⚠️ existing_answer 없음');
+        {% endif %}
+        
+        console.log('🔄 복원할 답안이 없음');
+    }
+    
+    // 🔄 연결 데이터로부터 답안 복원
+    function restoreConnectionsFromData(answerData) {
+        console.log('🔄 연결 복원 시작:', answerData);
+        
+        const savedConnections = answerData.selected_answer;
+        lineIsAnswered = true;
+        
+        // 연결 복원
+        Object.keys(savedConnections).forEach(leftId => {
+            const rightId = savedConnections[leftId];
+            
+            const leftElement = $(`.quiz-container .match-item[data-item-id="${leftId}"]`);
+            const rightElement = $(`.quiz-container .match-item[data-item-id="${rightId}"]`);
+            
+            if (leftElement.length && rightElement.length) {
+                connections[leftId] = rightId;
+                leftElement.addClass('connected');
+                rightElement.addClass('connected');
+                drawConnectionLine(leftId, rightId);
+            }
+        });
+        
+        // 진행률 업데이트
+        updateProgress();
+        
+        // 정답/오답 상태 표시
+        setTimeout(() => {
+            {% if is_already_correct %}
+            $('.quiz-container .match-item.connected').addClass('connected').removeClass('error');
+            $('.connection-line').addClass('connected').removeClass('error');
+            showFeedback('correct', '🎉 이전 제출: 완벽한 연결입니다!', 100);
+            {% else %}
+            $('.quiz-container .match-item.connected').addClass('error').removeClass('connected');
+            $('.connection-line').addClass('error').removeClass('connected');
+            showFeedback('incorrect', '💪 이전 제출: 일부 연결을 다시 확인해보세요!');
+            $('#retry-button').show();
+            {% endif %}
+        }, 500);
+        
+        console.log('✅ 답안 복원 완료');
+    }
+    
+    // 초기화 실행
+    initializeLineQuiz();
+});
+</script>

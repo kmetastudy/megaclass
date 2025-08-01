@@ -1,0 +1,137 @@
+<script>
+    $(document).ready(function() {
+        console.log("=== One Shot Submit Script Loaded ===");
+        console.log("Is already correct:", {{ is_already_correct|yesno:"true,false" }});
+    
+        // --- 1. 학습 이력 복원 함수 ---
+        function restorePreviousOneShotAnswer() {
+            {% if existing_answer %}
+            console.log("Restoring previous answer...");
+            
+            try {
+                // submitted.gif 표시
+                {% if is_already_correct %}
+                $('#submitted-gif').removeClass('hidden');
+                console.log("Showing submitted.gif");
+                {% endif %}
+    
+                // Django 템플릿에서 JSON 데이터를 안전하게 전달
+                const existingAnswerData = {{ existing_answer.answer|safe|default:'{}' }};
+                console.log("Existing answer data:", existingAnswerData);
+                
+                if (existingAnswerData && existingAnswerData.submitted_text) {
+                    // textarea에 기존 답안 표시
+                    $('#answerTextarea').val(existingAnswerData.submitted_text);
+                    
+                    // 제출 결과 영역에도 표시
+                    $('#submittedAnswer').text(existingAnswerData.submitted_text);
+                    $('#scoreDisplay').text('{{ existing_answer.score|default:100 }}');
+                    $('#submitResultArea').removeClass('hidden');
+                    
+                    // 글자수 업데이트
+                    const currentLength = existingAnswerData.submitted_text.length;
+                    $('#charCount').text(currentLength + ' / 500');
+                    
+                    // 버튼 상태 변경
+                    $('#oneShotSubmitBtn').addClass('hidden');
+                    
+                    {% if is_already_correct %}
+                    // 이미 제출 완료된 경우
+                    console.log("Already submitted - disabling resubmit");
+                    $('#oneShotResubmitBtn').addClass('hidden');
+                    $('#answerTextarea').prop('disabled', true).addClass('bg-gray-100 cursor-not-allowed');
+                    $('#answerTextarea').attr('placeholder', '이미 제출이 완료되었습니다.');
+                    
+                    // 완료 메시지 표시
+                    const completionMessage = `
+                        <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <div class="flex items-center gap-2 text-green-700">
+                                <i class="fas fa-check-circle text-lg"></i>
+                                <span class="font-medium">제출이 완료되었습니다.</span>
+                            </div>
+                            <div class="text-sm text-green-600 mt-1">
+                                제출일시: {{ existing_answer.submitted_at|date:"Y년 m월 d일 H:i" }}
+                            </div>
+                        </div>
+                    `;
+                    $('#submission-area').before(completionMessage);
+                    {% endif %}
+                }
+            } catch (e) {
+                console.error("이전 답안 복원 중 오류:", e);
+            }
+            {% else %}
+            console.log("No existing answer to restore");
+            {% endif %}
+        }
+    
+        // --- 2. 제출 버튼 이벤트 핸들러 ---
+        $(document).on('click', '#oneShotSubmitBtn', function() {
+            console.log("Submit button clicked");
+            const answer = $('#answerTextarea').val().trim();
+            
+            if (answer === '') {
+                showToast('답안을 작성해주세요.', 'error');
+                $('#answerTextarea').focus();
+                return;
+            }
+    
+            // 버튼 비활성화
+            $(this).prop('disabled', true).text('제출 중...');
+            
+            // 서버에 답안 제출
+            submitOneShotAnswerToServer(answer);
+        });
+    
+        // --- 3. 서버에 답안 제출 함수 ---
+        function submitOneShotAnswerToServer(answer) {
+            console.log("Submitting answer to server:", answer);
+            
+            $.ajax({
+                url: '{% url "student:submit_answer" %}',
+                type: 'POST',
+                data: {
+                    'slide_id': '{{ slide.id }}',
+                    'student_answer_text': answer,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    console.log("Submit response:", response);
+                    
+                    if (response.status === 'success') {
+                        showToast(response.message, 'success');
+                        
+                        // 페이지 새로고침하여 완전히 업데이트
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showToast(response.message || '제출 중 오류가 발생했습니다.', 'error');
+                        $('#oneShotSubmitBtn').prop('disabled', false).text('제출');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Submit error:", error);
+                    showToast('서버와 통신 중 오류가 발생했습니다.', 'error');
+                    $('#oneShotSubmitBtn').prop('disabled', false).text('제출');
+                }
+            });
+        }
+    
+        // --- 4. 글자수 카운터 ---
+        $(document).on('input', '#answerTextarea', function() {
+            const currentLength = $(this).val().length;
+            $('#charCount').text(currentLength + ' / 500');
+            
+            {% if is_already_correct %}
+            // 이미 제출 완료된 경우 입력 막기
+            $(this).val(existingAnswerData.submitted_text);
+            showToast('이미 제출이 완료되어 수정할 수 없습니다.', 'warning');
+            {% endif %}
+        });
+    
+        // --- 페이지 로드 시 복원 실행 ---
+        console.log("Document ready - restoring answer");
+        restorePreviousOneShotAnswer();
+    });
+    </script>

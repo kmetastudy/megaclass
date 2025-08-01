@@ -1,0 +1,932 @@
+/* ===== Drag 퀴즈 전용 스타일 (드래그앤드롭) - 정리된 버전 ===== */
+
+/* 메인 컨테이너 */
+.drag-quiz-container {
+    position: relative;
+    width: 100%;
+    min-height: 80vh;
+    background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 50%, var(--accent-color, #f093fb) 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 테마별 CSS 변수 */
+.drag-quiz-container[data-theme="science"] {
+    --primary-color: #2196F3;
+    --secondary-color: #03DAC6;
+    --accent-color: #00BCD4;
+    --highlight-color: #4FC3F7;
+    --accent-rgb: 0, 188, 212;
+    --success-rgb: 76, 175, 80;
+}
+
+.drag-quiz-container[data-theme="math"] {
+    --primary-color: #FF9800;
+    --secondary-color: #FFC107;
+    --accent-color: #FFAB00;
+    --highlight-color: #FFB74D;
+    --accent-rgb: 255, 171, 0;
+    --success-rgb: 76, 175, 80;
+}
+
+.drag-quiz-container[data-theme="social"] {
+    --primary-color: #E91E63;
+    --secondary-color: #FF4081;
+    --accent-color: #AD1457;
+    --highlight-color: #F06292;
+    --accent-rgb: 173, 20, 87;
+    --success-rgb: 76, 175, 80;
+}
+
+.drag-quiz-container[data-theme="career"] {
+    --primary-color: #4CAF50;
+    --secondary-color: #8BC34A;
+    --accent-color: #66BB6A;
+    --highlight-color: #81C784;
+    --accent-rgb: 102, 187, 106;
+    --success-rgb: 76, 175, 80;
+}
+
+.drag-quiz-container[data-theme="cooking"] {
+    --primary-color: #F44336;
+    --secondary-color: #FF5722;
+    --accent-color: #E57373;
+    --highlight-color: #EF5350;
+    --accent-rgb: 229, 115, 115;
+    --success-rgb: 76, 175, 80;
+}
+
+.drag-quiz-container[data-theme="default"] {
+    --primary-color: #FF6B6B;
+    --secondary-color: #4ECDC4;
+    --accent-color: #45B7D1;
+    --highlight-color: #96CEB4;
+    --accent-rgb: 69, 183, 209;
+    --success-rgb: 76, 175, 80;
+}
+
+/* 파티클 애니메이션 */
+.floating-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatUp 15s infinite linear;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(100%) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) rotate(360deg);
+    }
+}
+
+/* 장식 이모지 */
+.decoration-emoji {
+    font-size: clamp(50px, 10vw, 80px);
+    position: absolute;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+    animation: float 4s ease-in-out infinite;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.emoji-1 {
+    top: clamp(20px, 5vh, 50px);
+    left: clamp(20px, 5vw, 60px);
+    animation-delay: 0s;
+}
+
+.emoji-2 {
+    bottom: clamp(20px, 5vh, 50px);
+    right: clamp(20px, 5vw, 60px);
+    animation-delay: 2s;
+}
+
+@keyframes float {
+    0%, 100% { 
+        transform: translateY(0) rotate(0deg) scale(1); 
+    }
+    25% { 
+        transform: translateY(-20px) rotate(5deg) scale(1.1); 
+    }
+    50% { 
+        transform: translateY(-10px) rotate(-3deg) scale(1.05); 
+    }
+    75% { 
+        transform: translateY(-15px) rotate(3deg) scale(1.08); 
+    }
+}
+
+/* 메인 퀴즈 영역 */
+.quiz-main-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 1000px;
+    z-index: 10;
+    position: relative;
+}
+
+.quiz-title {
+    font-size: clamp(28px, 6vw, 48px);
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color), var(--highlight-color));
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    margin-bottom: clamp(20px, 4vh, 40px);
+    text-align: center;
+    animation: titleGlow 3s ease-in-out infinite, gradientShift 4s ease infinite;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+@keyframes titleGlow {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)); }
+}
+
+/* 문제 박스 */
+.question-box {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: clamp(15px, 3vw, 25px);
+    padding: clamp(25px, 5vw, 40px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1);
+    font-size: clamp(18px, 4vw, 28px);
+    text-align: center;
+    width: clamp(300px, 85%, 800px);
+    margin-bottom: clamp(30px, 6vh, 50px);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+    color: #2d3748;
+    line-height: 1.5;
+    font-weight: 600;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+}
+
+.question-box::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color), var(--highlight-color));
+    border-radius: clamp(15px, 3vw, 25px);
+    z-index: -1;
+    animation: gradientShift 3s ease infinite;
+}
+
+.question-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+/* 기존 문제 텍스트 숨기기 */
+.drag-quiz-container .quiz-container,
+.drag-quiz-container .options-container {
+    display: none;
+}
+
+/* 드롭존 스타일 */
+.drop-zone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: clamp(80px, 20vw, 160px);
+    min-height: clamp(40px, 10vw, 60px);
+    border: 3px dashed var(--accent-color);
+    border-radius: clamp(8px, 2vw, 12px);
+    margin: 0 clamp(5px, 2vw, 10px);
+    vertical-align: middle;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    font-size: clamp(12px, 3vw, 18px);
+    color: #666;
+    padding: clamp(5px, 2vw, 10px);
+}
+
+.drop-zone.highlight {
+    background-color: rgba(var(--accent-rgb), 0.3);
+    border-color: var(--accent-color);
+    transform: scale(1.08);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.6);
+    animation: dropZonePulse 1s ease-in-out infinite;
+}
+
+@keyframes dropZonePulse {
+    0%, 100% { 
+        transform: scale(1.08);
+        box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.6);
+    }
+    50% { 
+        transform: scale(1.12);
+        box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.8);
+    }
+}
+
+.drop-zone.filled {
+    background-color: rgba(var(--success-rgb), 0.2);
+    border: 3px solid #4CAF50;
+    color: #000;
+    font-weight: bold;
+}
+
+.drop-zone.correct {
+    background-color: rgba(76, 175, 80, 0.3);
+    border: 3px solid #4CAF50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+    animation: correctPulse 2s ease-in-out infinite;
+}
+
+.drop-zone.incorrect {
+    background-color: rgba(244, 67, 54, 0.3);
+    border: 3px solid #F44336;
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.5);
+    animation: incorrectShake 0.8s ease-in-out;
+}
+
+@keyframes correctPulse {
+    0%, 100% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+    }
+    50% { 
+        transform: scale(1.1);
+        box-shadow: 0 0 30px rgba(76, 175, 80, 0.7);
+    }
+}
+
+@keyframes incorrectShake {
+    0%, 100% { transform: translateX(0) scale(1.05); }
+    25% { transform: translateX(-8px) scale(1.05); }
+    75% { transform: translateX(8px) scale(1.05); }
+}
+
+/* 드래그 아이템 컨테이너 */
+.drag-items-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(10px, 3vw, 20px);
+    justify-content: center;
+    align-items: center;
+    margin: clamp(20px, 5vw, 40px) 0;
+    z-index: 10;
+    position: relative;
+    max-width: 100%;
+}
+
+/* 드래그 아이템 */
+.drag-item {
+    min-width: clamp(120px, 25vw, 180px);
+    min-height: clamp(50px, 12vw, 80px);
+    font-size: clamp(14px, 4vw, 24px);
+    font-weight: bold;
+    border-radius: clamp(10px, 2vw, 15px);
+    border: 3px solid transparent;
+    cursor: move;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 1;
+    touch-action: manipulation;
+    padding: clamp(8px, 2vw, 15px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    user-select: none;
+    font-family: 'Jua', 'Comic Sans MS', sans-serif;
+}
+
+.drag-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: clamp(10px, 2vw, 15px);
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    transform: scale(0);
+    transition: transform 0.3s ease;
+    z-index: -1;
+}
+
+.drag-item:hover::before {
+    transform: scale(1);
+}
+
+/* 드래그 아이템 상태별 스타일 */
+.drag-item:hover:not(.selected):not(.dragging):not(.placed) {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 15px 25px rgba(0,0,0,0.3);
+    border: 3px solid rgba(255, 255, 255, 0.5);
+}
+
+.drag-item:active {
+    transform: translateY(-3px) scale(1.02);
+}
+
+/* 선택된 아이템 스타일 */
+.drag-item.selected {
+    border: 4px solid #FFD700 !important;
+    box-shadow: 0 0 25px #FFD700, 0 0 50px rgba(255, 215, 0, 0.6), inset 0 0 15px rgba(255, 215, 0, 0.3) !important;
+    transform: scale(1.15) !important;
+    z-index: 999 !important;
+    animation: selectedPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes selectedPulse {
+    0%, 100% { 
+        box-shadow: 0 0 25px #FFD700, 0 0 50px rgba(255, 215, 0, 0.6), inset 0 0 15px rgba(255, 215, 0, 0.3);
+        border-color: #FFD700;
+    }
+    50% { 
+        box-shadow: 0 0 35px #FFD700, 0 0 70px rgba(255, 215, 0, 0.8), inset 0 0 25px rgba(255, 215, 0, 0.4);
+        border-color: #FFA500;
+    }
+}
+
+.drag-item.selected::before {
+    content: '👆';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(25px, 6vw, 35px);
+    animation: selectionBounce 1s infinite;
+    z-index: 1000;
+}
+
+@keyframes selectionBounce {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    50% { 
+        transform: translateX(-50%) translateY(-10px) scale(1.2);
+    }
+}
+
+.drag-item.selected::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, transparent 70%);
+    border-radius: clamp(10px, 2vw, 15px);
+    animation: selectionGlow 2s ease-in-out infinite;
+    z-index: -1;
+}
+
+@keyframes selectionGlow {
+    0%, 100% { 
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+/* 드래그 중인 상태 */
+.drag-item.dragging {
+    opacity: 0.8;
+    transform: scale(1.2) rotate(5deg);
+    z-index: 1000;
+    cursor: grabbing;
+    border: 4px solid #FF6B6B !important;
+    box-shadow: 0 0 30px #FF6B6B, 0 0 60px rgba(255, 107, 107, 0.7) !important;
+}
+
+.drag-item.dragging::before {
+    content: '🚀';
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(30px, 7vw, 40px);
+    animation: dragTrail 0.8s ease-in-out infinite;
+}
+
+@keyframes dragTrail {
+    0% { 
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) rotate(0deg);
+    }
+    100% { 
+        opacity: 0.3;
+        transform: translateX(-50%) translateY(-20px) rotate(360deg);
+    }
+}
+
+/* 배치 완료된 상태 */
+.drag-item.placed {
+    opacity: 0.4;
+    pointer-events: none;
+    transform: scale(0.9);
+    filter: grayscale(30%);
+    border: 2px dashed #999;
+}
+
+/* 정렬 컨테이너 */
+.sort-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(15px, 4vw, 25px);
+    justify-content: center;
+    align-items: center;
+    margin: clamp(20px, 5vw, 40px) 0;
+    z-index: 10;
+    position: relative;
+}
+
+.sort-zone {
+    min-width: clamp(150px, 30vw, 200px);
+    min-height: clamp(100px, 20vw, 150px);
+    border: 3px dashed var(--accent-color);
+    border-radius: clamp(10px, 2vw, 15px);
+    background-color: rgba(255, 255, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: clamp(10px, 3vw, 15px);
+}
+
+.sort-zone .zone-label {
+    font-size: clamp(12px, 3vw, 18px);
+    color: #666;
+    margin-bottom: clamp(5px, 1vw, 10px);
+    font-weight: bold;
+}
+
+.sort-zone.highlight {
+    background-color: rgba(var(--accent-rgb), 0.2);
+    border-color: var(--accent-color);
+    transform: scale(1.05);
+}
+
+.sort-zone.filled {
+    background-color: rgba(var(--success-rgb), 0.2);
+    border: 3px solid #4CAF50;
+}
+
+/* 매칭 컨테이너 */
+.match-container {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(15px, 4vw, 25px);
+    max-width: 100%;
+    margin: clamp(20px, 5vw, 40px) 0;
+    z-index: 10;
+    position: relative;
+}
+
+.match-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: clamp(10px, 3vw, 15px);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: clamp(10px, 2vw, 15px);
+    padding: clamp(10px, 3vw, 20px);
+}
+
+.match-left {
+    flex: 1;
+    min-width: clamp(150px, 30vw, 200px);
+    background: var(--secondary-color);
+    color: white;
+    padding: clamp(10px, 3vw, 15px);
+    border-radius: clamp(8px, 2vw, 12px);
+    text-align: center;
+    font-size: clamp(14px, 3vw, 20px);
+    font-weight: bold;
+}
+
+.match-arrow {
+    font-size: clamp(20px, 5vw, 30px);
+    color: var(--accent-color);
+    margin: 0 clamp(5px, 2vw, 10px);
+}
+
+.match-right {
+    min-width: clamp(120px, 25vw, 160px);
+    min-height: clamp(50px, 12vw, 70px);
+    border: 3px dashed var(--accent-color);
+    border-radius: clamp(8px, 2vw, 12px);
+    background-color: rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* 드롭 성공 효과 */
+.drop-zone.drop-success {
+    background-color: rgba(76, 175, 80, 0.4) !important;
+    border: 4px solid #4CAF50 !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 0 30px #4CAF50, 0 0 60px rgba(76, 175, 80, 0.7) !important;
+    animation: dropSuccess 1s ease-out;
+}
+
+@keyframes dropSuccess {
+    0% {
+        transform: scale(1.05);
+        box-shadow: 0 0 20px #4CAF50;
+    }
+    50% {
+        transform: scale(1.2);
+        box-shadow: 0 0 40px #4CAF50, 0 0 80px rgba(76, 175, 80, 0.8);
+    }
+    100% {
+        transform: scale(1.15);
+        box-shadow: 0 0 30px #4CAF50, 0 0 60px rgba(76, 175, 80, 0.7);
+    }
+}
+
+.drop-zone.drop-success::after {
+    content: '✓';
+    position: absolute;
+    top: -30px;
+    right: -15px;
+    font-size: 24px;
+    color: #4CAF50;
+    background: white;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(76, 175, 80, 0.5);
+    animation: checkmarkAppear 0.6s ease-out;
+    z-index: 100;
+}
+
+@keyframes checkmarkAppear {
+    0% {
+        transform: scale(0) rotate(180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.3) rotate(90deg);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* 정렬존 성공 효과 */
+.sort-zone.drop-success {
+    background-color: rgba(76, 175, 80, 0.3) !important;
+    border: 4px solid #4CAF50 !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 0 25px #4CAF50 !important;
+    animation: sortSuccess 0.8s ease-out;
+}
+
+@keyframes sortSuccess {
+    0% {
+        transform: scale(1.05) rotate(0deg);
+    }
+    25% {
+        transform: scale(1.15) rotate(2deg);
+    }
+    75% {
+        transform: scale(1.15) rotate(-2deg);
+    }
+    100% {
+        transform: scale(1.1) rotate(0deg);
+    }
+}
+
+/* 매치존 성공 효과 */
+.match-right.drop-success {
+    background-color: rgba(76, 175, 80, 0.3) !important;
+    border: 4px solid #4CAF50 !important;
+    transform: scale(1.08) !important;
+    animation: matchSuccess 1s ease-out;
+}
+
+@keyframes matchSuccess {
+    0%, 100% {
+        transform: scale(1.08);
+    }
+    50% {
+        transform: scale(1.12);
+    }
+}
+
+/* 연결선 효과 (매칭시) */
+.match-row.connected .match-arrow {
+    color: #4CAF50 !important;
+    font-size: clamp(25px, 6vw, 35px) !important;
+    animation: arrowGlow 2s ease-in-out infinite;
+}
+
+@keyframes arrowGlow {
+    0%, 100% {
+        text-shadow: 0 0 10px #4CAF50;
+        transform: scale(1);
+    }
+    50% {
+        text-shadow: 0 0 20px #4CAF50, 0 0 30px rgba(76, 175, 80, 0.8);
+        transform: scale(1.1);
+    }
+}
+
+/* 피드백 영역 */
+.feedback {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: bold;
+    text-align: center;
+    margin-top: clamp(15px, 3vh, 25px);
+    padding: clamp(15px, 3vw, 20px);
+    border-radius: clamp(10px, 2vw, 15px);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: clamp(60px, 12vh, 100px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+}
+
+.feedback.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feedback-correct {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(129, 199, 132, 0.9));
+    color: white;
+    border: 3px solid #4CAF50;
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+}
+
+.feedback-incorrect {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(239, 83, 80, 0.9));
+    color: white;
+    border: 3px solid #F44336;
+    box-shadow: 0 0 30px rgba(244, 67, 54, 0.5);
+}
+
+.server-status {
+    font-size: clamp(12px, 2.5vw, 16px);
+    padding: clamp(8px, 2vw, 12px);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    margin-top: 12px;
+    color: #2d3748;
+    border: 2px solid #4299e1;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+    line-height: 1.3;
+}
+
+/* 애니메이션 컨테이너 */
+.animation-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.animated-element {
+    position: absolute;
+    font-size: clamp(25px, 5vw, 40px);
+    animation: fall 4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-100px) rotate(0deg) scale(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(-50px) rotate(45deg) scale(1);
+    }
+    50% {
+        transform: translateY(300px) rotate(180deg) scale(1.3);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(900px) rotate(360deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 접근성을 위한 포커스 상태 */
+.drag-item:focus {
+    outline: 3px solid #4A90E2;
+    outline-offset: 2px;
+}
+
+/* 반응형 최적화 */
+@media (max-width: 768px) and (orientation: portrait) {
+    .drag-quiz-container {
+        min-height: 70vh;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .quiz-title {
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+    
+    .question-box {
+        width: 95%;
+        font-size: 20px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .drag-items-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .sort-container {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .match-row {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .match-arrow {
+        transform: rotate(90deg);
+    }
+    
+    .drag-item {
+        max-width: 100%;
+        min-height: 70px;
+        font-size: 18px;
+    }
+    
+    .decoration-emoji {
+        font-size: 50px;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .drag-quiz-container {
+        min-height: 60vh;
+        padding: 10px;
+    }
+    
+    .quiz-title {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .question-box {
+        font-size: 18px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .drag-items-container {
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .drag-item {
+        min-height: 55px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .drag-quiz-container {
+        padding: 10px;
+        margin: 5px 0;
+    }
+    
+    .quiz-title {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .question-box {
+        width: 98%;
+        font-size: 18px;
+        padding: 18px;
+        margin-bottom: 20px;
+    }
+    
+    .drag-items-container {
+        gap: 15px;
+    }
+    
+    .drag-item {
+        min-height: 65px;
+        font-size: 16px;
+    }
+    
+    .decoration-emoji {
+        font-size: 40px;
+    }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    .drag-item:hover {
+        transform: none;
+        box-shadow: inherit;
+        border: 3px solid transparent;
+    }
+    
+    .drag-item:active:not(.selected) {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+    
+    .drag-item.selected {
+        /* 터치 디바이스에서도 선택 효과 유지 */
+        border: 4px solid #FFD700 !important;
+        box-shadow: 0 0 25px #FFD700 !important;
+        transform: scale(1.1) !important;
+    }
+    
+    .question-box:hover {
+        transform: none;
+    }
+}

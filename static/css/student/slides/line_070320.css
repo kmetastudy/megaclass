@@ -1,0 +1,148 @@
+/* ===== Line Matching 퀴즈 전용 통합 스타일 ===== */
+
+/* 퀴즈 컨테이너 기본 설정 */
+.quiz-container.line-matching-type {
+    position: relative;
+    width: 100%;
+    min-height: 80vh;
+    background: linear-gradient(135deg, var(--primary-color, #667eea), var(--secondary-color, #764ba2), var(--accent-color, #f093fb));
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 20px auto;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    font-family: 'Jua', 'Comic Sans MS', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 제목 스타일 */
+.line-matching-type .title {
+    font-size: clamp(18px, 5vw, 28px);
+    margin-bottom: 15px;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    background-size: 400% 400%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* 문제 박스 */
+.line-matching-type .question-box {
+    width: 100%;
+    max-width: 1200px;
+    font-size: clamp(16px, 4vw, 22px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    border: 3px solid transparent;
+    position: relative;
+    margin: 20px auto;
+}
+
+.line-matching-type .question-box::before {
+    content: '';
+    position: absolute;
+    top: -3px; left: -3px; right: -3px; bottom: -3px;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+    border-radius: 20px;
+    z-index: -1;
+}
+
+/* 문제 텍스트 */
+.line-matching-type .question-text,
+.line-matching-type .question-content h1 {
+    font-size: clamp(18px, 4vw, 24px);
+    margin-bottom: 25px;
+    color: #2d3748;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* 매칭 영역 컨테이너 */
+.line-matching-type .matching-wrapper,
+.quiz-container .matching-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 60px;
+    margin-top: 30px;
+    position: relative;
+    min-height: 300px;
+}
+
+.line-matching-type .left-items,
+.line-matching-type .right-items {
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 매칭 아이템 스타일 */
+.line-matching-type .match-item {
+    min-height: 80px;
+    padding: 15px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    user-select: none;
+    text-align: center;
+    border: 3px solid transparent;
+}
+
+.line-matching-type .match-item:hover { transform: translateY(-3px) scale(1.02); }
+.line-matching-type .match-item.selected { border-color: #FFD700; background: linear-gradient(135deg, #FFD700, #FFA500); }
+.line-matching-type .match-item.connected { background: linear-gradient(135deg, #4CAF50, #66BB6A); border-color: #4CAF50; pointer-events: none; }
+.line-matching-type .match-item.error { background: linear-gradient(135deg, #F44336, #EF5350); border-color: #F44336; animation: errorShake 0.6s ease-in-out; }
+
+@keyframes errorShake {
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-5px)}
+    75%{transform:translateX(5px)}
+}
+
+/* SVG 연결선 스타일 */
+.line-matching-type .connection-svg { position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:15; }
+.line-matching-type .connection-line { stroke:var(--accent-color,#45B7D1);stroke-width:6;fill:none;stroke-linecap:round; }
+
+/* 진행률 및 피드백 스타일은 기존과 동일하게 유지 */
+
+/* 모바일 대응 */
+@media (max-width:768px) {
+    .line-matching-type .matching-wrapper,
+    .quiz-container .matching-area { flex-direction:column;align-items:center;gap:40px; }
+    .line-matching-type .connection-svg { display:none; }
+}
+
+/* 접근성 및 터치 최적화 스타일 유지 */
+
+/* CSS 변수(테마별 색상) */
+.quiz-container[data-theme="science"] { --primary-color:#2196F3;--secondary-color:#03DAC6;--accent-color:#00BCD4; }
+.quiz-container[data-theme="math"] { --primary-color:#FF9800;--secondary-color:#FFC107;--accent-color:#FFAB00; }
+.quiz-container[data-theme="social"] { --primary-color:#E91E63;--secondary-color:#FF4081;--accent-color:#AD1457; }
+.quiz-container[data-theme="career"] { --primary-color:#4CAF50;--secondary-color:#8BC34A;--accent-color:#66BB6A; }
+.quiz-container[data-theme="default"] { --primary-color:#ff6b6b;--secondary-color:#4ecdc4;--accent-color:#45b7d1; }

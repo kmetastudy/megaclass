@@ -1,0 +1,161 @@
+<script>
+    // 미니 사이드바 토글 (데스크톱)
+    function toggleMiniSidebar() {
+        const sidebar = document.getElementById('miniSidebar');
+        const isDesktop = window.innerWidth >= 768;
+        
+        if (isDesktop) {
+            sidebar.classList.toggle('expanded');
+        } else {
+            closeMobileSidebar();
+        }
+    }
+
+    // 모바일 사이드바 표시
+    function showMobileSidebar() {
+        const sidebar = document.getElementById('miniSidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        sidebar.classList.add('show-mobile');
+        overlay.classList.add('show');
+    }
+
+    // 모바일 사이드바 닫기
+    function closeMobileSidebar() {
+        const sidebar = document.getElementById('miniSidebar');
+        const overlay = document.getElementById('mobileOverlay');
+        sidebar.classList.remove('show-mobile');
+        overlay.classList.remove('show');
+    }
+
+    // 답안 제출
+    function submitAnswer() {
+        const contentArea = document.querySelector('.prose');
+        const answerInputs = contentArea.querySelectorAll('input[name="student_answer"], textarea[name="student_answer"], select[name="student_answer"]');
+        
+        let answer = '';
+        
+        answerInputs.forEach(input => {
+            if (input.type === 'radio' || input.type === 'checkbox') {
+                if (input.checked) {
+                    answer = input.value;
+                }
+            } else if (input.value) {
+                answer = input.value;
+            }
+        });
+        
+        if (!answer.trim()) {
+            showToast('답안을 입력해주세요.', 'error');
+            return false;
+        }
+        
+        document.getElementById('hiddenAnswer').value = answer;
+        return true;
+    }
+
+    // 노트 토글
+    function toggleNote() {
+        const notePopup = document.getElementById('notePopup');
+        notePopup.classList.toggle('hidden');
+    }
+
+    // 노트 저장
+    function saveNote() {
+        const content = document.getElementById('noteContent').value;
+        
+        fetch('{% url "student:save_note_ajax" slide.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'note_content=' + encodeURIComponent(content)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast('노트가 저장되었습니다.', 'success');
+            } else {
+                showToast('저장에 실패했습니다.', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    // 토스트 메시지
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        const bgColor = {
+            'success': 'bg-green-600',
+            'error': 'bg-red-600',
+            'info': 'bg-blue-600',
+            'warning': 'bg-yellow-600'
+        }[type] || 'bg-gray-600';
+        
+        toast.className = `toast ${bgColor} text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg sm:rounded-xl shadow-lg mb-3 flex items-center gap-2 sm:gap-3 text-sm`;
+        toast.style.animation = 'slideIn 0.3s ease-out';
+        
+        const icon = {
+            'success': 'fas fa-check-circle',
+            'error': 'fas fa-exclamation-circle',
+            'info': 'fas fa-info-circle',
+            'warning': 'fas fa-exclamation-triangle'
+        }[type] || 'fas fa-info-circle';
+        
+        toast.innerHTML = `<i class="${icon}"></i><span>${message}</span>`;
+        
+        const container = document.getElementById('toastContainer');
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // 키보드 단축키
+    document.addEventListener('keydown', (e) => {
+        // ESC: 사이드바/노트 닫기
+        if (e.key === 'Escape') {
+            const notePopup = document.getElementById('notePopup');
+            const sidebar = document.getElementById('miniSidebar');
+            
+            if (!notePopup.classList.contains('hidden')) {
+                notePopup.classList.add('hidden');
+            } else if (sidebar.classList.contains('expanded') || sidebar.classList.contains('show-mobile')) {
+                closeMobileSidebar();
+                sidebar.classList.remove('expanded');
+            }
+        }
+        
+        // 좌우 화살표: 이전/다음 슬라이드 (입력 필드가 아닐 때만)
+        if (!e.target.matches('input, textarea')) {
+            if (e.key === 'ArrowLeft' && {% if prev_slide %}true{% else %}false{% endif %}) {
+                location.href = '{% if prev_slide %}{% url "student:slide_view" prev_slide.id %}{% endif %}';
+            } else if (e.key === 'ArrowRight' && {% if next_slide %}true{% else %}false{% endif %}) {
+                location.href = '{% if next_slide %}{% url "student:slide_view" next_slide.id %}{% endif %}';
+            }
+        }
+    });
+
+    // 반응형 처리
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const sidebar = document.getElementById('miniSidebar');
+            const isDesktop = window.innerWidth >= 768;
+            
+            if (!isDesktop && sidebar.classList.contains('expanded')) {
+                sidebar.classList.remove('expanded');
+            }
+        }, 250);
+    });
+
+    // 페이지 로드 시 스크롤바 숨기기 스타일 추가
+    const style = document.createElement('style');
+    style.textContent = '.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }';
+    document.head.appendChild(style);
+</script>

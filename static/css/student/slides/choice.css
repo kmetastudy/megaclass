@@ -1,0 +1,815 @@
+/* ===== Choice 퀴즈 전용 스타일 (번호가 있는 객관식) ===== */
+.choice-quiz-container {
+    position: relative;
+    width: 100%;
+    min-height: 80vh;
+    background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 50%, var(--accent-color, #f093fb) 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 8s ease infinite;
+    border-radius: 20px;
+    overflow: hidden;
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 테마별 CSS 변수 */
+.choice-quiz-container[data-theme="science"] {
+    --primary-color: #2196F3;
+    --secondary-color: #03DAC6;
+    --accent-color: #00BCD4;
+    --highlight-color: #4FC3F7;
+}
+
+.choice-quiz-container[data-theme="math"] {
+    --primary-color: #FF9800;
+    --secondary-color: #FFC107;
+    --accent-color: #FFAB00;
+    --highlight-color: #FFB74D;
+}
+
+.choice-quiz-container[data-theme="social"] {
+    --primary-color: #E91E63;
+    --secondary-color: #FF4081;
+    --accent-color: #AD1457;
+    --highlight-color: #F06292;
+}
+
+.choice-quiz-container[data-theme="career"] {
+    --primary-color: #4CAF50;
+    --secondary-color: #8BC34A;
+    --accent-color: #66BB6A;
+    --highlight-color: #81C784;
+}
+
+.choice-quiz-container[data-theme="cooking"] {
+    --primary-color: #F44336;
+    --secondary-color: #FF5722;
+    --accent-color: #E57373;
+    --highlight-color: #EF5350;
+}
+
+.choice-quiz-container[data-theme="default"] {
+    --primary-color: #FF6B6B;
+    --secondary-color: #4ECDC4;
+    --accent-color: #45B7D1;
+    --highlight-color: #96CEB4;
+}
+
+.floating-particles {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: floatUp 15s infinite linear;
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(100%) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) rotate(360deg);
+    }
+}
+
+.decoration-emoji {
+    font-size: clamp(50px, 10vw, 80px);
+    position: absolute;
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+    animation: float 4s ease-in-out infinite;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.emoji-1 {
+    top: clamp(20px, 5vh, 50px);
+    left: clamp(20px, 5vw, 60px);
+    animation-delay: 0s;
+}
+
+.emoji-2 {
+    bottom: clamp(20px, 5vh, 50px);
+    right: clamp(20px, 5vw, 60px);
+    animation-delay: 2s;
+}
+
+@keyframes float {
+    0%, 100% { 
+        transform: translateY(0) rotate(0deg) scale(1); 
+    }
+    25% { 
+        transform: translateY(-20px) rotate(5deg) scale(1.1); 
+    }
+    50% { 
+        transform: translateY(-10px) rotate(-3deg) scale(1.05); 
+    }
+    75% { 
+        transform: translateY(-15px) rotate(3deg) scale(1.08); 
+    }
+}
+
+.quiz-main-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 1000px;
+    z-index: 10;
+    position: relative;
+}
+
+.quiz-title {
+    font-size: clamp(28px, 6vw, 48px);
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color), var(--highlight-color));
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+    margin-bottom: clamp(20px, 4vh, 40px);
+    text-align: center;
+    animation: titleGlow 3s ease-in-out infinite, gradientShift 4s ease infinite;
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+@keyframes titleGlow {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.6)); }
+}
+
+.question-box {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: clamp(15px, 3vw, 25px);
+    padding: clamp(25px, 5vw, 40px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1);
+    font-size: clamp(18px, 4vw, 28px);
+    text-align: center;
+    width: clamp(300px, 85%, 800px);
+    margin-bottom: clamp(30px, 6vh, 50px);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+    color: #2d3748;
+    line-height: 1.5;
+    font-weight: 600;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+}
+
+.question-box::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, var(--primary-color), var(--secondary-color), var(--accent-color), var(--highlight-color));
+    border-radius: clamp(15px, 3vw, 25px);
+    z-index: -1;
+    animation: gradientShift 3s ease infinite;
+}
+
+.question-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+/* 기존 문제 텍스트 숨기기 */
+.choice-quiz-container .quiz-container,
+.choice-quiz-container .options-container {
+    display: none;
+}
+
+.choices-container {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(15px, 4vw, 25px);
+    z-index: 10;
+    position: relative;
+    align-items: center;
+    max-width: 600px;
+    width: 100%;
+    margin-bottom: clamp(20px, 4vh, 40px);
+}
+
+.choice-button {
+    width: 100%;
+    max-width: 500px;
+    min-height: clamp(60px, 12vw, 80px);
+    font-size: clamp(16px, 4vw, 24px);
+    font-weight: bold;
+    border-radius: clamp(10px, 2vw, 15px);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    z-index: 1;
+    touch-action: manipulation;
+    padding: clamp(10px, 3vw, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    color: white;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    font-family: 'Jua', 'Comic Sans MS', sans-serif;
+}
+
+/* 번호 표시 영역 - Choice 타입의 핵심 차이점 */
+.choice-number {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: clamp(35px, 8vw, 45px);
+    height: clamp(35px, 8vw, 45px);
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: #333;
+    margin-right: clamp(12px, 3vw, 18px);
+    flex-shrink: 0;
+    font-weight: bold;
+    font-size: clamp(14px, 3vw, 20px);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.choice-text {
+    flex: 1;
+    line-height: 1.4;
+    padding-right: 10px;
+}
+
+.choice-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: clamp(10px, 2vw, 15px);
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    transform: scale(0);
+    transition: transform 0.3s ease;
+    z-index: -1;
+}
+
+.choice-button:hover::before,
+.choice-button:active::before {
+    transform: scale(1);
+}
+
+.choice-button:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+
+.choice-button:hover .choice-number {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.choice-button:active {
+    transform: translateY(-3px) scale(1.01);
+}
+
+/* 선택지별 배경색 - 더 다양한 색상 */
+.choice-1 {
+    background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+}
+
+.choice-1:hover {
+    background: linear-gradient(135deg, #FF5252, #FF7979);
+    box-shadow: 0 15px 30px rgba(255, 107, 107, 0.6);
+}
+
+.choice-2 {
+    background: linear-gradient(135deg, #4ECDC4, #81E6E0);
+    box-shadow: 0 8px 20px rgba(78, 205, 196, 0.4);
+}
+
+.choice-2:hover {
+    background: linear-gradient(135deg, #26D0CE, #6DD5ED);
+    box-shadow: 0 15px 30px rgba(78, 205, 196, 0.6);
+}
+
+.choice-3 {
+    background: linear-gradient(135deg, #45B7D1, #74C3E3);
+    box-shadow: 0 8px 20px rgba(69, 183, 209, 0.4);
+}
+
+.choice-3:hover {
+    background: linear-gradient(135deg, #3490DC, #6CB2EB);
+    box-shadow: 0 15px 30px rgba(69, 183, 209, 0.6);
+}
+
+.choice-4 {
+    background: linear-gradient(135deg, #96CEB4, #B5D6C7);
+    box-shadow: 0 8px 20px rgba(150, 206, 180, 0.4);
+}
+
+.choice-4:hover {
+    background: linear-gradient(135deg, #7CB99A, #A3C9B8);
+    box-shadow: 0 15px 30px rgba(150, 206, 180, 0.6);
+}
+
+.choice-5 {
+    background: linear-gradient(135deg, #B794F6, #D6BCFA);
+    box-shadow: 0 8px 20px rgba(183, 148, 246, 0.4);
+}
+
+.choice-5:hover {
+    background: linear-gradient(135deg, #9F7AEA, #C4B5FD);
+    box-shadow: 0 15px 30px rgba(183, 148, 246, 0.6);
+}
+
+/* 사용자가 선택한 답안 표시 - 개선된 버전 */
+.choice-button.user-selected {
+    position: relative;
+    transform: scale(1.05) !important;
+    z-index: 100;
+    border: 4px solid #FFD700 !important;
+    box-shadow: 0 0 30px #FFD700, 0 0 50px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.2) !important;
+}
+
+/* 사용자 선택 표시 - 번호 강조 */
+.choice-button.user-selected .choice-number {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #1a1a1a;
+    border: 3px solid #1a1a1a;
+    box-shadow: 0 3px 10px rgba(255, 215, 0, 0.6);
+    transform: scale(1.2);
+    animation: selectedNumberPulse 2s ease-in-out infinite;
+}
+
+/* 사용자 선택 체크 마크 */
+.choice-button.user-selected::after {
+    content: '👆';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(20px, 5vw, 32px);
+    animation: userSelectBounce 1s infinite;
+}
+
+@keyframes userSelectBounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+}
+
+@keyframes selectedNumberPulse {
+    0%, 100% { 
+        transform: scale(1.2);
+        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.6);
+    }
+    50% { 
+        transform: scale(1.3);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* 정답 상태 (사용자 선택 + 정답) */
+.choice-button.user-selected.correct {
+    background: linear-gradient(135deg, #4CAF50, #81C784) !important;
+    border-color: #2E7D32 !important;
+    box-shadow: 0 0 35px #4CAF50, 0 0 55px rgba(76, 175, 80, 0.4), inset 0 0 25px rgba(76, 175, 80, 0.3) !important;
+    animation: correctSuccessPulse 2s ease-in-out infinite;
+}
+
+.choice-button.user-selected.correct .choice-number {
+    background: linear-gradient(135deg, #2E7D32, #4CAF50);
+    color: #FFFFFF;
+    border: 3px solid #FFFFFF;
+    animation: correctNumberGlow 1.5s ease-in-out infinite;
+}
+
+.choice-button.user-selected.correct::after {
+    content: '✓';
+    color: #4CAF50;
+    font-size: clamp(25px, 6vw, 40px);
+    animation: correctCheckBounce 1.5s ease-in-out infinite;
+}
+
+/* 오답 상태 (사용자 선택 + 오답) */
+.choice-button.user-selected.incorrect {
+    background: linear-gradient(135deg, #F44336, #EF5350) !important;
+    border-color: #D32F2F !important;
+    box-shadow: 0 0 35px #F44336, 0 0 55px rgba(244, 67, 54, 0.4), inset 0 0 25px rgba(244, 67, 54, 0.3) !important;
+    animation: incorrectErrorShake 0.8s ease-in-out;
+}
+
+.choice-button.user-selected.incorrect .choice-number {
+    background: linear-gradient(135deg, #D32F2F, #F44336);
+    color: #FFFFFF;
+    border: 3px solid #FFFFFF;
+    animation: incorrectNumberShake 1s ease-in-out infinite;
+}
+
+.choice-button.user-selected.incorrect::after {
+    content: '✗';
+    color: #F44336;
+    font-size: clamp(25px, 6vw, 40px);
+    animation: incorrectCheckShake 1s ease-in-out infinite;
+}
+
+/* 정답 버튼 표시 (사용자가 오답을 선택한 경우) */
+.choice-button.show-correct {
+    background: linear-gradient(135deg, #4CAF50, #81C784) !important;
+    border: 4px solid #2E7D32 !important;
+    box-shadow: 0 0 30px #4CAF50, 0 0 50px rgba(76, 175, 80, 0.4), inset 0 0 20px rgba(76, 175, 80, 0.2) !important;
+    animation: correctAnswerGlow 1.5s ease-in-out infinite;
+}
+
+.choice-button.show-correct .choice-number {
+    background: linear-gradient(135deg, #2E7D32, #4CAF50);
+    color: #FFFFFF;
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 3px 10px rgba(46, 125, 50, 0.6);
+    animation: correctAnswerNumberPulse 1.2s ease-in-out infinite;
+}
+
+.choice-button.show-correct::after {
+    content: '💡';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(25px, 6vw, 35px);
+    animation: correctHintFloat 2s ease-in-out infinite;
+}
+
+/* 애니메이션들 */
+@keyframes correctSuccessPulse {
+    0%, 100% { 
+        transform: scale(1.05);
+        box-shadow: 0 0 35px #4CAF50, 0 0 55px rgba(76, 175, 80, 0.4), inset 0 0 25px rgba(76, 175, 80, 0.3);
+    }
+    50% { 
+        transform: scale(1.08);
+        box-shadow: 0 0 45px #4CAF50, 0 0 70px rgba(76, 175, 80, 0.6), inset 0 0 35px rgba(76, 175, 80, 0.4);
+    }
+}
+
+@keyframes correctNumberGlow {
+    0%, 100% { 
+        transform: scale(1.2);
+        box-shadow: 0 3px 10px rgba(46, 125, 50, 0.6);
+    }
+    50% { 
+        transform: scale(1.3);
+        box-shadow: 0 4px 15px rgba(46, 125, 50, 0.8);
+    }
+}
+
+@keyframes correctCheckBounce {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    50% { 
+        transform: translateX(-50%) translateY(-10px) scale(1.1);
+    }
+}
+
+@keyframes incorrectErrorShake {
+    0%, 100% { transform: translateX(0) scale(1.05); }
+    25% { transform: translateX(-8px) scale(1.05); }
+    75% { transform: translateX(8px) scale(1.05); }
+}
+
+@keyframes incorrectNumberShake {
+    0%, 100% { 
+        transform: scale(1.2) rotate(0deg);
+    }
+    25% { 
+        transform: scale(1.25) rotate(-3deg);
+    }
+    75% { 
+        transform: scale(1.25) rotate(3deg);
+    }
+}
+
+@keyframes incorrectCheckShake {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0) rotate(0deg);
+    }
+    25% { 
+        transform: translateX(-50%) translateY(-5px) rotate(-5deg);
+    }
+    75% { 
+        transform: translateX(-50%) translateY(-5px) rotate(5deg);
+    }
+}
+
+@keyframes correctAnswerGlow {
+    0%, 100% { 
+        box-shadow: 0 0 30px #4CAF50, 0 0 50px rgba(76, 175, 80, 0.4), inset 0 0 20px rgba(76, 175, 80, 0.2);
+    }
+    50% { 
+        box-shadow: 0 0 40px #4CAF50, 0 0 70px rgba(76, 175, 80, 0.6), inset 0 0 30px rgba(76, 175, 80, 0.3);
+    }
+}
+
+@keyframes correctAnswerNumberPulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 3px 10px rgba(46, 125, 50, 0.6);
+    }
+    50% { 
+        transform: scale(1.15);
+        box-shadow: 0 4px 15px rgba(46, 125, 50, 0.8);
+    }
+}
+
+@keyframes correctHintFloat {
+    0%, 100% { 
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    50% { 
+        transform: translateX(-50%) translateY(-8px) scale(1.1);
+    }
+}
+
+/* 비활성화 상태 */
+.choice-button.disabled {
+    pointer-events: none;
+    opacity: 0.7;
+    filter: grayscale(20%);
+    transition: all 0.3s ease;
+}
+
+/* 리플 효과 */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: rippleEffect 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes rippleEffect {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+.feedback {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: bold;
+    text-align: center;
+    margin-top: clamp(15px, 3vh, 25px);
+    padding: clamp(15px, 3vw, 20px);
+    border-radius: clamp(10px, 2vw, 15px);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: clamp(60px, 12vh, 100px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+}
+
+.feedback.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.feedback-correct {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(129, 199, 132, 0.9));
+    color: white;
+    border: 3px solid #4CAF50;
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+}
+
+.feedback-incorrect {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(239, 83, 80, 0.9));
+    color: white;
+    border: 3px solid #F44336;
+    box-shadow: 0 0 30px rgba(244, 67, 54, 0.5);
+}
+
+.server-status {
+    font-size: clamp(12px, 2.5vw, 16px);
+    padding: clamp(8px, 2vw, 12px);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    margin-top: 12px;
+    color: #2d3748;
+    border: 2px solid #4299e1;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+    line-height: 1.3;
+}
+
+.animation-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.animated-element {
+    position: absolute;
+    font-size: clamp(25px, 5vw, 40px);
+    animation: fall 4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-100px) rotate(0deg) scale(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(-50px) rotate(45deg) scale(1);
+    }
+    50% {
+        transform: translateY(300px) rotate(180deg) scale(1.3);
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(900px) rotate(360deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* 반응형 최적화 */
+@media (max-width: 768px) and (orientation: portrait) {
+    .choice-quiz-container {
+        min-height: 70vh;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .quiz-title {
+        font-size: 28px;
+        margin-bottom: 20px;
+    }
+    
+    .question-box {
+        width: 95%;
+        font-size: 20px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    
+    .choices-container {
+        gap: 18px;
+        margin-bottom: 20px;
+        max-width: 100%;
+    }
+    
+    .choice-button {
+        max-width: 100%;
+        min-height: 70px;
+        font-size: 18px;
+    }
+    
+    .choice-number {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    .decoration-emoji {
+        font-size: 50px;
+    }
+}
+
+@media (max-width: 768px) and (orientation: landscape) {
+    .choice-quiz-container {
+        min-height: 60vh;
+        padding: 10px;
+    }
+    
+    .quiz-title {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .question-box {
+        font-size: 18px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .choices-container {
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .choice-button {
+        min-height: 55px;
+        font-size: 16px;
+    }
+    
+    .choice-number {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+}
+
+/* 아주 작은 화면 */
+@media (max-width: 480px) {
+    .choice-quiz-container {
+        padding: 10px;
+        margin: 5px 0;
+    }
+    
+    .quiz-title {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .question-box {
+        width: 98%;
+        font-size: 18px;
+        padding: 18px;
+        margin-bottom: 20px;
+    }
+    
+    .choices-container {
+        gap: 15px;
+    }
+    
+    .choice-button {
+        min-height: 65px;
+        font-size: 16px;
+    }
+    
+    .choice-number {
+        width: 35px;
+        height: 35px;
+        font-size: 15px;
+    }
+    
+    .decoration-emoji {
+        font-size: 40px;
+    }
+}
+
+/* 터치 디바이스 최적화 */
+@media (hover: none) and (pointer: coarse) {
+    .choice-button:hover {
+        transform: none;
+        box-shadow: inherit;
+    }
+    
+    .choice-button:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    .question-box:hover {
+        transform: none;
+    }
+}

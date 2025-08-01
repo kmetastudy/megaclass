@@ -1,0 +1,769 @@
+<script>
+    $(document).ready(function() {
+        // Choice 퀴즈 전용 설정
+        const CHOICE_CONFIG = {
+            themes: {
+                science: {
+                    keywords: ['과학', '실험', '화학', '물리', '생물', '연구', '이론', '법칙', '가설', '원소'],
+                    emojis: ['🔬', '⚗️', '🧪', '🔭', '🌡️', '⚛️', '🧬', '💊', '🦠', '🌌'],
+                    particles: ['🔬', '⚗️', '🧪', '⚛️', '💡', '🌟'],
+                    colors: ['rgba(33, 150, 243, 0.3)', 'rgba(3, 218, 198, 0.3)', 'rgba(0, 188, 212, 0.3)'],
+                    choiceColors: ['#2196F3', '#03DAC6', '#00BCD4', '#4FC3F7', '#0288D1']
+                },
+                math: {
+                    keywords: ['수학', '계산', '공식', '방정식', '기하', '대수', '확률', '통계', '함수'],
+                    emojis: ['➕', '➖', '✖️', '➗', '📐', '📊', '📈', '🔢', '∑', '∞'],
+                    particles: ['➕', '➖', '✖️', '➗', '📐', '🔢'],
+                    colors: ['rgba(255, 152, 0, 0.3)', 'rgba(255, 193, 7, 0.3)', 'rgba(255, 171, 0, 0.3)'],
+                    choiceColors: ['#FF9800', '#FFC107', '#FFAB00', '#FFB74D', '#FF8F00']
+                },
+                social: {
+                    keywords: ['사회', '역사', '정치', '경제', '문화', '지리', '인권', '민주주의', '사회'],
+                    emojis: ['👥', '🏛️', '🗳️', '📊', '🌍', '🏴', '📜', '⚖️', '🕊️', '🤝'],
+                    particles: ['👥', '🏛️', '🗳️', '🌍', '📊', '🤝'],
+                    colors: ['rgba(233, 30, 99, 0.3)', 'rgba(255, 64, 129, 0.3)', 'rgba(173, 20, 87, 0.3)'],
+                    choiceColors: ['#E91E63', '#FF4081', '#AD1457', '#F06292', '#C2185B']
+                },
+                career: {
+                    keywords: ['진로', '직업', '취업', '미래', '꿈', '목표', '계획', '성장', '발전'],
+                    emojis: ['💼', '👔', '🎯', '📈', '🏆', '🚀', '💡', '🌟', '🔥', '⭐'],
+                    particles: ['💼', '🎯', '📈', '🏆', '🚀', '💡'],
+                    colors: ['rgba(76, 175, 80, 0.3)', 'rgba(139, 195, 74, 0.3)', 'rgba(102, 187, 106, 0.3)'],
+                    choiceColors: ['#4CAF50', '#8BC34A', '#66BB6A', '#81C784', '#388E3C']
+                },
+                cooking: {
+                    keywords: ['요리', '음식', '레시피', '재료', '조리', '맛', '영양', '건강식품'],
+                    emojis: ['🍳', '👨‍🍳', '🥄', '🍽️', '🔥', '🥗', '🍲', '🧄', '🌶️', '🍅'],
+                    particles: ['🍳', '👨‍🍳', '🥄', '🔥', '🥗', '🍲'],
+                    colors: ['rgba(244, 67, 54, 0.3)', 'rgba(255, 87, 34, 0.3)', 'rgba(229, 115, 115, 0.3)'],
+                    choiceColors: ['#F44336', '#FF5722', '#E57373', '#EF5350', '#D32F2F']
+                },
+                default: {
+                    keywords: [],
+                    emojis: ['🎯', '✨', '⭐', '🌟', '💫', '🎉', '🎊', '🌈', '🦋', '🌺'],
+                    particles: ['🎯', '✨', '⭐', '🌟', '💫', '🎉'],
+                    colors: ['rgba(255, 255, 255, 0.3)', 'rgba(255, 107, 107, 0.3)', 'rgba(78, 205, 196, 0.3)'],
+                    choiceColors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#B794F6']
+                }
+            },
+            
+            correctMessages: [
+                "🎉 정답입니다! 👏 정말 잘했어요!",
+                "완벽해요! 🌟 훌륭한 답변이었습니다!",
+                "맞습니다! 🎊 대단한 실력이네요!",
+                "정답이에요! 💯 최고예요!",
+                "브라보! 🎭 멋진 선택이었습니다!"
+            ],
+            
+            incorrectMessages: [
+                "🤔 아직 정답이 아니에요! 다시 생각해보세요! 😊",
+                "괜찮아요! 💪 한 번 더 도전해보세요!",
+                "조금 더 생각해볼까요? 🧐 다시 시도해보세요!",
+                "아쉬워요! 😊 다시 한번 풀어보세요!",
+                "힘내세요! 🌟 다음엔 분명 맞힐 거예요!"
+            ]
+        };
+        
+        let choiceIsAnswered = false;
+        let choiceSelectedAnswer = null;
+        let extractedChoices = [];
+        let questionText = '';
+        
+        // Choice 퀴즈 초기화
+        function initializeChoiceQuiz() {
+            if ($('#choice-quiz-container').length === 0) return;
+            
+            console.log('Choice 퀴즈 초기화 시작');
+            
+            // 기존 HTML에서 문제와 선택지 추출
+            extractQuestionAndChoices();
+            
+            // 문제 텍스트 분석하여 테마 설정
+            const theme = detectThemeFromText(questionText);
+            applyChoiceTheme(theme);
+            
+            // 파티클 생성
+            createChoiceParticles(theme);
+            
+            // 선택지 버튼 생성 (번호 포함)
+            createNumberedChoiceButtons();
+            
+            // 기존 답안 복원
+            restoreChoiceAnswer();
+            
+            console.log('Choice 퀴즈 초기화 완료');
+        }
+        
+        // 기존 HTML에서 문제와 선택지 추출
+        function extractQuestionAndChoices() {
+            // 문제 텍스트 추출
+            const questionSelectors = [
+                '.quiz-container .question-text',
+                '.quiz-container h1',
+                '.question-box h1',
+                '.question-text'
+            ];
+            
+            for (let selector of questionSelectors) {
+                const element = $(selector);
+                if (element.length > 0 && element.text().trim()) {
+                    questionText = element.text().trim();
+                    break;
+                }
+            }
+            
+            // 선택지 추출
+            extractedChoices = [];
+            $('.options-container .option-button').each(function(index) {
+                const choiceText = $(this).find('.option-text').text().trim();
+                const dataClicked = $(this).attr('data-clicked');
+                
+                if (choiceText) {
+                    extractedChoices.push({
+                        index: index,
+                        text: choiceText,
+                        value: dataClicked || (index + 1).toString()
+                    });
+                }
+            });
+            
+            // 새로운 문제 박스에 텍스트 설정
+            $('#question-text').text(questionText || "객관식 문제를 풀어보세요!");
+            
+            console.log('추출된 문제:', questionText);
+            console.log('추출된 선택지:', extractedChoices);
+        }
+        
+        // 번호가 있는 선택지 버튼 생성 - Choice 타입의 핵심
+        function createNumberedChoiceButtons() {
+            const container = $('#choices-container');
+            const theme = $('#choice-quiz-container').attr('data-theme') || 'default';
+            const themeConfig = CHOICE_CONFIG.themes[theme];
+            
+            container.empty();
+            
+            extractedChoices.forEach((choice, index) => {
+                const button = $('<button>')
+                    .addClass(`choice-button choice-${index + 1} answer`)
+                    .attr('data-clicked', choice.value)
+                    .attr('id', `choice-${index}`)
+                    .css({
+                        'background': `linear-gradient(135deg, ${themeConfig.choiceColors[index % themeConfig.choiceColors.length]}, ${adjustBrightness(themeConfig.choiceColors[index % themeConfig.choiceColors.length], 20)})`
+                    });
+                
+                // Choice 타입의 핵심: 번호와 텍스트를 분리하여 표시
+                const choiceNumber = $('<span>')
+                    .addClass('choice-number')
+                    .text(index + 1);
+                
+                const choiceText = $('<span>')
+                    .addClass('choice-text')
+                    .text(choice.text);
+                
+                button.append(choiceNumber).append(choiceText);
+                container.append(button);
+            });
+            
+            // 클릭 이벤트 설정
+            $('.choice-button.answer').off('click.choice').on('click.choice', handleChoiceClick);
+        }
+        
+        // 색상 밝기 조정 함수
+        function adjustBrightness(color, percent) {
+            const num = parseInt(color.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+        
+        // 문제 텍스트에서 테마 감지
+        function detectThemeFromText(text) {
+            let maxScore = 0;
+            let detectedTheme = 'default';
+            
+            Object.keys(CHOICE_CONFIG.themes).forEach(theme => {
+                const keywords = CHOICE_CONFIG.themes[theme].keywords;
+                let score = 0;
+                
+                keywords.forEach(keyword => {
+                    if (text.includes(keyword)) {
+                        score++;
+                    }
+                });
+                
+                if (score > maxScore) {
+                    maxScore = score;
+                    detectedTheme = theme;
+                }
+            });
+            
+            console.log(`테마 감지: ${detectedTheme} (점수: ${maxScore})`);
+            return detectedTheme;
+        }
+        
+        // Choice 테마 적용
+        function applyChoiceTheme(theme) {
+            const container = $('#choice-quiz-container');
+            container.attr('data-theme', theme);
+            
+            if (CHOICE_CONFIG.themes[theme]) {
+                const themeConfig = CHOICE_CONFIG.themes[theme];
+                
+                // 장식 이모지 설정
+                $('#decoration1').text(themeConfig.emojis[0] || '🎯');
+                $('#decoration2').text(themeConfig.emojis[Math.floor(Math.random() * themeConfig.emojis.length)] || '✨');
+            }
+            
+            // 퀴즈 제목 설정
+            const themeNames = {
+                science: '과학',
+                math: '수학',
+                social: '사회',
+                career: '진로',
+                cooking: '요리',
+                default: '일반'
+            };
+            $('#quiz-title').text(`${themeNames[theme] || '일반'} 객관식 퀴즈`);
+        }
+        
+        // Choice 파티클 생성
+        function createChoiceParticles(theme) {
+            const particleContainer = $('#particles');
+            const themeConfig = CHOICE_CONFIG.themes[theme];
+            
+            if (!themeConfig) return;
+            
+            particleContainer.empty();
+            
+            for (let i = 0; i < 15; i++) {
+                const particle = $('<div>').addClass('particle');
+                particle.css({
+                    'left': Math.random() * 100 + '%',
+                    'width': Math.random() * 8 + 4 + 'px',
+                    'height': Math.random() * 8 + 4 + 'px',
+                    'background-color': themeConfig.colors[Math.floor(Math.random() * themeConfig.colors.length)],
+                    'animation-delay': Math.random() * 15 + 's',
+                    'animation-duration': (Math.random() * 10 + 15) + 's'
+                });
+                
+                // 30% 확률로 테마별 이모지 파티클
+                if (Math.random() < 0.3 && themeConfig.particles) {
+                    particle.text(themeConfig.particles[Math.floor(Math.random() * themeConfig.particles.length)]);
+                    particle.css({
+                        'background-color': 'transparent',
+                        'font-size': '20px',
+                        'width': 'auto',
+                        'height': 'auto'
+                    });
+                }
+                
+                particleContainer.append(particle);
+            }
+        }
+        
+        // Choice 클릭 처리 - 개선된 버전
+        function handleChoiceClick() {
+            if (choiceIsAnswered) return;
+            
+            const clickedValue = $(this).attr('data-clicked');
+            choiceSelectedAnswer = clickedValue;
+            choiceIsAnswered = true;
+            
+            console.log('Choice 버튼 클릭:', clickedValue);
+            
+            // 모든 답안 비활성화
+            $('.choice-button.answer').addClass('disabled');
+            
+            // 클릭된 답안 강조 (번호 포함)
+            $(this).addClass('user-selected');
+            
+            // 리플 효과 추가
+            createChoiceRippleEffect(this);
+            
+            // 사용자에게 선택 확인 메시지
+            console.log('✓ 답안이 선택되었습니다. 채점 중...');
+            
+            // 즉시 채점 (약간의 지연으로 사용자가 선택을 확인할 수 있게)
+            setTimeout(() => {
+                checkChoiceAnswer(clickedValue);
+            }, 500);
+        }
+        
+        // 리플 효과 생성
+        function createChoiceRippleEffect(button) {
+            const ripple = $('<div>').addClass('ripple');
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            
+            ripple.css({
+                'width': size + 'px',
+                'height': size + 'px',
+                'left': '50%',
+                'top': '50%',
+                'transform': 'translate(-50%, -50%)',
+                'position': 'absolute',
+                'border-radius': '50%',
+                'background': 'rgba(255, 255, 255, 0.6)',
+                'animation': 'rippleEffect 0.6s linear',
+                'pointer-events': 'none'
+            });
+            
+            $(button).append(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        }
+        
+        // Choice 답안 채점
+        function checkChoiceAnswer(selectedAnswer) {
+            const qid = $('.submit-button, .resubmit-button').first().attr('data-qid') || '{{ slide.content.id }}';
+            const slideId = '{{ slide.id }}';
+            
+            console.log('답안 채점 시작:', selectedAnswer);
+            
+            // 서버로 답안 전송
+            $.ajax({
+                url: '{% url "student:check_answer" %}',
+                type: 'POST',
+                data: {
+                    'content_id': qid,
+                    'slide_id': slideId,
+                    'student_answer': selectedAnswer,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    console.log('채점 결과:', response);
+                    handleChoiceResult(response, selectedAnswer);
+                },
+                error: function() {
+                    showChoiceToast('채점 중 오류가 발생했습니다.', 'error');
+                    resetChoiceQuiz();
+                }
+            });
+        }
+        
+        // Choice 결과 처리 - 개선된 버전 (번호 강조 포함)
+        function handleChoiceResult(response, selectedAnswer) {
+            const selectedElement = $(`.choice-button[data-clicked="${selectedAnswer}"]`);
+            const correctAnswer = response.correct_answer;
+            const correctElement = $(`.choice-button[data-clicked="${correctAnswer}"]`);
+            
+            console.log('결과 처리:', {
+                selected: selectedAnswer,
+                correct: correctAnswer,
+                isCorrect: response.is_correct
+            });
+            
+            // 먼저 선택된 답안을 명확하게 표시 (번호 강조 포함)
+            selectedElement.addClass('user-selected');
+            
+            // 약간의 지연을 두고 정답/오답 상태 추가
+            setTimeout(() => {
+                if (response.is_correct) {
+                    // 정답 처리: 사용자 선택 + 정답 (번호도 함께 변경)
+                    selectedElement.addClass('correct');
+                    {% comment %} $('#right-gif').removeClass('hidden'); {% endcomment %}
+                    showChoiceToast(getRandomMessage(CHOICE_CONFIG.correctMessages), 'success');
+                    showChoiceAnimation('correct');
+                    showChoiceFeedback('correct', getRandomMessage(CHOICE_CONFIG.correctMessages));
+                    
+                    // 제출 버튼 숨기기
+                    $('#submit-btn, #resubmit-btn').hide();
+                    
+                    console.log('✅ 정답 처리 완료 - 번호와 함께 정답 표시');
+                    
+                } else {
+                    // 오답 처리: 사용자 선택 + 오답 (번호도 함께 변경)
+                    selectedElement.addClass('incorrect');
+                    
+                    // 정답 버튼도 함께 표시 (사용자가 선택하지 않은 경우에만)
+                    if (selectedAnswer !== correctAnswer && correctElement.length > 0) {
+                        setTimeout(() => {
+                            correctElement.addClass('show-correct');
+                            console.log('💡 정답 버튼도 표시:', correctAnswer);
+                        }, 800);
+                    }
+                    
+                    {% comment %} $('#wrong-gif').removeClass('hidden'); {% endcomment %}
+                    showChoiceToast(getRandomMessage(CHOICE_CONFIG.incorrectMessages), 'error');
+                    showChoiceAnimation('incorrect');
+                    showChoiceFeedback('incorrect', getRandomMessage(CHOICE_CONFIG.incorrectMessages));
+                    
+                    // 재제출 버튼 표시
+                    $('#submit-btn').hide();
+                    $('#resubmit-btn').show();
+                    
+                    console.log('❌ 오답 처리 완료 - 번호와 함께 오답 표시');
+                }
+            }, 300);
+            
+            // 제출 상태 업데이트
+            updateChoiceSubmissionStatus(response);
+            
+            // 8초 후 UI 정리 (오답인 경우 재시도 가능)
+            setTimeout(() => {
+                if (!response.is_correct) {
+                    resetChoiceQuizForRetry();
+                }
+            }, 8000);
+        }
+        
+        // 피드백 표시 함수
+        function showChoiceFeedback(type, message) {
+            const feedbackElement = $(`#feedback-${type}`);
+            feedbackElement.html(message);
+            feedbackElement.addClass('show');
+            
+            // 서버 상태 메시지 추가
+            setTimeout(() => {
+                const statusElement = $('<div>').addClass('server-status');
+                statusElement.html('📡 서버로 결과 전송 중...');
+                feedbackElement.append(statusElement);
+                
+                // 전송 완료 시뮬레이션
+                setTimeout(() => {
+                    statusElement.html('✅ 전송 완료!');
+                    statusElement.css({
+                        'background-color': 'rgba(76, 175, 80, 0.9)',
+                        'color': 'white',
+                        'border-color': '#4CAF50'
+                    });
+                }, 1500);
+            }, 1000);
+        }
+        
+        // Choice 애니메이션 표시
+        function showChoiceAnimation(type) {
+            const container = $('#animation-container');
+            
+            if (type === 'correct') {
+                // 정답 애니메이션
+                const animations = [createFireworks, createStarExplosion, createNumberStorm];
+                const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
+                randomAnimation();
+            } else {
+                // 오답 애니메이션
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        const element = $('<div>').addClass('animated-element');
+                        element.text(['💭', '🤔', '😅', '💪'][Math.floor(Math.random() * 4)]);
+                        element.css({
+                            'left': Math.random() * 100 + '%',
+                            'animation-delay': Math.random() * 500 + 'ms'
+                        });
+                        
+                        container.append(element);
+                        
+                        setTimeout(() => {
+                            element.remove();
+                        }, 4000);
+                    }, i * 100);
+                }
+            }
+        }
+        
+        // 숫자 폭풍 애니메이션 (Choice 타입 전용)
+        function createNumberStorm() {
+            const container = $('#animation-container');
+            const numbers = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '🔢', '💯'];
+            
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const number = $('<div>').addClass('animated-element');
+                    number.text(numbers[Math.floor(Math.random() * numbers.length)]);
+                    number.css({
+                        'left': Math.random() * 100 + '%',
+                        'animation-delay': Math.random() * 400 + 'ms'
+                    });
+                    
+                    container.append(number);
+                    
+                    setTimeout(() => {
+                        number.remove();
+                    }, 3500);
+                }, i * 120);
+            }
+        }
+        
+        // 불꽃놀이 애니메이션
+        function createFireworks() {
+            const container = $('#animation-container');
+            
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const centerX = Math.random() * window.innerWidth;
+                    const centerY = Math.random() * (window.innerHeight * 0.6) + window.innerHeight * 0.2;
+                    
+                    for (let j = 0; j < 8; j++) {
+                        const particle = $('<div>');
+                        particle.text('✨');
+                        particle.css({
+                            'position': 'absolute',
+                            'font-size': window.innerWidth < 768 ? '20px' : '30px',
+                            'left': centerX + 'px',
+                            'top': centerY + 'px',
+                            'transition': 'all 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            'pointer-events': 'none'
+                        });
+                        
+                        const angle = (j / 8) * 2 * Math.PI;
+                        const distance = window.innerWidth < 768 ? 100 : 150;
+                        const endX = centerX + Math.cos(angle) * distance;
+                        const endY = centerY + Math.sin(angle) * distance;
+                        
+                        container.append(particle);
+                        
+                        setTimeout(() => {
+                            particle.css({
+                                'left': endX + 'px',
+                                'top': endY + 'px',
+                                'opacity': '0',
+                                'transform': 'scale(1.5)'
+                            });
+                        }, 10);
+                        
+                        setTimeout(() => {
+                            particle.remove();
+                        }, 1200);
+                    }
+                }, i * 400);
+            }
+        }
+        
+        // 별 폭발 애니메이션
+        function createStarExplosion() {
+            const container = $('#animation-container');
+            const stars = ['⭐', '🌟', '✨', '💫'];
+            
+            for (let i = 0; i < 25; i++) {
+                const star = $('<div>').addClass('animated-element');
+                star.text(stars[Math.floor(Math.random() * stars.length)]);
+                star.css({
+                    'left': Math.random() * 100 + '%',
+                    'animation-delay': Math.random() * 800 + 'ms'
+                });
+                
+                container.append(star);
+                
+                setTimeout(() => {
+                    star.remove();
+                }, 3500);
+            }
+        }
+        
+        // Choice 기존 답안 복원 - 개선된 버전 (번호 포함)
+        function restoreChoiceAnswer() {
+            {% if existing_answer and slide.content_type.type_name == 'choice' %}
+            try {
+                const rawAnswerString = '{{ existing_answer.answer|escapejs|default:"{}" }}';
+                console.log('=== Choice 기존 답안 복원 ===');
+                console.log('Raw Answer:', rawAnswerString);
+                
+                const cleanedJsonString = rawAnswerString
+                    .replace(/\bTrue\b/g, 'true')
+                    .replace(/\bFalse\b/g, 'false')
+                    .replace(/\bNone\b/g, 'null')
+                    .replace(/'/g, '"');
+                
+                const answerData = JSON.parse(cleanedJsonString);
+                console.log('Parsed Answer:', answerData);
+                
+                if (answerData.selected_answer) {
+                    const selectedAnswerId = answerData.selected_answer;
+                    const correctAnswer = answerData.correct_answer;
+                    const selectedElement = $(`.choice-button[data-clicked="${selectedAnswerId}"]`);
+                    const correctElement = $(`.choice-button[data-clicked="${correctAnswer}"]`);
+                    
+                    console.log('복원 데이터:', {
+                        selected: selectedAnswerId,
+                        correct: correctAnswer,
+                        isCorrect: {{ is_already_correct|yesno:"true,false" }}
+                    });
+                    
+                    if (selectedElement.length > 0) {
+                        choiceIsAnswered = true;
+                        choiceSelectedAnswer = selectedAnswerId;
+                        
+                        // 모든 답안 비활성화
+                        $('.choice-button.answer').addClass('disabled');
+                        
+                        // 사용자가 선택한 답안 표시 (번호 강조 포함)
+                        selectedElement.addClass('user-selected');
+                        
+                        // 약간의 지연을 두고 정답/오답 상태 추가
+                        setTimeout(() => {
+                            {% if is_already_correct %}
+                                // 정답인 경우: 선택한 답안 = 정답 (번호도 함께 변경) - GIF 제거
+                                selectedElement.addClass('correct');
+                                // $('#right-gif').removeClass('hidden'); // 재방문 시 GIF 표시 안함
+                                $('#submit-btn, #resubmit-btn').hide();
+                                showChoiceFeedback('correct', '🎉 이전 제출: 정답입니다! 잘했어요!');
+                                
+                                console.log('✅ 정답 상태로 복원 완료 - 번호 강조 표시 (GIF 없음)');
+                            {% else %}
+                                // 오답인 경우: 선택한 답안 ≠ 정답 (번호도 함께 변경) - GIF 제거
+                                selectedElement.addClass('incorrect');
+                                
+                                // 정답도 함께 표시 (사용자가 선택하지 않은 경우)
+                                if (selectedAnswerId !== correctAnswer && correctElement.length > 0) {
+                                    setTimeout(() => {
+                                        correctElement.addClass('show-correct');
+                                        console.log('💡 정답 버튼도 표시:', correctAnswer);
+                                    }, 500);
+                                }
+                                
+                                // $('#wrong-gif').removeClass('hidden'); // 재방문 시 GIF 표시 안함
+                                $('#submit-btn').hide();
+                                $('#resubmit-btn').show();
+                                showChoiceFeedback('incorrect', '💪 이전 제출: 오답입니다. 다시 도전해보세요!');
+                                
+                                console.log('❌ 오답 상태로 복원 완료 - 번호 강조 표시 (GIF 없음)');
+                            {% endif %}
+                        }, 300);
+                        
+                        // 상태 메시지 추가
+                        const statusHtml = `
+                            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div class="text-sm text-blue-800">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <strong>이전 제출 정보</strong>
+                                </div>
+                                <div class="mt-2 text-sm text-blue-700">
+                                    제출일: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}<br>
+                                    선택한 답: <strong>${selectedAnswerId}번 선택지</strong><br>
+                                    정답: <strong>${correctAnswer}번 선택지</strong><br>
+                                    결과: {% if is_already_correct %}<span class="text-green-600 font-bold">✅ 정답</span>{% else %}<span class="text-red-600 font-bold">❌ 오답</span>{% endif %}
+                                </div>
+                            </div>
+                        `;
+                        
+                        setTimeout(() => {
+                            $('#feedback-{{ is_already_correct|yesno:"correct,incorrect" }}').append(statusHtml);
+                        }, 1000);
+                    }
+                }
+            } catch (e) {
+                console.error('Choice 답안 복원 중 오류:', e);
+            }
+            {% endif %}
+        }
+        
+        // Choice 재시도용 리셋 - 개선된 버전 (번호 초기화 포함)
+        function resetChoiceQuizForRetry() {
+            {% if not is_already_correct %}
+            console.log('Choice 퀴즈 재시도 리셋');
+            
+            choiceIsAnswered = false;
+            choiceSelectedAnswer = null;
+            
+            // UI 초기화 (모든 상태 클래스 제거)
+            $('.choice-button.answer').removeClass('disabled user-selected correct incorrect show-correct');
+            $('#right-gif, #wrong-gif').addClass('hidden');
+            $('#feedback-correct, #feedback-incorrect').removeClass('show');
+            $('#animation-container').empty();
+            
+            // 피드백 내용 초기화
+            $('#feedback-correct, #feedback-incorrect').empty();
+            
+            // 원래 스타일 복원 (번호 스타일도 초기화)
+            $('.choice-button.answer').each(function(index) {
+                $(this).attr('class', `choice-button choice-${index + 1} answer`);
+                
+                // 원래 배경색 복원
+                const theme = $('#choice-quiz-container').attr('data-theme') || 'default';
+                const themeConfig = CHOICE_CONFIG.themes[theme];
+                $(this).css({
+                    'background': `linear-gradient(135deg, ${themeConfig.choiceColors[index % themeConfig.choiceColors.length]}, ${adjustBrightness(themeConfig.choiceColors[index % themeConfig.choiceColors.length], 20)})`
+                });
+            });
+            
+            console.log('재시도 준비 완료 - 번호 스타일 초기화됨');
+            {% endif %}
+        }
+        
+        // Choice 완전 리셋 - 개선된 버전 (번호 초기화 포함)
+        function resetChoiceQuiz() {
+            console.log('Choice 퀴즈 완전 리셋');
+            
+            choiceIsAnswered = false;
+            choiceSelectedAnswer = null;
+            
+            // 모든 상태 초기화
+            $('.choice-button.answer').removeClass('disabled user-selected correct incorrect show-correct');
+            $('#right-gif, #wrong-gif').addClass('hidden');
+            $('#feedback-correct, #feedback-incorrect').removeClass('show');
+            $('#animation-container').empty();
+            $('#submission-status-wrapper').empty();
+            
+            // 피드백 내용 초기화
+            $('#feedback-correct, #feedback-incorrect').empty();
+            
+            // 원래 스타일 완전 복원 (번호 스타일도 포함)
+            $('.choice-button.answer').each(function(index) {
+                $(this).attr('class', `choice-button choice-${index + 1} answer`);
+                $(this).removeAttr('style'); // 인라인 스타일도 제거
+                
+                // 원래 배경색 다시 적용
+                const theme = $('#choice-quiz-container').attr('data-theme') || 'default';
+                const themeConfig = CHOICE_CONFIG.themes[theme];
+                $(this).css({
+                    'background': `linear-gradient(135deg, ${themeConfig.choiceColors[index % themeConfig.choiceColors.length]}, ${adjustBrightness(themeConfig.choiceColors[index % themeConfig.choiceColors.length], 20)})`
+                });
+            });
+            
+            console.log('완전 리셋 완료 - 모든 번호 스타일 초기화됨');
+        }
+        
+        // 제출 상태 업데이트
+        function updateChoiceSubmissionStatus(response) {
+            const wrapper = $('#submission-status-wrapper');
+            wrapper.empty();
+            
+            const statusIcon = response.is_correct
+                ? '<span class="text-green-600 font-medium ml-2"><i class="fas fa-check-circle"></i> 정답</span>'
+                : '<span class="text-red-600 font-medium ml-2"><i class="fas fa-times-circle"></i> 오답</span>';
+            
+            const statusHtml = `<div class="mt-4 text-sm text-gray-600">
+                <i class="fas fa-info-circle mr-1"></i>
+                마지막 제출: ${response.submitted_at}
+                ${statusIcon}
+            </div>`;
+            
+            wrapper.html(statusHtml);
+        }
+        
+        // 랜덤 메시지 선택
+        function getRandomMessage(messages) {
+            return messages[Math.floor(Math.random() * messages.length)];
+        }
+        
+        // Choice 토스트 메시지
+        function showChoiceToast(message, type = 'info') {
+            showToast(message, type); // 기존 토스트 함수 사용
+        }
+        
+        // 재제출 버튼 클릭 이벤트
+        $(document).on('click', '#resubmit-btn', function() {
+            if ('{{ slide.content_type.type_name }}' === 'choice') {
+                resetChoiceQuizForRetry();
+            }
+        });
+        
+        // 화면 회전 대응
+        $(window).on('orientationchange resize', function() {
+            setTimeout(() => {
+                // 파티클 재생성
+                const theme = $('#choice-quiz-container').attr('data-theme') || 'default';
+                createChoiceParticles(theme);
+            }, 100);
+        });
+        
+        // Choice 퀴즈 초기화 실행
+        initializeChoiceQuiz();
+    });
+    </script>

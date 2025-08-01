@@ -1,0 +1,42 @@
+<header class="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+    <div class="px-4 sm:px-6 lg:px-8">
+        <div class="md:hidden py-3 flex items-center justify-between">
+            <button onclick="showMobileSidebar()" class="p-2 text-gray-600 hover:text-gray-900">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h1 class="text-lg font-semibold text-gray-900 truncate flex-1 mx-3">
+                {{ slide.chasi.chasi_title }}
+            </h1>
+            <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+               class="p-2 text-gray-600 hover:text-gray-900">
+                <i class="fas fa-times text-xl"></i>
+            </a>
+        </div>
+        
+        <div class="hidden md:block py-2">
+            <div class="flex items-center justify-between">
+                <nav class="flex items-center text-base">
+                    <a href="{% url 'student:course_list' %}" class="text-gray-600 hover:text-gray-900 font-medium transition flex items-center gap-2">
+                        <i class="fas fa-book text-gray-400"></i>
+                        <span class="hidden lg:inline">{{ slide.chasi.sub_chapter.chapter.subject.subject_name }}</span>
+                        <span class="lg:hidden">과목</span>
+                    </a>
+                    <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                    <span class="text-gray-600 hidden lg:inline">{{ slide.chasi.sub_chapter.chapter.chapter_title }}</span>
+                    <span class="text-gray-600 lg:hidden">{{ slide.chasi.sub_chapter.chapter.chapter_order }}단원</span>
+                    <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                    <span class="text-gray-600 hidden lg:inline">{{ slide.chasi.sub_chapter.sub_chapter_title }}</span>
+                    <span class="text-gray-600 lg:hidden">{{ slide.chasi.sub_chapter.sub_chapter_order }}절</span>
+                    <i class="fas fa-chevron-right mx-3 text-xs text-gray-400"></i>
+                    <span class="text-gray-900 font-medium">{{ slide.chasi.chasi_title }}</span>
+                </nav>
+                
+                <a href="{% url 'student:learning_course' slide.chasi.sub_chapter.chapter.subject.id %}" 
+                   class="p-2 text-gray-400 hover:text-gray-600 transition rounded-lg hover:bg-gray-100"
+                   title="코스로 돌아가기">
+                    <i class="fas fa-times text-lg"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>

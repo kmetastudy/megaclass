@@ -1,0 +1,268 @@
+<script>
+    $(document).ready(function() {
+        // 객관식 선택 시 UI 변경
+        $('.answer').click(function(){
+            // ★★★ 이미 정답인 경우 클릭 방지 ★★★
+            {% if is_already_correct and slide.content_type.type_name == 'multi-choice' %}
+            return false;
+            {% endif %}
+            
+            var clicked = $(this).attr('data-clicked');
+            
+            // multi-choice 타입인 경우 (다중 선택)
+            if ($(this).hasClass('multi-choice')) {
+                // 토글 방식으로 선택/해제
+                if ($(this).hasClass('selected')) {
+                    $(this).removeClass('selected bg-blue-100');
+                    $(this).find('.checkbox-circle').removeClass('bg-blue-500');
+                    $(this).find('.checkbox-circle').addClass('bg-white');
+                    $(this).find('.fa-check').addClass('hidden');
+                } else {
+                    $(this).addClass('selected bg-blue-100');
+                    $(this).find('.checkbox-circle').addClass('bg-blue-500');
+                    $(this).find('.checkbox-circle').removeClass('bg-white');
+                    $(this).find('.fa-check').removeClass('hidden');
+                }
+            } 
+            // 기존 multiple-choice 타입 (단일 선택)
+            else {
+                $('.answer').removeClass('ring-2 ring-red-500 ring-blue-500');
+                $('#right-gif, #wrong-gif').addClass('hidden');
+                $(this).addClass('ring-2');
+                if (clicked == '1'){
+                    $(this).addClass('ring-blue-500');
+                } else {
+                    $(this).addClass('ring-red-500');
+                }
+            }
+        });
+    
+        // ★★★ multi-choice 유형의 기존 답안 복원 함수 추가 ★★★
+        function restoreMultiChoiceAnswer() {
+            {% if existing_answer and slide.content_type.type_name == 'multi-choice' %}
+            try {
+                // Django에서 전달된 원본 문자열 받기
+                let rawAnswerString = '{{ existing_answer.answer|escapejs|default:"{}" }}';
+                
+                // ★★★ 제출정답의 원본을 console.log로 출력 ★★★
+                console.log('=== 제출정답 원본 데이터 ===');
+                console.log('Raw Answer String:', rawAnswerString);
+                
+                // Python True/False를 JavaScript true/false로 변환
+                const cleanedJsonString = rawAnswerString
+                    .replace(/\bTrue\b/g, 'true')
+                    .replace(/\bFalse\b/g, 'false')
+                    .replace(/\bNone\b/g, 'null')
+                    .replace(/'/g, '"');
+                
+                let answerData = JSON.parse(cleanedJsonString);
+                
+                // ★★★ 파싱된 데이터도 출력 ★★★
+                console.log('Parsed Answer Data:', answerData);
+                console.log('Selected Answers:', answerData.selected_answers);
+                console.log('Correct Answers:', answerData.correct_answers);
+                console.log('Is Multiple:', answerData.is_multiple);
+                console.log('========================');
+                
+                if (answerData.selected_answers) {
+                    // 선택된 답안들을 복원
+                    answerData.selected_answers.forEach(function(answerId, index) {
+                        console.log(`복원 중: 답안 ${index + 1} - ID: ${answerId}`);
+                        
+                        const targetElement = $('.answer.multi-choice[data-clicked="' + answerId + '"]');
+                        console.log(`data-clicked="${answerId}"인 요소 찾기 결과:`, targetElement.length, '개');
+                        
+                        if (targetElement.length > 0) {
+                            targetElement.each(function() {
+                                $(this).addClass('selected bg-blue-100');
+                                $(this).find('.checkbox-circle').addClass('bg-blue-500').removeClass('bg-white');
+                                $(this).find('.fa-check').removeClass('hidden');
+                                console.log(`답안 ${answerId} 체크 완료`);
+                            });
+                        } else {
+                            console.warn(`경고: data-clicked="${answerId}"인 요소를 찾을 수 없습니다.`);
+                            // 모든 multi-choice 요소의 data-clicked 값 확인
+                            console.log('현재 페이지의 모든 multi-choice 요소의 data-clicked 값:');
+                            $('.answer.multi-choice').each(function() {
+                                console.log('- data-clicked:', $(this).attr('data-clicked'));
+                            });
+                        }
+                    });
+                    
+                    // ★★★ 채점 결과 표시 ★★★
+                    {% if is_already_correct %}
+                        $('#submit-btn, #resubmit-btn').hide();
+                        
+                        // 선택된 답안에 정답 스타일 적용
+                        $('.answer.multi-choice.selected').each(function() {
+                            $(this).addClass('border-green-500 bg-green-50');
+                            $(this).find('.checkbox-circle').addClass('bg-green-500').removeClass('bg-blue-500');
+                        });
+                        
+                        // 선택 비활성화 스타일 적용
+                        $('.answer.multi-choice').addClass('cursor-not-allowed opacity-80');
+                        
+                        // 제출 상태 표시
+                        const statusHtml = `<div class="mt-4 text-sm text-gray-600">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            이전 제출: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+                            <span class="text-green-600 font-medium ml-2">
+                                <i class="fas fa-check-circle"></i> 정답
+                            </span>
+                        </div>`;
+                        $('#submission-status-wrapper').html(statusHtml);
+                    {% else %}
+                        $('#submit-btn').hide();
+                        $('#resubmit-btn').show();
+                        
+                        // 선택된 답안에 오답 스타일 적용
+                        $('.answer.multi-choice.selected').each(function() {
+                            $(this).addClass('border-red-500 bg-red-50');
+                        });
+                        
+                        // 제출 상태 표시
+                        const statusHtml = `<div class="mt-4 text-sm text-gray-600">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            이전 제출: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+                            <span class="text-red-600 font-medium ml-2">
+                                <i class="fas fa-times-circle"></i> 오답
+                            </span>
+                        </div>`;
+                        $('#submission-status-wrapper').html(statusHtml);
+                    {% endif %}
+                }
+            } catch (e) {
+                console.error('Multi-choice 답안 복원 중 오류:', e);
+            }
+            {% endif %}
+        }
+        
+        // 페이지 로드 시 multi-choice 답안 복원
+        restoreMultiChoiceAnswer();
+    
+        // 제출/재제출 버튼 클릭 이벤트
+        $('.submit-button, .resubmit-button').click(function(){
+            var qid = $(this).attr('data-qid');
+            var contentType = '{{ slide.content_type.type_name }}';
+            var selectedAnswer = getSelectedAnswer(contentType);
+            
+            if (!selectedAnswer || (Array.isArray(selectedAnswer) && selectedAnswer.length === 0)) {
+                showToast('답안을 선택해주세요.', 'error');
+                return;
+            }
+            
+            // ★★★ 재제출 시 이전 스타일 초기화 (multi-choice인 경우) ★★★
+            if ($(this).hasClass('resubmit-button') && contentType === 'multi-choice') {
+                $('.answer.multi-choice').removeClass('border-green-500 bg-green-50 border-red-500 bg-red-50 cursor-not-allowed opacity-80');
+                $('.answer.multi-choice .checkbox-circle').removeClass('bg-green-500');
+                $('.answer.multi-choice.selected .checkbox-circle').addClass('bg-blue-500');
+            }
+            
+            $(this).prop('disabled', true).text('제출 중...');
+            submitAnswerToServer(qid, selectedAnswer, $(this), contentType);
+        });
+    
+        // 선택된 답안 가져오기 함수 (타입별 분기)
+        function getSelectedAnswer(contentType) {
+            var answer = null;
+            
+            // multi-choice 타입인 경우 (다중 선택)
+            if (contentType === 'multi-choice') {
+                answer = [];
+                $('.answer.multi-choice.selected').each(function(){
+                    answer.push($(this).attr('data-clicked'));
+                });
+                // 선택된 답안을 오름차순으로 정렬
+                answer.sort(function(a, b) { return parseInt(a) - parseInt(b); });
+                return answer;
+            }
+            // 기존 multiple-choice 타입 (단일 선택)
+            else if (contentType === 'multiple-choice') {
+                $('.answer.ring-2').each(function(){
+                    answer = $(this).attr('data-clicked');
+                });
+            }
+            
+            // short-answer 타입
+            if (!answer) {
+                var textInput = $('input[name="student_answer"], textarea[name="student_answer"]');
+                if (textInput.length > 0 && textInput.val().trim()) {
+                    answer = textInput.val().trim();
+                }
+            }
+            return answer;
+        }
+    
+        // 서버에 답안 제출 함수
+        function submitAnswerToServer(qid, answer, buttonElement, contentType) {
+            var submitData = {
+                'content_id': qid,
+                'slide_id': {{ slide.id }},
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            };
+            
+            // multi-choice인 경우 JSON 문자열로 변환하여 전송
+            if (contentType === 'multi-choice') {
+                submitData['student_answer'] = JSON.stringify(answer);
+            } else {
+                submitData['student_answer'] = answer;
+            }
+            
+            $.ajax({
+                url: '{% url "student:check_answer" %}',
+                type: 'POST',
+                data: submitData,
+                success: function(response) {
+                    if (response.status !== 'success') {
+                        showToast(response.message || '오류 발생', 'error');
+                        return;
+                    }
+                    if (response.is_correct) {
+                        $('#right-gif').removeClass('hidden');
+                        $('#wrong-gif').addClass('hidden');
+                        showToast('정답입니다!', 'success');
+                        $('#submit-btn, #resubmit-btn').hide();
+                        
+                        // multi-choice 타입인 경우 정답 스타일 적용
+                        if (contentType === 'multi-choice') {
+                            $('.answer.multi-choice.selected').each(function() {
+                                $(this).addClass('border-green-500 bg-green-50');
+                                $(this).find('.checkbox-circle').addClass('bg-green-500').removeClass('bg-blue-500');
+                            });
+                            $('.answer.multi-choice').addClass('cursor-not-allowed opacity-80');
+                        }
+                    } else {
+                        $('#wrong-gif').removeClass('hidden');
+                        $('#right-gif').addClass('hidden');
+                        showToast('틀렸습니다. 다시 시도해보세요.', 'error');
+                        $('#submit-btn').hide();
+                        $('#resubmit-btn').show().prop('disabled', false).html('<i class="fas fa-redo mr-2"></i>다시 제출');
+                        
+                        // multi-choice 타입인 경우 오답 스타일 적용
+                        if (contentType === 'multi-choice') {
+                            $('.answer.multi-choice.selected').each(function() {
+                                $(this).addClass('border-red-500 bg-red-50');
+                            });
+                        }
+                    }
+                    updateSubmissionStatus(response);
+                },
+                error: function() {
+                    showToast('제출 중 오류가 발생했습니다.', 'error');
+                    buttonElement.prop('disabled', false).html('<i class="fas fa-redo mr-2"></i>다시 제출');
+                }
+            });
+        }
+    
+        // 제출 상태 업데이트 함수
+        function updateSubmissionStatus(response) {
+            const wrapper = $('#submission-status-wrapper');
+            wrapper.empty();
+            const statusIcon = response.is_correct
+                ? '<span class="text-green-600 font-medium ml-2"><i class="fas fa-check-circle"></i> 정답</span>'
+                : '<span class="text-red-600 font-medium ml-2"><i class="fas fa-times-circle"></i> 오답</span>';
+            const statusHtml = `<div class="mt-4 text-sm text-gray-600"><i class="fas fa-info-circle mr-1"></i>마지막 제출: ${response.submitted_at}${statusIcon}</div>`;
+            wrapper.html(statusHtml);
+        }
+    });
+    </script>

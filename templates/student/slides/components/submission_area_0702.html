@@ -1,0 +1,59 @@
+<!-- 문제가 아닌 콘텐츠용 완료 버튼 -->
+{% if slide.content_type.type_name not in 'multiple-choice,short-answer,multi-input,one_shot_submit,physical_record,ordering,multi-choice,take-action,rolling,ox-quiz' %}
+<div class="mt-8 text-center border-t border-gray-200 pt-6">
+    {% if not progress.is_completed %}
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="complete">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base">
+                <i class="fas fa-check mr-2"></i>학습 완료
+            </button>
+        </form>
+    {% else %}
+        <div class="text-green-600 font-medium text-base">
+            <i class="fas fa-check-circle mr-2"></i>이미 학습을 완료했습니다
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- 객관식/단답형/다중선택 문제용 제출 버튼 -->
+{% if slide.content_type.type_name in 'multiple-choice,short-answer,multi-choice' %}
+<div id="submission-area" class="mt-8 text-center border-t border-gray-200 pt-6">
+    {% if not is_already_correct %}
+    <button id="submit-btn" 
+            class="submit-button bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base mr-3"
+            data-qid="{{ slide.content.id }}" 
+            data-type="{{ slide.content_type.type_name }}"
+            style="display: {% if existing_answer %}none{% else %}inline-block{% endif %};">
+        <i class="fas fa-paper-plane mr-2"></i>답안 제출
+    </button>
+    
+    <button id="resubmit-btn" 
+            class="resubmit-button bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-lg transition duration-200 shadow-sm text-base"
+            data-qid="{{ slide.content.id }}" 
+            data-type="{{ slide.content_type.type_name }}"
+            style="display: {% if existing_answer %}inline-block{% else %}none{% endif %};">
+        <i class="fas fa-redo mr-2"></i>다시 제출
+    </button>
+    {% endif %}
+    
+    <div id="submission-status-wrapper"> 
+    {% if existing_answer %}
+    <div class="mt-4 text-sm text-gray-600">
+        <i class="fas fa-info-circle mr-1"></i>
+        이전 제출: {{ existing_answer.submitted_at|date:"Y-m-d H:i" }}
+        {% if existing_answer.is_correct %}
+            <span class="text-green-600 font-medium ml-2">
+                <i class="fas fa-check-circle"></i> 정답
+            </span>
+        {% elif existing_answer.is_correct == False %}
+            <span class="text-red-600 font-medium ml-2">
+                <i class="fas fa-times-circle"></i> 오답
+            </span>
+        {% endif %}
+    </div>
+    {% endif %}
+    </div>
+</div>
+{% endif %}
