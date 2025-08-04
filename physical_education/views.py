@@ -1145,11 +1145,18 @@ def api_activity_average(request):
             teacher=teacher
         ).values_list('class_instance_id', flat=True)
         
-        # 기본 쿼리셋 구성
+        # 활성화된 PAPSSessionActivity의 session_id들 조회
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리셋 구성 (활성 종목에 대한 기록만)
         records_query = PAPSRecord.objects.filter(
             activity_id=activity_id,
             evaluation_grade__isnull=False,  # 완전한 측정 기록만
-            class_id__in=teacher_classes
+            class_id__in=teacher_classes,
+            session_id__in=active_sessions  # 활성 종목만
         )
         
         # 학년 필터 적용
@@ -1314,11 +1321,18 @@ def api_grade_distribution(request):
             teacher=teacher
         ).values_list('class_instance_id', flat=True)
         
-        # 기본 쿼리셋 구성 (등급이 있는 완전한 측정 기록만)
+        # 활성화된 PAPSSessionActivity의 session_id들 조회
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리셋 구성 (활성 종목의 등급이 있는 완전한 측정 기록만)
         records_query = PAPSRecord.objects.filter(
             activity_id=activity_id,
             evaluation_grade__isnull=False,  # 완전한 측정 기록만
-            class_id__in=teacher_classes
+            class_id__in=teacher_classes,
+            session_id__in=active_sessions  # 활성 종목만
         )
         
         # 학년 필터 적용
@@ -1596,10 +1610,17 @@ def api_individual_profile(request):
                 'error': '측정 회차를 찾을 수 없습니다.'
             })
         
-        # 학생의 측정 기록 조회
+        # 해당 세션의 활성화된 종목들 조회
+        active_activity_ids = PAPSSessionActivity.objects.filter(
+            session_id=session_id,
+            is_active=True
+        ).values_list('activity_id', flat=True)
+        
+        # 학생의 측정 기록 조회 (활성 종목만)
         records = PAPSRecord.objects.filter(
             session_id=session_id,
             student_id=student_id,
+            activity_id__in=active_activity_ids,  # 활성 종목만
             evaluation_grade__isnull=False  # 완전한 측정 기록만
         ).select_related()
         
@@ -1640,9 +1661,15 @@ def api_individual_profile(request):
             except (PAPSActivity.DoesNotExist, PAPSCategory.DoesNotExist):
                 continue
         
-        # 최근 측정 히스토리 (최근 5개)
+        # 최근 측정 히스토리 (최근 5개, 활성 종목만)
+        # 모든 활성 종목 ID들 조회
+        all_active_activity_ids = PAPSSessionActivity.objects.filter(
+            is_active=True
+        ).values_list('activity_id', flat=True).distinct()
+        
         recent_records = PAPSRecord.objects.filter(
             student_id=student_id,
+            activity_id__in=all_active_activity_ids,  # 활성 종목만
             evaluation_grade__isnull=False
         ).order_by('-measured_at')[:5]
         
@@ -1747,10 +1774,17 @@ def api_individual_growth(request):
                 'error': '종목을 찾을 수 없습니다.'
             })
         
-        # 기본 쿼리 (해당 학생의 해당 종목 기록)
+        # 해당 종목의 활성화된 세션들 조회  
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리 (해당 학생의 해당 종목 기록, 활성 종목만)
         records_query = PAPSRecord.objects.filter(
             student_id=student_id,
             activity_id=activity_id,
+            session_id__in=active_sessions,  # 활성 종목만
             evaluation_grade__isnull=False  # 완전한 측정 기록만
         )
         
@@ -2080,7 +2114,17 @@ def api_class_compare(request):
             activity_averages = []
             
             for activity in activities:
-                # 해당 활동의 측정 기록 조회
+                # 해당 활동이 활성화되어 있는지 확인
+                is_activity_active = PAPSSessionActivity.objects.filter(
+                    session_id=session_id,
+                    activity_id=activity.id,
+                    is_active=True
+                ).exists()
+                
+                if not is_activity_active:
+                    continue
+                
+                # 해당 활동의 측정 기록 조회 (활성 종목만)
                 records = PAPSRecord.objects.filter(
                     session_id=session_id,
                     activity_id=activity.id,
@@ -2211,7 +2255,17 @@ def api_class_distribution(request):
         all_values = []
         
         for activity in activities:
-            # 해당 활동의 측정 기록 조회
+            # 해당 활동이 활성화되어 있는지 확인
+            is_activity_active = PAPSSessionActivity.objects.filter(
+                session_id=session_id,
+                activity_id=activity.id,
+                is_active=True
+            ).exists()
+            
+            if not is_activity_active:
+                continue
+            
+            # 해당 활동의 측정 기록 조회 (활성 종목만)
             records = PAPSRecord.objects.filter(
                 session_id=session_id,
                 activity_id=activity.id,
