@@ -2,7 +2,7 @@
   "SHUTTLE_RUN": {
     "fields": [
       {
-        "name": "shuttle_run",
+        "name": "왕복오래달리기(회)",
         "field": "shuttle_run",
         "title": "왕복오래달리기(회)",
         "type": "integer",
@@ -18,7 +18,7 @@
   "LONG_RUN_WALK": {
     "fields": [
       {
-        "name": "long_run_walk",
+        "name": "오래달리기/걷기(분.초)",
         "field": "long_run_walk",
         "title": "오래달리기/걷기(분.초)",
         "type": "decimal",
@@ -35,7 +35,7 @@
   "STEP_TEST": {
     "fields": [
       {
-        "name": "is_palpation",
+        "name": "촉진",
         "field": "is_palpation",
         "title": "촉진",
         "type": "boolean",
@@ -44,7 +44,7 @@
         "readonly": false
       },
       {
-        "name": "step_test_heart_rate_1",
+        "name": "스텝검사 심박수(1) (회/분)",
         "field": "step_test_heart_rate_1",
         "title": "심박수(1)<br>(회/분)",
         "type": "integer",
@@ -56,7 +56,7 @@
         "readonly": false
       },
       {
-        "name": "step_test_heart_rate_2",
+        "name": "스텝검사 심박수(2) (회/분)",
         "field": "step_test_heart_rate_2",
         "title": "심박수(2)<br>(회/분)",
         "type": "integer",
@@ -68,7 +68,7 @@
         "readonly": false
       },
       {
-        "name": "step_test_heart_rate_3",
+        "name": "스텝검사 심박수(3) (회/분)",
         "field": "step_test_heart_rate_3",
         "title": "심박수(3)<br>(회/분)",
         "type": "integer",
@@ -80,7 +80,7 @@
         "readonly": false
       },
       {
-        "name": "step_test_pei",
+        "name": "스텝검사 PEI",
         "field": "step_test_pei",
         "title": "PEI",
         "type": "decimal",
@@ -94,7 +94,7 @@
   "SIT_REACH": {
     "fields": [
       {
-        "name": "sit_reach_first_attempt",
+        "name": "앉아윗몸 앞으로 굽히기(cm) 1차",
         "field": "sit_reach_first_attempt",
         "title": "1차",
         "type": "decimal",
@@ -107,7 +107,7 @@
         "readonly": false
       },
       {
-        "name": "sit_reach_second_attempt",
+        "name": "앉아윗몸 앞으로 굽히기(cm) 2차",
         "field": "sit_reach_second_attempt",
         "title": "2차",
         "type": "decimal",
@@ -120,7 +120,7 @@
         "readonly": false
       },
       {
-        "name": "sit_reach_best_record",
+        "name": "앉아윗몸 앞으로 굽히기(cm) 평가값",
         "field": "sit_reach_best_record",
         "title": "평가값",
         "type": "decimal",
@@ -135,7 +135,7 @@
   "COMPREHENSIVE_FLEXIBILITY": {
     "fields": [
       {
-        "name": "flexibility_shoulder_left",
+        "name": "종합유연성(0:실패, 1:성공) 어깨 좌",
         "field": "flexibility_shoulder_left",
         "title": "좌",
         "type": "boolean",
@@ -144,7 +144,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_shoulder_right",
+        "name": "종합유연성(0:실패, 1:성공) 어깨 우",
         "field": "flexibility_shoulder_right",
         "title": "우",
         "type": "boolean",
@@ -153,7 +153,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_body_left",
+        "name": "종합유연성(0:실패, 1:성공) 몸통 좌",
         "field": "flexibility_body_left",
         "title": "좌",
         "type": "boolean",
@@ -162,7 +162,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_body_right",
+        "name": "종합유연성(0:실패, 1:성공) 몸통 우",
         "field": "flexibility_body_right",
         "title": "우",
         "type": "boolean",
@@ -171,7 +171,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_side_left",
+        "name": "종합유연성(0:실패, 1:성공) 옆구리 좌",
         "field": "flexibility_side_left",
         "title": "좌",
         "type": "boolean",
@@ -180,7 +180,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_side_right",
+        "name": "종합유연성(0:실패, 1:성공) 옆구리 우",
         "field": "flexibility_side_right",
         "title": "우",
         "type": "boolean",
@@ -189,7 +189,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_lower_body_left",
+        "name": "종합유연성(0:실패, 1:성공) 하체 좌",
         "field": "flexibility_lower_body_left",
         "title": "좌",
         "type": "boolean",
@@ -198,7 +198,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_lower_body_right",
+        "name": "종합유연성(0:실패, 1:성공) 하체 우",
         "field": "flexibility_lower_body_right",
         "title": "우",
         "type": "boolean",
@@ -207,7 +207,7 @@
         "readonly": false
       },
       {
-        "name": "flexibility_total_score",
+        "name": "종합유연성(0:실패, 1:성공) 평가값",
         "field": "flexibility_total_score",
         "title": "평가값",
         "type": "integer",
@@ -222,7 +222,7 @@
   "BMI": {
     "fields": [
       {
-        "name": "bmi_height",
+        "name": "신장(cm)",
         "field": "bmi_height",
         "title": "신장(cm)",
         "type": "decimal",
@@ -235,7 +235,7 @@
         "readonly": false
       },
       {
-        "name": "bmi_weight",
+        "name": "체중(kg)",
         "field": "bmi_weight",
         "title": "체중(kg)",
         "type": "decimal",
@@ -248,7 +248,7 @@
         "readonly": false
       },
       {
-        "name": "bmi_bmi",
+        "name": "BMI(kg/m²)",
         "field": "bmi_bmi",
         "title": "BMI(kg/m²)",
         "type": "decimal",
@@ -263,7 +263,7 @@
   "PUSH_UP": {
     "fields": [
       {
-        "name": "push_up",
+        "name": "(무릎대고)팔굽혀펴기(회)",
         "field": "push_up",
         "title": "(무릎대고)팔굽혀펴기(회)",
         "type": "integer",
@@ -279,7 +279,7 @@
   "SIT_UP": {
     "fields": [
       {
-        "name": "sit_up",
+        "name": "윗몸말아올리기(회)",
         "field": "sit_up",
         "title": "윗몸말아올리기(회)",
         "type": "integer",
@@ -295,7 +295,7 @@
   "GRIP_STRENGTH": {
     "fields": [
       {
-        "name": "grip_strength_right_hand_1",
+        "name": "악력(kg) 1차 오른쪽",
         "field": "grip_strength_right_hand_1",
         "title": "오른쪽",
         "type": "decimal",
@@ -308,7 +308,7 @@
         "readonly": false
       },
       {
-        "name": "grip_strength_left_hand_1",
+        "name": "악력(kg) 1차 왼쪽",
         "field": "grip_strength_left_hand_1",
         "title": "왼쪽",
         "type": "decimal",
@@ -321,7 +321,7 @@
         "readonly": false
       },
       {
-        "name": "grip_strength_right_hand_2",
+        "name": "악력(kg) 2차 오른쪽",
         "field": "grip_strength_right_hand_2",
         "title": "오른쪽",
         "type": "decimal",
@@ -334,7 +334,7 @@
         "readonly": false
       },
       {
-        "name": "grip_strength_left_hand_2",
+        "name": "악력(kg) 2차 왼쪽",
         "field": "grip_strength_left_hand_2",
         "title": "왼쪽",
         "type": "decimal",
@@ -347,7 +347,7 @@
         "readonly": false
       },
       {
-        "name": "grip_strength_best",
+        "name": "악력",
         "field": "grip_strength_best",
         "title": "악력",
         "type": "decimal",
@@ -362,7 +362,7 @@
   "FIFTY_METER_RUN": {
     "fields": [
       {
-        "name": "fifty_meter_run",
+        "name": "50m 달리기(초)",
         "field": "fifty_meter_run",
         "title": "50m 달리기(초)",
         "type": "decimal",
@@ -379,7 +379,7 @@
   "STANDING_LONG_JUMP": {
     "fields": [
       {
-        "name": "standing_long_jump_first_attempt",
+        "name": "제자리멀리뛰기(cm) 1차",
         "field": "standing_long_jump_first_attempt",
         "title": "1차",
         "type": "decimal",
@@ -392,7 +392,7 @@
         "readonly": false
       },
       {
-        "name": "standing_long_jump_second_attempt",
+        "name": "제자리멀리뛰기(cm) 2차",
         "field": "standing_long_jump_second_attempt",
         "title": "2차",
         "type": "decimal",
@@ -405,7 +405,7 @@
         "readonly": false
       },
       {
-        "name": "standing_long_jump_best_record",
+        "name": "제자리멀리뛰기(cm) 평가값",
         "field": "standing_long_jump_best_record",
         "title": "평가값",
         "type": "decimal",
@@ -420,7 +420,7 @@
   "CARDIO_PRECISION_TEST": {
     "fields": [
       {
-        "name": "cardio_precision_avg_heart_rate",
+        "name": "심박수(회/분) 평균",
         "field": "cardio_precision_avg_heart_rate",
         "title": "평균",
         "type": "integer",
@@ -430,7 +430,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_max_heart_rate",
+        "name": "심박수(회/분) 최고",
         "field": "cardio_precision_max_heart_rate",
         "title": "최고",
         "type": "integer",
@@ -440,7 +440,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_avg_intensity",
+        "name": "운동강도(%) 평균",
         "field": "cardio_precision_avg_intensity",
         "title": "평균",
         "type": "integer",
@@ -452,7 +452,7 @@
         "readonly": true
       },
       {
-        "name": "cardio_precision_total_calories",
+        "name": "총 소비열량(kcal)",
         "field": "cardio_precision_total_calories",
         "title": "총 소비열량(kcal)",
         "type": "integer",
@@ -463,7 +463,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_section_1_time",
+        "name": "구간별 운동시간(초) 1구간",
         "field": "cardio_precision_section_1_time",
         "title": "1구간",
         "type": "integer",
@@ -475,7 +475,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_section_2_time",
+        "name": "구간별 운동시간(초) 2구간",
         "field": "cardio_precision_section_2_time",
         "title": "2구간",
         "type": "integer",
@@ -487,7 +487,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_section_3_time",
+        "name": "구간별 운동시간(초) 3구간",
         "field": "cardio_precision_section_3_time",
         "title": "3구간",
         "type": "integer",
@@ -499,7 +499,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_section_4_time",
+        "name": "구간별 운동시간(초) 4구간",
         "field": "cardio_precision_section_4_time",
         "title": "4구간",
         "type": "integer",
@@ -511,7 +511,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_section_5_time",
+        "name": "구간별 운동시간(초) 5구간",
         "field": "cardio_precision_section_5_time",
         "title": "5구간",
         "type": "integer",
@@ -523,7 +523,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_rest_heart_rate_1",
+        "name": "심폐지구력정밀평가 심박수1 (회/분)",
         "field": "cardio_precision_rest_heart_rate_1",
         "title": "심박수1(회/분)",
         "type": "integer",
@@ -535,7 +535,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_rest_heart_rate_2",
+        "name": "심폐지구력정밀평가 심박수2 (회/분)",
         "field": "cardio_precision_rest_heart_rate_2",
         "title": "심박수2(회/분)",
         "type": "integer",
@@ -547,7 +547,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_rest_heart_rate_3",
+        "name": "심폐지구력정밀평가 심박수3 (회/분)",
         "field": "cardio_precision_rest_heart_rate_3",
         "title": "심박수3(회/분)",
         "type": "integer",
@@ -559,7 +559,7 @@
         "readonly": false
       },
       {
-        "name": "cardio_precision_pei",
+        "name": "심폐지구력정밀평가 PEI",
         "field": "cardio_precision_pei",
         "title": "PEI",
         "type": "decimal",
@@ -574,7 +574,7 @@
   "BODY_FAT_RATE_TEST": {
     "fields": [
       {
-        "name": "body_fat_rate_test_height",
+        "name": "키(cm)",
         "field": "body_fat_rate_test_height",
         "title": "키(cm)",
         "type": "decimal",
@@ -587,7 +587,7 @@
         "readonly": false
       },
       {
-        "name": "body_fat_rate_test_weight",
+        "name": "몸무게(kg)",
         "field": "body_fat_rate_test_weight",
         "title": "몸무게(kg)",
         "type": "decimal",
@@ -600,7 +600,7 @@
         "readonly": false
       },
       {
-        "name": "body_fat_rate_test_bmi",
+        "name": "체지방률평가 BMI(kg/m²)",
         "field": "body_fat_rate_test_bmi",
         "title": "BMI(kg/m²)",
         "type": "decimal",
@@ -611,7 +611,7 @@
         "readonly": true
       },
       {
-        "name": "body_fat_rate",
+        "name": "체지방률(%fat)",
         "field": "body_fat_rate",
         "title": "체지방률(%fat)",
         "type": "decimal",
@@ -624,7 +624,7 @@
         "readonly": false
       },
       {
-        "name": "body_fat_rate_muscle_mass",
+        "name": "근육량(%)",
         "field": "body_fat_rate_muscle_mass",
         "title": "근육량(%)",
         "type": "decimal",
@@ -636,7 +636,7 @@
         "readonly": false
       },
       {
-        "name": "body_fat_rate_fat_mass",
+        "name": "지방량(%)",
         "field": "body_fat_rate_fat_mass",
         "title": "지방량(%)",
         "type": "decimal",
@@ -652,7 +652,7 @@
   "POSTURE_TEST": {
     "fields": [
       {
-        "name": "shoulder_tilt",
+        "name": "어깨 기울기",
         "field": "shoulder_tilt",
         "title": "어깨 기울기",
         "type": "integer",
@@ -663,7 +663,7 @@
         "readonly": false
       },
       {
-        "name": "pelvis_tilt",
+        "name": "골반 기울기",
         "field": "pelvis_tilt",
         "title": "골반 기울기",
         "type": "integer",
@@ -674,7 +674,7 @@
         "readonly": false
       },
       {
-        "name": "leg_flexion",
+        "name": "다리 굴곡",
         "field": "leg_flexion",
         "title": "다리 굴곡",
         "type": "integer",
@@ -685,7 +685,7 @@
         "readonly": false
       },
       {
-        "name": "neck_tilt",
+        "name": "목뼈 기울기",
         "field": "neck_tilt",
         "title": "목뼈 기울기",
         "type": "integer",
@@ -696,7 +696,7 @@
         "readonly": false
       },
       {
-        "name": "upper_body_tilt",
+        "name": "상체 기울기",
         "field": "upper_body_tilt",
         "title": "상체 기울기",
         "type": "integer",
@@ -707,7 +707,7 @@
         "readonly": false
       },
       {
-        "name": "pelvis_sagittal_tilt",
+        "name": "골반전후 기울기",
         "field": "pelvis_sagittal_tilt",
         "title": "골반전후 기울기",
         "type": "integer",
@@ -718,7 +718,7 @@
         "readonly": false
       },
       {
-        "name": "spine_curvature",
+        "name": "척추 휨정도",
         "field": "spine_curvature",
         "title": "척추 휨정도",
         "type": "integer",
@@ -729,7 +729,7 @@
         "readonly": false
       },
       {
-        "name": "posture_test_overall_evaluation",
+        "name": "자세평가",
         "field": "posture_test_overall_evaluation",
         "title": "평가",
         "type": "string",
@@ -738,7 +738,7 @@
         "readonly": true
       },
       {
-        "name": "posture_test_questionnaire_1",
+        "name": "문진1",
         "field": "posture_test_questionnaire_1",
         "title": "문진1",
         "type": "integer",
@@ -749,7 +749,7 @@
         "readonly": false
       },
       {
-        "name": "posture_test_questionnaire_2",
+        "name": "문진2",
         "field": "posture_test_questionnaire_2",
         "title": "문진2",
         "type": "integer",
@@ -764,7 +764,7 @@
   "SELF_BODY_TEST": {
     "fields": [
       {
-        "name": "self_body_test_question_1",
+        "name": "자기신체평가 1",
         "field": "self_body_test_question_1",
         "title": "1",
         "type": "integer",
@@ -775,7 +775,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_2",
+        "name": "자기신체평가 2",
         "field": "self_body_test_question_2",
         "title": "2",
         "type": "integer",
@@ -786,7 +786,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_3",
+        "name": "자기신체평가 3",
         "field": "self_body_test_question_3",
         "title": "3",
         "type": "integer",
@@ -797,7 +797,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_4",
+        "name": "자기신체평가 4",
         "field": "self_body_test_question_4",
         "title": "4",
         "type": "integer",
@@ -808,7 +808,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_5",
+        "name": "자기신체평가 5",
         "field": "self_body_test_question_5",
         "title": "5",
         "type": "integer",
@@ -819,7 +819,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_6",
+        "name": "자기신체평가 6",
         "field": "self_body_test_question_6",
         "title": "6",
         "type": "integer",
@@ -830,7 +830,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_7",
+        "name": "자기신체평가 7",
         "field": "self_body_test_question_7",
         "title": "7",
         "type": "integer",
@@ -841,7 +841,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_8",
+        "name": "자기신체평가 8",
         "field": "self_body_test_question_8",
         "title": "8",
         "type": "integer",
@@ -852,7 +852,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_9",
+        "name": "자기신체평가 9",
         "field": "self_body_test_question_9",
         "title": "9",
         "type": "integer",
@@ -863,7 +863,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_10",
+        "name": "자기신체평가 10",
         "field": "self_body_test_question_10",
         "title": "10",
         "type": "integer",
@@ -874,7 +874,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_11",
+        "name": "자기신체평가 11",
         "field": "self_body_test_question_11",
         "title": "11",
         "type": "integer",
@@ -885,7 +885,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_12",
+        "name": "자기신체평가 12",
         "field": "self_body_test_question_12",
         "title": "12",
         "type": "integer",
@@ -896,7 +896,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_13",
+        "name": "자기신체평가 13",
         "field": "self_body_test_question_13",
         "title": "13",
         "type": "integer",
@@ -907,7 +907,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_14",
+        "name": "자기신체평가 14",
         "field": "self_body_test_question_14",
         "title": "14",
         "type": "integer",
@@ -918,7 +918,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_15",
+        "name": "자기신체평가 15",
         "field": "self_body_test_question_15",
         "title": "15",
         "type": "integer",
@@ -929,7 +929,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_16",
+        "name": "자기신체평가 16",
         "field": "self_body_test_question_16",
         "title": "16",
         "type": "integer",
@@ -940,7 +940,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_17",
+        "name": "자기신체평가 17",
         "field": "self_body_test_question_17",
         "title": "17",
         "type": "integer",
@@ -951,7 +951,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_18",
+        "name": "자기신체평가 18",
         "field": "self_body_test_question_18",
         "title": "18",
         "type": "integer",
@@ -962,7 +962,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_19",
+        "name": "자기신체평가 19",
         "field": "self_body_test_question_19",
         "title": "19",
         "type": "integer",
@@ -973,7 +973,7 @@
         "readonly": false
       },
       {
-        "name": "self_body_test_question_20",
+        "name": "자기신체평가 20",
         "field": "self_body_test_question_20",
         "title": "20",
         "type": "integer",
