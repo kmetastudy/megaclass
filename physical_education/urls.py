@@ -29,6 +29,11 @@ urlpatterns = [
         views.paps_optional_measurement_view,
         name="paps_optional_measurement",
     ),
+    path(
+        "teachers/paps/measurement/batch/",
+        views.paps_batch_measurement_view,
+        name="paps_batch_measurement",
+    ),
     # PAPS API 엔드포인트
     path(
         "api/paps/save-measurement/",
@@ -67,6 +72,23 @@ urlpatterns = [
         "api/paps/session-activities/existing/",
         apis.api_get_existing_activities,
         name="api_get_existing_activities",
+    ),
+    # 세션별 활성 활동 조회 (일괄입력용)
+    path(
+        "api/paps/session-activities/",
+        apis.api_get_session_activities,
+        name="api_get_session_activities",
+    ),
+    # 엑셀 Export API
+    path(
+        "api/paps/export-records/",
+        apis.api_export_paps_records,
+        name="api_export_paps_records",
+    ),
+    path(
+        "api/paps/download-template/",
+        apis.api_download_paps_template,
+        name="api_download_paps_template",
     ),
     
     # PAPS 통계 페이지

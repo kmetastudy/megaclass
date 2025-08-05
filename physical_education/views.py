@@ -2379,3 +2379,123 @@ def api_class_distribution(request):
             'success': False,
             'error': f'데이터 처리 중 오류가 발생했습니다: {str(e)}'
         })
+
+
+@login_required
+@teacher_required
+def paps_batch_measurement_view(request):
+    """PAPS 일괄입력 뷰"""
+    teacher_id = request.user.teacher.id
+
+    # 전체 카테고리 조회 (필수평가 + 선택평가)
+    all_categories = PAPSCategory.objects.all().order_by("order")
+
+    # 전체 활동(종목) 조회
+    all_activities = PAPSActivity.objects.all()
+
+    # 교사의 측정회차 목록 조회
+    available_sessions = PAPSSession.objects.filter(teacher_id=teacher_id).order_by(
+        "-created_at"
+    )
+
+    # 교사가 담당하는 학급들 조회 (ClassTeacher 모델 기반)
+    teacher_classes = (
+        ClassTeacher.objects.filter(teacher_id=teacher_id)
+        .select_related("class_instance")
+        .order_by("class_instance__grade", "class_instance__class_number")
+    )
+
+    # 교사가 담당하는 실제 학년 목록 추출 (중복 제거, PAPS 대상만)
+    paps_grades = set()
+    for ct in teacher_classes:
+        grade = ct.class_instance.grade
+        if 4 <= grade <= 12:  # PAPS 대상: 초4~고3
+            paps_grades.add(grade)
+
+    # 학년 선택지 생성 (실제 담당 학년만)
+    grade_choices = [
+        (grade, get_grade_display_name(grade)) for grade in sorted(paps_grades)
+    ]
+
+    # 교사가 담당하는 실제 학급 목록 생성
+    available_classes = []
+    for ct in teacher_classes:
+        cls = ct.class_instance
+        if 4 <= cls.grade <= 12:  # PAPS 대상만
+            available_classes.append(
+                {
+                    "id": cls.id,
+                    "name": f"{cls.class_number}반",
+                    "full_name": f"{cls.grade}학년 {cls.class_number}반",
+                    "grade": cls.grade,
+                    "class_number": cls.class_number,
+                    "role": ct.get_role_display(),
+                }
+            )
+
+    # 년도 범위 생성 (현재 년도 기준 ±5년)
+    current_year = timezone.now().year
+    year_range = range(current_year - 5, current_year + 6)
+
+    # 전체 카테고리 JSON 직렬화를 위한 처리
+    all_categories_json = []
+    for category in all_categories:
+        all_categories_json.append(
+            {
+                "id": str(category.id),
+                "name": category.name,
+                "display_name": category.get_name_display(),
+                "evaluation_type": category.evaluation_type,
+                "order": category.order,
+            }
+        )
+
+    # 전체 활동(종목) JSON 직렬화를 위한 처리
+    all_activities_json = []
+    for activity in all_activities:
+        all_activities_json.append(
+            {
+                "id": str(activity.id),
+                "name": activity.name,
+                "display_name": activity.get_name_display(),
+                "category_id": str(activity.category_id),
+                "measurement_schema": activity.measurement_schema,
+                "evaluation_criteria": activity.evaluation_criteria,
+            }
+        )
+
+    # 측정회차 JSON 직렬화를 위한 처리
+    sessions_json = []
+    for session in available_sessions:
+        sessions_json.append(
+            {
+                "id": str(session.id),
+                "name": session.name,
+                "school_year": session.school_year,
+                "session_type": session.session_type,
+                "session_type_display": session.get_session_type_display(),
+                "measurement_date": session.measurement_date.strftime("%Y-%m-%d"),
+                "is_completed": session.is_completed,
+            }
+        )
+
+    context = {
+        "all_categories": all_categories,
+        "all_activities": all_activities,
+        "available_sessions": available_sessions,
+        "available_classes": available_classes,
+        "grade_choices": grade_choices,
+        "year_range": year_range,
+        "current_year": current_year,
+        "evaluation_type": "batch",
+        "title": "PAPS 일괄입력",
+        # JavaScript에서 사용할 JSON 데이터
+        "all_categories_json": json.dumps(all_categories_json),
+        "all_activities_json": json.dumps(all_activities_json),
+        "available_sessions_json": json.dumps(sessions_json),
+        "available_classes_json": json.dumps(available_classes),
+        "grade_choices_json": json.dumps(grade_choices),
+    }
+    return render(
+        request, "physical_education/teachers/paps/measurement/batch_input.html", context
+    )
