@@ -1,28 +1,17 @@
 <!-- PAPS 엑셀 Export 모듈 (ExcelJS 버전) -->
 
 <!-- 엑셀 Export 버튼 영역 -->
-<div id="excel-export-area" class="mt-4 pt-4 border-t border-gray-200 hidden">
-    <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-600">
-            <i class="fas fa-file-excel mr-1"></i>
-            엑셀 기능
-        </div>
-        <div class="flex gap-2">
-            <button id="download-template-btn" 
-                    class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    disabled>
-                <i class="fas fa-download mr-2"></i>템플릿 다운로드
-            </button>
-            <button id="export-data-btn" 
-                    class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    disabled>
-                <i class="fas fa-file-export mr-2"></i>데이터 Export
-            </button>
-        </div>
-    </div>
-    <div class="mt-2 text-xs text-gray-500">
-        <p>※ 템플릿: 빈 엑셀 양식 다운로드 | 데이터 Export: 기존 측정 데이터를 포함한 엑셀 파일</p>
-    </div>
+<div id="excel-export-area" class="flex gap-2">
+    <button id="download-template-btn" 
+            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-download mr-2"></i>템플릿 다운로드
+    </button>
+    <button id="export-data-btn" 
+            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-file-export mr-2"></i>데이터 Export
+    </button>
 </div>
 
 <script>
@@ -54,20 +43,10 @@ const ExcelExporter = {
         const hasSelection = appState.selectedActivities && appState.selectedActivities.length > 0;
         const templateBtn = document.getElementById('download-template-btn');
         const exportBtn = document.getElementById('export-data-btn');
-        const exportArea = document.getElementById('excel-export-area');
         
         if (templateBtn && exportBtn) {
             templateBtn.disabled = !hasSelection;
             exportBtn.disabled = !hasSelection;
-        }
-        
-        // 선택된 활동이 있을 때만 export 영역 표시
-        if (exportArea) {
-            if (hasSelection) {
-                exportArea.classList.remove('hidden');
-            } else {
-                exportArea.classList.add('hidden');
-            }
         }
     },
     
