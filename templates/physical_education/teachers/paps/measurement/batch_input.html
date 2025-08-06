@@ -375,7 +375,14 @@ function updateActivityMultiSelect(activities) {
     
     // tom-select 초기화
     activitySelectInstance = new TomSelect(elements.activityMultiSelect, {
-        plugins: ['clear_button'],
+        plugins: {
+            'clear_button': {
+                'title': '선택 초기화'
+            },
+            'remove_button': {
+                'title': '항목 제거'
+            }
+        },
         maxItems: null,
         valueField: 'activity_id',  // PAPSActivity의 ID를 사용하도록 변경
         labelField: 'name',
