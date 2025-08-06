@@ -6,7 +6,7 @@
 {% block extra_css %}
 <!-- Tom Select CSS -->
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-<!-- ExcelJS CDN -->
+<!-- ExcelJS CDN (Excel Export & Import 통합) -->
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
 {% endblock %}
 
@@ -16,7 +16,7 @@
     {% include "physical_education/teachers/partials/sidebar.html" %}
     
     <!-- 메인 컨텐츠 -->
-    <div class="flex-1 lg:ml-64">
+    <div class="flex-1 lg:ml-64" style="overflow-x: hidden; max-width: calc(100vw - 16rem);">
         <!-- 페이지 내용 -->
         <div class="p-4 lg:p-6">
             <!-- 페이지 헤더 -->
@@ -100,12 +100,18 @@
                     
                     <!-- 저장 버튼 -->
                     <div class="flex-shrink-0">
-                        <button id="save-btn" class="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <button id="save-btn" class="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
                             <i class="fas fa-save mr-2"></i>저장
                         </button>
                     </div>
                 </div>
             </div>
+            
+            <!-- Excel Import 영역 -->
+            {% include "physical_education/includes/excel_import_module.html" %}
+            
+            <!-- 일괄입력 테이블 영역 -->
+            {% include "physical_education/includes/paps_batch_input_table.html" %}
             
         </div>
     </div>
@@ -234,29 +240,8 @@ let activitySelectInstance = null;
 // DOM 요소들
 let elements = {};
 
-// 초기화 함수
-function init() {
-    // DOM 요소 캐싱
-    elements = {
-        yearSelect: document.getElementById('year-select'),
-        gradeSelect: document.getElementById('grade-select'),
-        sessionSelect: document.getElementById('session-select'),
-        filterSearchBtn: document.getElementById('filter-search-btn'),
-        messageArea: document.getElementById('message-area'),
-        messageText: document.getElementById('message-text'),
-        activitySelectionArea: document.getElementById('activity-selection-area'),
-        activityMultiSelect: document.getElementById('activity-multi-select')
-    };
-
-    // 이벤트 리스너 등록
-    setupEventListeners();
-    
-    // 초기 상태 설정
-    initializeState();
-}
-
-// 이벤트 리스너 설정
-function setupEventListeners() {
+// 이벤트 리스너 설정 (초기 버전 - 나중에 통합됨)
+function setupEventListenersInitial() {
     // 필터 조회 버튼
     elements.filterSearchBtn.addEventListener('click', handleFilterSearch);
     
@@ -396,6 +381,7 @@ function updateActivityMultiSelect(activities) {
         labelField: 'name',
         searchField: ['name', 'category_name'],
         options: processedActivities,
+        items: processedActivities.map(a => a.activity_id), // 모든 항목을 기본 선택
         optgroups: [
             {value: 'required', label: '필수평가'},
             {value: 'optional', label: '선택평가'}
@@ -430,8 +416,24 @@ function updateActivityMultiSelect(activities) {
             if (typeof updateExcelButtonStates === 'function') {
                 updateExcelButtonStates();
             }
+            
+            // 일괄입력 테이블 생성/업데이트
+            handleActivitySelectionChange(values);
         }
     });
+    
+    // 초기 상태 설정 - 모든 항목이 선택된 상태로 시작
+    appState.selectedActivities = processedActivities.map(a => a.activity_id);
+    
+    // 엑셀 Export 버튼 상태 업데이트
+    if (typeof updateExcelButtonStates === 'function') {
+        updateExcelButtonStates();
+    }
+    
+    // 테이블 자동 생성
+    if (appState.selectedActivities.length > 0) {
+        handleActivitySelectionChange(appState.selectedActivities);
+    }
     
     console.log('다중 선택 UI 업데이트 완료:', activities.length, '개 항목');
 }
@@ -462,6 +464,186 @@ function showMessage(type, message) {
     setTimeout(() => {
         elements.messageArea.classList.add('hidden');
     }, 3000);
+}
+
+// 활동 선택 변경 처리
+async function handleActivitySelectionChange(selectedActivityIds) {
+    if (!selectedActivityIds || selectedActivityIds.length === 0) {
+        // 선택된 항목이 없으면 테이블 숨김
+        if (typeof BatchInputTable !== 'undefined') {
+            BatchInputTable.hideTableContainer();
+        }
+        return;
+    }
+    
+    // 필수 정보 확인
+    if (!appState.selectedSession || !appState.selectedGrade) {
+        showMessage('warning', '먼저 측정회차와 학년을 선택해주세요.');
+        return;
+    }
+    
+    try {
+        // 테이블 생성
+        if (typeof createBatchInputTable === 'function') {
+            await createBatchInputTable(
+                appState.selectedSession,
+                selectedActivityIds,
+                appState.selectedGrade
+            );
+        }
+        
+        console.log('일괄입력 테이블 업데이트 완료');
+        
+    } catch (error) {
+        console.error('테이블 업데이트 오류:', error);
+        showMessage('error', '테이블을 업데이트하는 중 오류가 발생했습니다.');
+    }
+}
+
+// 저장 버튼 클릭 처리
+async function handleSaveButtonClick() {
+    if (!appState.selectedSession) {
+        showMessage('warning', '측정회차를 선택해주세요.');
+        return;
+    }
+    
+    try {
+        // 변경된 데이터 가져오기
+        const modifiedData = getBatchModifiedData();
+        
+        if (!modifiedData || modifiedData.length === 0) {
+            showMessage('info', '저장할 변경사항이 없습니다.');
+            return;
+        }
+        
+        // 확인 대화상자
+        if (!confirm(`${modifiedData.length}명의 학생 데이터를 저장하시겠습니까?`)) {
+            return;
+        }
+        
+        // 저장 버튼 로딩 상태
+        const saveBtn = document.getElementById('save-btn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>저장 중...';
+        
+        // 저장 데이터 준비
+        const measurements = [];
+        
+        modifiedData.forEach(studentData => {
+            // 각 활동별로 변경된 측정값 추출
+            appState.selectedActivities.forEach(activityId => {
+                const measurementData = {};
+                let hasData = false;
+                
+                // 해당 활동의 필드들 추출
+                Object.keys(studentData).forEach(key => {
+                    if (key.startsWith(`${activityId}_`)) {
+                        const fieldName = key.substring(activityId.length + 1);
+                        const value = studentData[key];
+                        
+                        if (value !== '' && value !== null && value !== undefined) {
+                            measurementData[fieldName] = value;
+                            hasData = true;
+                        }
+                    }
+                });
+                
+                // 데이터가 있는 경우에만 추가
+                if (hasData) {
+                    measurements.push({
+                        student_id: studentData.student_id,
+                        activity_id: activityId,
+                        measurement_data: measurementData
+                    });
+                }
+            });
+        });
+        
+        if (measurements.length === 0) {
+            showMessage('warning', '저장할 측정 데이터가 없습니다.');
+            return;
+        }
+        
+        console.log('저장할 데이터:', measurements);
+        
+        // API 호출
+        const response = await fetch('/physical_education/api/paps/batch-save-measurements/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': djangoData.csrfToken
+            },
+            body: JSON.stringify({
+                session_id: appState.selectedSession,
+                measurements: measurements
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('success', result.message || '데이터가 성공적으로 저장되었습니다.');
+            
+            // 테이블 새로고침
+            if (appState.selectedActivities && appState.selectedActivities.length > 0) {
+                await handleActivitySelectionChange(appState.selectedActivities);
+            }
+        } else {
+            showMessage('error', result.error || '저장 중 오류가 발생했습니다.');
+            
+            if (result.validation_errors) {
+                console.error('검증 오류:', result.validation_errors);
+            }
+        }
+        
+    } catch (error) {
+        console.error('저장 오류:', error);
+        showMessage('error', '저장 중 오류가 발생했습니다: ' + error.message);
+    } finally {
+        // 저장 버튼 복원
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
+}
+
+// 초기화 함수 수정
+function init() {
+    // DOM 요소 캐싱
+    elements = {
+        yearSelect: document.getElementById('year-select'),
+        gradeSelect: document.getElementById('grade-select'),
+        sessionSelect: document.getElementById('session-select'),
+        filterSearchBtn: document.getElementById('filter-search-btn'),
+        messageArea: document.getElementById('message-area'),
+        messageText: document.getElementById('message-text'),
+        activitySelectionArea: document.getElementById('activity-selection-area'),
+        activityMultiSelect: document.getElementById('activity-multi-select'),
+        saveBtn: document.getElementById('save-btn')
+    };
+
+    // 이벤트 리스너 등록
+    setupEventListeners();
+    
+    // 초기 상태 설정
+    initializeState();
+}
+
+// 이벤트 리스너 설정 수정
+function setupEventListeners() {
+    // 필터 조회 버튼
+    elements.filterSearchBtn.addEventListener('click', handleFilterSearch);
+    
+    // 학년도 변경 시 측정회차 업데이트
+    elements.yearSelect.addEventListener('change', updateMeasurementSessions);
+    
+    // 저장 버튼
+    if (elements.saveBtn) {
+        elements.saveBtn.addEventListener('click', handleSaveButtonClick);
+    }
 }
 
 // 페이지 로드 시 초기화

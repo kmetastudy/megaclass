@@ -7,6 +7,11 @@
             disabled>
         <i class="fas fa-download mr-2"></i>템플릿 다운로드
     </button>
+    <button id="import-excel-btn" 
+            class="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-file-import mr-2"></i>Excel 가져오기
+    </button>
     <button id="export-data-btn" 
             class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled>
@@ -27,10 +32,15 @@ const ExcelExporter = {
     // 이벤트 리스너 설정
     setupEventListeners() {
         const templateBtn = document.getElementById('download-template-btn');
+        const importBtn = document.getElementById('import-excel-btn');
         const exportBtn = document.getElementById('export-data-btn');
         
         if (templateBtn) {
             templateBtn.addEventListener('click', () => this.downloadTemplate());
+        }
+        
+        if (importBtn) {
+            importBtn.addEventListener('click', () => this.showImportArea());
         }
         
         if (exportBtn) {
@@ -42,11 +52,22 @@ const ExcelExporter = {
     updateButtonStates() {
         const hasSelection = appState.selectedActivities && appState.selectedActivities.length > 0;
         const templateBtn = document.getElementById('download-template-btn');
+        const importBtn = document.getElementById('import-excel-btn');
         const exportBtn = document.getElementById('export-data-btn');
         
-        if (templateBtn && exportBtn) {
+        if (templateBtn && importBtn && exportBtn) {
             templateBtn.disabled = !hasSelection;
+            importBtn.disabled = !hasSelection;
             exportBtn.disabled = !hasSelection;
+        }
+    },
+    
+    // Excel Import 영역 표시
+    showImportArea() {
+        if (typeof showExcelImportArea === 'function') {
+            showExcelImportArea();
+        } else {
+            console.warn('showExcelImportArea 함수를 찾을 수 없습니다.');
         }
     },
     

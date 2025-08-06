@@ -79,6 +79,17 @@ urlpatterns = [
         apis.api_get_session_activities,
         name="api_get_session_activities",
     ),
+    # 일괄입력 API
+    path(
+        "api/paps/get-batch-records/",
+        apis.api_get_batch_records,
+        name="api_get_batch_records",
+    ),
+    path(
+        "api/paps/batch-save-measurements/",
+        apis.api_batch_save_measurements,
+        name="api_batch_save_measurements",
+    ),
     # 엑셀 Export API
     path(
         "api/paps/export-records/",

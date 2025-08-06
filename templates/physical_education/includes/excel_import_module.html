@@ -1,0 +1,662 @@
+<!-- Excel Import 모듈 -->
+
+<!-- 파일 업로드 영역 -->
+<div id="excel-import-area" class="mb-6 hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+                <i class="fas fa-file-excel mr-2 text-green-600"></i>Excel 파일 가져오기
+            </h3>
+            <button id="toggle-import-btn" class="px-3 py-2 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                <i class="fas fa-times mr-1"></i>닫기
+            </button>
+        </div>
+        
+        <!-- 드래그앤드롭 영역 -->
+        <div id="drop-zone" class="relative border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors cursor-pointer">
+            <div id="drop-zone-content">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg font-medium text-gray-700 mb-2">Excel 파일을 여기에 드래그하거나 클릭하여 선택하세요</p>
+                <p class="text-sm text-gray-500 mb-4">지원 형식: .xlsx, .xls (최대 10MB)</p>
+                <button type="button" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                    <i class="fas fa-folder-open mr-2"></i>파일 선택
+                </button>
+            </div>
+            
+            <!-- 로딩 상태 -->
+            <div id="drop-zone-loading" class="hidden">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                <p class="text-lg font-medium text-gray-700">파일을 처리하는 중...</p>
+            </div>
+        </div>
+        
+        <!-- 파일 입력 (숨김) -->
+        <input type="file" id="excel-file-input" class="hidden" accept=".xlsx,.xls" />
+        
+        <!-- 파일 정보 표시 -->
+        <div id="file-info" class="mt-4 hidden">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-excel text-green-600 mr-3"></i>
+                        <div>
+                            <div class="font-medium text-gray-900" id="file-name"></div>
+                            <div class="text-sm text-gray-600">
+                                <span id="file-size"></span> • 
+                                <span id="file-records-count"></span>개 레코드 발견
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="preview-data-btn" class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                            <i class="fas fa-eye mr-2"></i>미리보기
+                        </button>
+                        <button id="import-data-btn" class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors">
+                            <i class="fas fa-upload mr-2"></i>가져오기
+                        </button>
+                        <button id="clear-file-btn" class="px-4 py-2 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                            <i class="fas fa-times mr-2"></i>제거
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 오류 표시 -->
+        <div id="import-errors" class="mt-4 hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-medium text-red-900 mb-2">가져오기 오류</h4>
+                        <ul id="import-error-list" class="text-sm text-red-700 space-y-1">
+                            <!-- 오류 목록이 여기에 동적으로 추가됩니다 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 데이터 미리보기 모달 -->
+<div id="preview-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Excel 데이터 미리보기</h3>
+                <button id="close-preview-btn" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-auto" style="max-height: calc(90vh - 120px);">
+                <div id="preview-table-container">
+                    <!-- 미리보기 테이블이 여기에 생성됩니다 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Excel Import 모듈
+const ExcelImporter = {
+    currentFile: null,
+    parsedData: null,
+    columnMapping: null,
+    
+    // 초기화
+    init() {
+        this.setupEventListeners();
+        this.setupDropZone();
+        console.log('Excel Import 모듈 초기화 완료');
+    },
+    
+    // 이벤트 리스너 설정
+    setupEventListeners() {
+        // 토글 버튼
+        const toggleBtn = document.getElementById('toggle-import-btn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.hideImportArea());
+        }
+        
+        // 파일 입력
+        const fileInput = document.getElementById('excel-file-input');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        }
+        
+        // 미리보기 버튼
+        const previewBtn = document.getElementById('preview-data-btn');
+        if (previewBtn) {
+            previewBtn.addEventListener('click', () => this.showPreview());
+        }
+        
+        // 가져오기 버튼
+        const importBtn = document.getElementById('import-data-btn');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => this.importData());
+        }
+        
+        // 파일 제거 버튼
+        const clearBtn = document.getElementById('clear-file-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => this.clearFile());
+        }
+        
+        // 미리보기 모달 닫기
+        const closePreviewBtn = document.getElementById('close-preview-btn');
+        if (closePreviewBtn) {
+            closePreviewBtn.addEventListener('click', () => this.hidePreview());
+        }
+        
+        // 모달 배경 클릭으로 닫기
+        const previewModal = document.getElementById('preview-modal');
+        if (previewModal) {
+            previewModal.addEventListener('click', (e) => {
+                if (e.target === previewModal) {
+                    this.hidePreview();
+                }
+            });
+        }
+    },
+    
+    // 드래그앤드롭 설정
+    setupDropZone() {
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('excel-file-input');
+        
+        if (!dropZone || !fileInput) return;
+        
+        // 클릭으로 파일 선택
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // 드래그 이벤트
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                this.handleFileSelect({ target: { files: files } });
+            }
+        });
+    },
+    
+    // 파일 선택 처리
+    async handleFileSelect(event) {
+        const files = event.target.files;
+        if (!files || files.length === 0) return;
+        
+        const file = files[0];
+        
+        // 파일 유효성 검사
+        if (!this.validateFile(file)) return;
+        
+        this.currentFile = file;
+        this.showLoading();
+        
+        try {
+            // Excel 파일 파싱
+            this.parsedData = await this.parseExcelFile(file);
+            
+            if (this.parsedData && this.parsedData.length > 0) {
+                this.showFileInfo(file, this.parsedData.length);
+                this.hideErrors();
+            } else {
+                this.showError(['파일에서 데이터를 찾을 수 없습니다.']);
+            }
+            
+        } catch (error) {
+            console.error('파일 파싱 오류:', error);
+            this.showError([`파일 파싱 중 오류가 발생했습니다: ${error.message}`]);
+        } finally {
+            this.hideLoading();
+        }
+    },
+    
+    // 파일 유효성 검사
+    validateFile(file) {
+        const allowedTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel'
+        ];
+        
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        
+        if (!allowedTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/i)) {
+            this.showError(['지원하지 않는 파일 형식입니다. .xlsx 또는 .xls 파일을 선택해주세요.']);
+            return false;
+        }
+        
+        if (file.size > maxSize) {
+            this.showError(['파일 크기가 너무 큽니다. 10MB 이하의 파일을 선택해주세요.']);
+            return false;
+        }
+        
+        return true;
+    },
+    
+    // Excel 파일 파싱 (ExcelJS 사용)
+    async parseExcelFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    if (!window.ExcelJS) {
+                        reject(new Error('ExcelJS 라이브러리가 로드되지 않았습니다.'));
+                        return;
+                    }
+                    
+                    const arrayBuffer = e.target.result;
+                    const workbook = new ExcelJS.Workbook();
+                    await workbook.xlsx.load(arrayBuffer);
+                    
+                    // 첫 번째 워크시트 사용
+                    const worksheet = workbook.worksheets[0];
+                    if (!worksheet) {
+                        reject(new Error('워크시트를 찾을 수 없습니다.'));
+                        return;
+                    }
+                    
+                    const jsonData = [];
+                    const headers = [];
+                    
+                    // 첫 번째 행을 헤더로 사용
+                    const headerRow = worksheet.getRow(1);
+                    headerRow.eachCell((cell, colNumber) => {
+                        headers[colNumber - 1] = cell.value ? cell.value.toString() : '';
+                    });
+                    
+                    if (headers.length === 0 || headers.every(h => !h)) {
+                        reject(new Error('헤더 행이 비어있습니다.'));
+                        return;
+                    }
+                    
+                    // 데이터 행들 처리
+                    let hasData = false;
+                    worksheet.eachRow((row, rowNumber) => {
+                        if (rowNumber === 1) return; // 헤더 행 건너뛰기
+                        
+                        const rowData = {};
+                        let hasRowData = false;
+                        
+                        row.eachCell((cell, colNumber) => {
+                            const header = headers[colNumber - 1];
+                            if (header) {
+                                const value = cell.value ? cell.value.toString() : '';
+                                rowData[header] = value;
+                                if (value) hasRowData = true;
+                            }
+                        });
+                        
+                        // 빈 컬럼도 헤더에 맞춰 추가
+                        headers.forEach((header, index) => {
+                            if (!(header in rowData)) {
+                                rowData[header] = '';
+                            }
+                        });
+                        
+                        if (hasRowData) {
+                            jsonData.push(rowData);
+                            hasData = true;
+                        }
+                    });
+                    
+                    if (!hasData) {
+                        reject(new Error('데이터가 충분하지 않습니다. 헤더와 최소 1개 이상의 데이터 행이 필요합니다.'));
+                        return;
+                    }
+                    
+                    resolve(jsonData);
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
+            };
+            
+            reader.readAsArrayBuffer(file);
+        });
+    },
+    
+    // 데이터 가져오기
+    async importData() {
+        if (!this.parsedData || this.parsedData.length === 0) {
+            this.showError(['가져올 데이터가 없습니다.']);
+            return;
+        }
+        
+        try {
+            // 데이터 검증 및 매핑
+            const mappedData = this.mapExcelDataToTable(this.parsedData);
+            
+            if (mappedData.length === 0) {
+                this.showError(['매핑할 수 있는 유효한 데이터가 없습니다.']);
+                return;
+            }
+            
+            // 확인 대화상자
+            if (!confirm(`${mappedData.length}개의 레코드를 가져오시겠습니까?`)) {
+                return;
+            }
+            
+            // 테이블에 데이터 적용
+            if (typeof BatchInputTable !== 'undefined' && BatchInputTable.table) {
+                this.applyDataToTable(mappedData);
+                
+                // Import 영역 숨김
+                this.hideImportArea();
+                
+                if (typeof showMessage === 'function') {
+                    showMessage('success', `${mappedData.length}개의 레코드를 성공적으로 가져왔습니다.`);
+                }
+            } else {
+                this.showError(['테이블이 초기화되지 않았습니다. 먼저 측정 항목을 선택해주세요.']);
+            }
+            
+        } catch (error) {
+            console.error('데이터 가져오기 오류:', error);
+            this.showError([`데이터 가져오기 중 오류가 발생했습니다: ${error.message}`]);
+        }
+    },
+    
+    // Excel 데이터를 테이블 형식으로 매핑
+    mapExcelDataToTable(excelData) {
+        const mappedData = [];
+        
+        excelData.forEach((row, index) => {
+            try {
+                const mappedRow = {};
+                
+                // 기본 정보 매핑
+                mappedRow.student_name = row['학생성명'] || row['성명'] || '';
+                mappedRow.student_number = row['번호'] || '';
+                mappedRow.class_name = row['반명'] || '';
+                
+                // 학생 이름으로 student_id 찾기 (실제 구현에서는 더 정교한 매핑 필요)
+                if (typeof BatchInputTable !== 'undefined' && BatchInputTable.table) {
+                    const tableData = BatchInputTable.table.getData();
+                    const matchingStudent = tableData.find(student => 
+                        student.student_name === mappedRow.student_name &&
+                        student.student_number === mappedRow.student_number
+                    );
+                    
+                    if (matchingStudent) {
+                        mappedRow.student_id = matchingStudent.student_id;
+                        
+                        // 측정값 매핑
+                        Object.keys(row).forEach(key => {
+                            if (key !== '학생성명' && key !== '성명' && key !== '번호' && key !== '반명' && 
+                                key !== '학년도' && key !== '학년' && key !== '반코드') {
+                                
+                                const value = row[key];
+                                if (value !== '' && value !== null && value !== undefined) {
+                                    // 컬럼명을 기반으로 필드 매핑 (추후 개선 필요)
+                                    mappedRow[`measurement_${key}`] = value;
+                                }
+                            }
+                        });
+                        
+                        mappedData.push(mappedRow);
+                    }
+                }
+                
+            } catch (error) {
+                console.warn(`행 ${index + 1} 매핑 오류:`, error);
+            }
+        });
+        
+        return mappedData;
+    },
+    
+    // 테이블에 데이터 적용
+    applyDataToTable(mappedData) {
+        if (!BatchInputTable.table) return;
+        
+        mappedData.forEach(row => {
+            const studentId = row.student_id;
+            if (!studentId) return;
+            
+            // 테이블에서 해당 학생 행 찾기
+            const tableRow = BatchInputTable.table.getRow(studentId);
+            if (tableRow) {
+                // 측정값 업데이트
+                Object.keys(row).forEach(key => {
+                    if (key.startsWith('measurement_')) {
+                        const value = row[key];
+                        // 실제 필드명으로 매핑하여 업데이트
+                        // 이 부분은 실제 필드 매핑 로직에 따라 수정 필요
+                        tableRow.update({ [key]: value });
+                    }
+                });
+            }
+        });
+    },
+    
+    // 미리보기 표시
+    showPreview() {
+        if (!this.parsedData || this.parsedData.length === 0) return;
+        
+        const container = document.getElementById('preview-table-container');
+        if (!container) return;
+        
+        // 테이블 HTML 생성
+        const headers = Object.keys(this.parsedData[0]);
+        const previewData = this.parsedData.slice(0, 10); // 처음 10개 행만 표시
+        
+        let tableHTML = `
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${previewData.map(row => `
+                            <tr>
+                                ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row[header] || ''}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-sm text-gray-600">
+                총 ${this.parsedData.length}개 레코드 중 처음 ${Math.min(10, this.parsedData.length)}개를 표시하고 있습니다.
+            </div>
+        `;
+        
+        container.innerHTML = tableHTML;
+        
+        // 모달 표시
+        const modal = document.getElementById('preview-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    },
+    
+    // 미리보기 숨김
+    hidePreview() {
+        const modal = document.getElementById('preview-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    },
+    
+    // Import 영역 표시
+    showImportArea() {
+        const area = document.getElementById('excel-import-area');
+        if (area) {
+            area.classList.remove('hidden');
+        }
+    },
+    
+    // Import 영역 숨김
+    hideImportArea() {
+        const area = document.getElementById('excel-import-area');
+        if (area) {
+            area.classList.add('hidden');
+        }
+        this.clearFile();
+    },
+    
+    // 파일 정보 표시
+    showFileInfo(file, recordCount) {
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const recordsCount = document.getElementById('file-records-count');
+        
+        if (fileInfo && fileName && fileSize && recordsCount) {
+            fileName.textContent = file.name;
+            fileSize.textContent = this.formatFileSize(file.size);
+            recordsCount.textContent = recordCount;
+            fileInfo.classList.remove('hidden');
+        }
+    },
+    
+    // 파일 크기 포맷팅
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+    
+    // 로딩 표시
+    showLoading() {
+        const content = document.getElementById('drop-zone-content');
+        const loading = document.getElementById('drop-zone-loading');
+        
+        if (content && loading) {
+            content.classList.add('hidden');
+            loading.classList.remove('hidden');
+        }
+    },
+    
+    // 로딩 숨김
+    hideLoading() {
+        const content = document.getElementById('drop-zone-content');
+        const loading = document.getElementById('drop-zone-loading');
+        
+        if (content && loading) {
+            content.classList.remove('hidden');
+            loading.classList.add('hidden');
+        }
+    },
+    
+    // 파일 제거
+    clearFile() {
+        this.currentFile = null;
+        this.parsedData = null;
+        this.columnMapping = null;
+        
+        const fileInput = document.getElementById('excel-file-input');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        const fileInfo = document.getElementById('file-info');
+        if (fileInfo) {
+            fileInfo.classList.add('hidden');
+        }
+        
+        this.hideErrors();
+    },
+    
+    // 오류 표시
+    showError(errors) {
+        const errorArea = document.getElementById('import-errors');
+        const errorList = document.getElementById('import-error-list');
+        
+        if (errorArea && errorList) {
+            errorList.innerHTML = errors.map(error => `<li>• ${error}</li>`).join('');
+            errorArea.classList.remove('hidden');
+        }
+    },
+    
+    // 오류 숨김
+    hideErrors() {
+        const errorArea = document.getElementById('import-errors');
+        if (errorArea) {
+            errorArea.classList.add('hidden');
+        }
+    }
+};
+
+// 전역 함수들
+function showExcelImportArea() {
+    if (typeof ExcelImporter !== 'undefined') {
+        ExcelImporter.showImportArea();
+    }
+}
+
+function hideExcelImportArea() {
+    if (typeof ExcelImporter !== 'undefined') {
+        ExcelImporter.hideImportArea();
+    }
+}
+
+// DOM 로드 후 초기화
+document.addEventListener('DOMContentLoaded', () => {
+    ExcelImporter.init();
+});
+
+console.log('Excel Import 모듈 로드 완료');
+</script>
+
+<style>
+/* Excel Import 스타일 */
+#drop-zone {
+    transition: all 0.3s ease;
+}
+
+#drop-zone:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#drop-zone.border-blue-400 {
+    border-color: #60a5fa !important;
+    background-color: #eff6ff !important;
+}
+
+/* 미리보기 모달 스타일 */
+#preview-modal {
+    backdrop-filter: blur(4px);
+}
+
+/* 애니메이션 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.3s ease-out;
+}
+</style>
