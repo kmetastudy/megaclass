@@ -99,7 +99,7 @@
                     {% include "physical_education/includes/paps_excel_export.html" %}
                     
                     <!-- 저장 버튼 -->
-                    <div class="flex-shrink-0">
+                    <div class="flex-shrink-0 hidden">
                         <button id="save-btn" class="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
                             <i class="fas fa-save mr-2"></i>저장
                         </button>
@@ -108,10 +108,10 @@
             </div>
             
             <!-- Excel Import 영역 -->
-            {% include "physical_education/includes/excel_import_module.html" %}
+            {% comment %} {% include "physical_education/includes/excel_import_module.html" %} {% endcomment %}
             
             <!-- 일괄입력 테이블 영역 -->
-            {% include "physical_education/includes/paps_batch_input_table.html" %}
+            {% comment %} {% include "physical_education/includes/paps_batch_input_table.html" %} {% endcomment %}
             
         </div>
     </div>
