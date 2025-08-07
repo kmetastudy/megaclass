@@ -15,7 +15,7 @@
           <p class="text-gray-600">측정 관련 기능을 이용하세요</p>
         </div>
 
-        <!-- 2단계 스텝 인터페이스 -->
+        <!-- 3단계 스텝 인터페이스 -->
         <div class="max-w-4xl mx-auto">
           <!-- 진행 상태 표시 -->
           <div class="mb-8">
@@ -29,22 +29,33 @@
                   <span class="ml-2 text-sm font-medium text-gray-900 hidden sm:block">측정 대상 선택</span>
                 </div>
                 
-                <!-- 연결선 -->
+                <!-- 연결선 1-2 -->
                 <div class="flex-1 h-0.5 bg-gray-300 step-connector" data-step="1-2"></div>
                 
-                <!-- Step 2: 측정 입력 -->
+                <!-- Step 2: 학급 및 종목 선택 -->
                 <div class="flex items-center">
                   <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 text-gray-500 text-sm font-medium step-indicator" data-step="2">
                     2
                   </div>
-                  <span class="ml-2 text-sm font-medium text-gray-500 hidden sm:block">측정 입력</span>
+                  <span class="ml-2 text-sm font-medium text-gray-500 hidden sm:block">학급 및 종목 선택</span>
+                </div>
+                
+                <!-- 연결선 2-3 -->
+                <div class="flex-1 h-0.5 bg-gray-300 step-connector" data-step="2-3"></div>
+                
+                <!-- Step 3: 측정 화면 -->
+                <div class="flex items-center">
+                  <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 text-gray-500 text-sm font-medium step-indicator" data-step="3">
+                    3
+                  </div>
+                  <span class="ml-2 text-sm font-medium text-gray-500 hidden sm:block">측정 화면</span>
                 </div>
               </div>
               
               <!-- 모바일용 현재 단계 표시 -->
               <div class="sm:hidden">
                 <span class="text-sm text-gray-600">
-                  <span id="current-step-mobile">1</span> / 2
+                  <span id="current-step-mobile">1</span> / 3
                 </span>
               </div>
             </div>
@@ -99,29 +110,42 @@
               </div>
             </div>
             
-            <!-- Step 2: 측정 입력 -->
+            <!-- Step 2: 학급 및 종목 선택 -->
             <div id="step-2" class="step-content hidden">
               <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-6">
-                  <h2 class="text-xl font-semibold text-gray-900">측정 입력</h2>
+                  <h2 class="text-xl font-semibold text-gray-900">학급 및 종목 선택</h2>
                   <div class="text-sm text-gray-500">2단계</div>
                 </div>
                 
-                <!-- 선택된 정보 표시 -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" id="selected-info">
-                  <div class="flex items-center">
-                    <i class="fas fa-check-circle text-blue-600 mr-2"></i>
-                    <span class="text-sm text-blue-800">선택된 대상: </span>
-                    <span class="font-medium text-blue-900" id="selected-target-info">-</span>
-                  </div>
-                </div>
-                
-                <!-- 측정 입력 내용 -->
+                <!-- 학급과 측정종목 선택 -->
                 <div class="space-y-6">
-                  <div class="text-center py-12 text-gray-500">
-                    <i class="fas fa-clipboard-list text-4xl mb-4"></i>
-                    <p class="text-lg mb-2">측정 데이터를 입력하세요</p>
-                    <p class="text-sm">선택된 대상의 측정 결과를 입력할 수 있습니다</p>
+                  <!-- 선택된 정보 표시 -->
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                      <i class="fas fa-check-circle text-blue-600 mr-2"></i>
+                      <span class="text-sm text-blue-800">선택된 대상: </span>
+                      <span class="font-medium text-blue-900" id="selected-target-info">-</span>
+                    </div>
+                  </div>
+
+                  <!-- 학급과 측정종목 선택 (수평 정렬) -->
+                  <div class="flex space-x-4">
+                    <!-- 학급 선택 -->
+                    <div class="flex-1">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">학급 선택</label>
+                      <select id="class-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">학급을 선택하세요</option>
+                      </select>
+                    </div>
+                    
+                    <!-- 측정종목 선택 -->
+                    <div class="flex-1">
+                      <label class="block text-sm font-medium text-gray-700 mb-2">측정종목 선택</label>
+                      <select id="activity-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">측정종목을 선택하세요</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 
@@ -130,8 +154,63 @@
                   <button id="prev-btn-step2" class="px-6 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
                     이전 단계
                   </button>
-                  <button id="submit-btn-step2" class="px-6 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                    측정 완료
+                  <button id="next-btn-step2" class="px-6 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    다음 단계
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Step 3: 측정 화면 -->
+            <div id="step-3" class="step-content hidden">
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-xl font-semibold text-gray-900">측정 화면</h2>
+                  <div class="text-sm text-gray-500">3단계</div>
+                </div>
+                
+                <!-- 선택된 정보 표시 -->
+                <div class="space-y-6">
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                      <i class="fas fa-check-circle text-blue-600 mr-2"></i>
+                      <span class="text-sm text-blue-800">선택된 대상: </span>
+                      <span class="font-medium text-blue-900" id="selected-target-info-step3">-</span>
+                    </div>
+                  </div>
+                  
+                  <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="space-y-2">
+                      <div class="flex items-center">
+                        <i class="fas fa-users text-green-600 mr-2"></i>
+                        <span class="text-sm text-green-800">선택된 학급: </span>
+                        <span class="font-medium text-green-900" id="selected-class-info">-</span>
+                      </div>
+                      <div class="flex items-center">
+                        <i class="fas fa-running text-green-600 mr-2"></i>
+                        <span class="text-sm text-green-800">선택된 종목: </span>
+                        <span class="font-medium text-green-900" id="selected-activity-info">-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 측정 화면 컨테이너 (추후 종목별 템플릿이 포함될 예정) -->
+                <div class="mt-6">
+                  <div id="measurement-container" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                    <div class="text-gray-500">
+                      <i class="fas fa-chart-line text-4xl mb-4"></i>
+                      <h3 class="text-lg font-medium mb-2">측정 화면 준비 중</h3>
+                      <p class="text-sm">선택된 종목에 따른 측정 화면이 여기에 표시됩니다.</p>
+                      <p class="text-sm text-gray-400 mt-1">종목별 측정 템플릿 개발 완료 후 활성화 예정</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- 3단계 네비게이션 -->
+                <div class="flex justify-start mt-8 pt-6 border-t border-gray-200">
+                  <button id="prev-btn-step3" class="px-6 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    이전 단계
                   </button>
                 </div>
               </div>
@@ -166,6 +245,8 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedSchoolYear: null,
         selectedSession: null,
         selectedGrade: null,
+        selectedClass: null,
+        selectedActivity: null,
         
         // 상태 업데이트
         setStep(step) {
@@ -182,13 +263,21 @@ document.addEventListener('DOMContentLoaded', function() {
             this.saveToStorage();
         },
         
+        setClassAndActivity(classId, activityId) {
+            this.selectedClass = classId;
+            this.selectedActivity = activityId;
+            this.saveToStorage();
+        },
+        
         // 로컬스토리지에 상태 저장
         saveToStorage() {
             localStorage.setItem('paps_measure_state', JSON.stringify({
                 currentStep: this.currentStep,
                 selectedSchoolYear: this.selectedSchoolYear,
                 selectedSession: this.selectedSession,
-                selectedGrade: this.selectedGrade
+                selectedGrade: this.selectedGrade,
+                selectedClass: this.selectedClass,
+                selectedActivity: this.selectedActivity
             }));
         },
         
@@ -202,6 +291,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.selectedSchoolYear = data.selectedSchoolYear;
                     this.selectedSession = data.selectedSession;
                     this.selectedGrade = data.selectedGrade;
+                    this.selectedClass = data.selectedClass;
+                    this.selectedActivity = data.selectedActivity;
                 }
             } catch (e) {
                 console.error('상태 복원 중 오류:', e);
@@ -214,6 +305,8 @@ document.addEventListener('DOMContentLoaded', function() {
             this.selectedSchoolYear = null;
             this.selectedSession = null;
             this.selectedGrade = null;
+            this.selectedClass = null;
+            this.selectedActivity = null;
             this.updateUI();
             this.updateHash();
             this.saveToStorage();
@@ -242,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         
         updateStepIndicators() {
-            for (let i = 1; i <= 2; i++) {
+            for (let i = 1; i <= 3; i++) {
                 const indicator = document.querySelector(`.step-indicator[data-step="${i}"]`);
                 const label = indicator?.nextElementSibling;
                 
@@ -279,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         
         updateStepContent() {
-            for (let i = 1; i <= 2; i++) {
+            for (let i = 1; i <= 3; i++) {
                 const content = document.getElementById(`step-${i}`);
                 if (content) {
                     content.classList.toggle('hidden', i !== this.currentStep);
@@ -300,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 해시 변경 이벤트 처리
     window.addEventListener('hashchange', function() {
         const step = AppState.getStepFromHash();
-        if (step >= 1 && step <= 2) {
+        if (step >= 1 && step <= 3) {
             AppState.currentStep = step;
             AppState.updateUI();
             AppState.saveToStorage();
@@ -378,6 +471,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (validateStep1()) {
             AppState.setStep(2);
             updateSelectedInfo();
+            loadClassOptions();
+            loadActivityOptions();
         }
     });
     
@@ -386,11 +481,33 @@ document.addEventListener('DOMContentLoaded', function() {
         AppState.setStep(1);
     });
     
-    // 측정 완료 버튼
-    document.getElementById('submit-btn-step2').addEventListener('click', function() {
-        alert('측정이 완료되었습니다!');
-        AppState.reset();
+    // 학급 선택 이벤트
+    document.getElementById('class-select').addEventListener('change', function() {
+        const selectedClass = this.value;
+        AppState.selectedClass = selectedClass;
+        
+        validateStep2();
     });
+    
+    // 측정종목 선택 이벤트
+    document.getElementById('activity-select').addEventListener('change', function() {
+        AppState.selectedActivity = this.value;
+        validateStep2();
+    });
+    
+    // 2단계 다음 단계 버튼
+    document.getElementById('next-btn-step2').addEventListener('click', function() {
+        if (validateStep2()) {
+            AppState.setStep(3);
+            updateStep3Info();
+        }
+    });
+    
+    // 3단계 이전 단계 버튼
+    document.getElementById('prev-btn-step3').addEventListener('click', function() {
+        AppState.setStep(2);
+    });
+    
     
     // ================ 유틸리티 함수 ================
     
@@ -414,6 +531,84 @@ document.addEventListener('DOMContentLoaded', function() {
         else return `고${grade - 9}`;
     }
     
+    // 2단계 관련 함수들
+    function loadClassOptions() {
+        if (!AppState.selectedGrade) return;
+        
+        // 선택된 학년에 해당하는 학급만 필터링
+        const filteredClasses = papsData.classes.filter(cls => 
+            cls.grade === parseInt(AppState.selectedGrade)
+        );
+        
+        const classSelect = document.getElementById('class-select');
+        let options = '<option value="">학급을 선택하세요</option>';
+        
+        filteredClasses.forEach(cls => {
+            options += `<option value="${cls.id}">${cls.name}</option>`;
+        });
+        
+        classSelect.innerHTML = options;
+        classSelect.disabled = false;
+    }
+    
+    function loadActivityOptions() {
+        if (!AppState.selectedSession || !AppState.selectedGrade) return;
+        
+        // 선택된 측정회차와 학년에 해당하는 활동들 필터링
+        const sessionActivities = papsData.sessionActivities.filter(sa => 
+            sa.session_id === AppState.selectedSession && 
+            sa.grade === parseInt(AppState.selectedGrade)
+        );
+        
+        const activitySelect = document.getElementById('activity-select');
+        let options = '<option value="">측정종목을 선택하세요</option>';
+        
+        // 카테고리별로 그룹화
+        const categorizedActivities = {};
+        sessionActivities.forEach(sa => {
+            const activity = papsData.activities.find(act => act.id === sa.activity_id);
+            const category = papsData.categories.find(cat => cat.id === sa.category_id);
+            
+            if (activity && category) {
+                if (!categorizedActivities[category.display_name]) {
+                    categorizedActivities[category.display_name] = [];
+                }
+                categorizedActivities[category.display_name].push({
+                    id: activity.id,
+                    name: activity.display_name
+                });
+            }
+        });
+        
+        // optgroup으로 카테고리별 표시
+        Object.keys(categorizedActivities).forEach(categoryName => {
+            options += `<optgroup label="${categoryName}">`;
+            categorizedActivities[categoryName].forEach(activity => {
+                options += `<option value="${activity.id}">${activity.name}</option>`;
+            });
+            options += '</optgroup>';
+        });
+        
+        activitySelect.innerHTML = options;
+    }
+    
+    function resetActivitySelect() {
+        const activitySelect = document.getElementById('activity-select');
+        activitySelect.innerHTML = '<option value="">측정종목을 선택하세요</option>';
+        AppState.selectedActivity = null;
+    }
+    
+    function validateStep2() {
+        const isValid = AppState.selectedClass && AppState.selectedActivity;
+        const nextBtn = document.getElementById('next-btn-step2');
+        
+        if (nextBtn) {
+            nextBtn.disabled = !isValid;
+        }
+        
+        return isValid;
+    }
+    
     function validateStep1() {
         const isValid = AppState.selectedSchoolYear && AppState.selectedSession && AppState.selectedGrade;
         const nextBtn = document.getElementById('next-btn-step1');
@@ -432,6 +627,38 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedSessionData) {
                 const info = `${AppState.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
                 infoElement.textContent = info;
+            }
+        }
+    }
+    
+    function updateStep3Info() {
+        // 3단계에서 선택된 대상 정보 업데이트
+        const targetInfoElement = document.getElementById('selected-target-info-step3');
+        if (AppState.selectedSchoolYear && AppState.selectedSession && AppState.selectedGrade) {
+            const selectedSessionData = papsData.sessions.find(s => s.id === AppState.selectedSession);
+            const gradeDisplay = getGradeDisplay(parseInt(AppState.selectedGrade));
+            
+            if (selectedSessionData) {
+                const info = `${AppState.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
+                targetInfoElement.textContent = info;
+            }
+        }
+        
+        // 선택된 학급 정보 업데이트
+        const classInfoElement = document.getElementById('selected-class-info');
+        if (AppState.selectedClass) {
+            const selectedClassData = papsData.classes.find(cls => cls.id === parseInt(AppState.selectedClass));
+            if (selectedClassData) {
+                classInfoElement.textContent = selectedClassData.name;
+            }
+        }
+        
+        // 선택된 종목 정보 업데이트
+        const activityInfoElement = document.getElementById('selected-activity-info');
+        if (AppState.selectedActivity) {
+            const selectedActivityData = papsData.activities.find(act => act.id === parseInt(AppState.selectedActivity));
+            if (selectedActivityData) {
+                activityInfoElement.textContent = selectedActivityData.display_name;
             }
         }
     }
@@ -471,11 +698,56 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (AppState.currentStep === 2) {
         updateSelectedInfo();
+        loadClassOptions();
+        loadActivityOptions();
+        
+        // 2단계 상태 복원
+        if (AppState.selectedClass) {
+            setTimeout(() => {
+                document.getElementById('class-select').value = AppState.selectedClass;
+            }, 300);
+        }
+        
+        if (AppState.selectedActivity) {
+            setTimeout(() => {
+                document.getElementById('activity-select').value = AppState.selectedActivity;
+                validateStep2();
+            }, 400);
+        }
+    }
+    
+    if (AppState.currentStep === 3) {
+        updateSelectedInfo();
+        loadClassOptions();
+        loadActivityOptions();
+        updateStep3Info();
+        
+        // 3단계 상태 복원 - 2단계 선택값들 복원
+        if (AppState.selectedClass) {
+            setTimeout(() => {
+                document.getElementById('class-select').value = AppState.selectedClass;
+            }, 300);
+        }
+        
+        if (AppState.selectedActivity) {
+            setTimeout(() => {
+                document.getElementById('activity-select').value = AppState.selectedActivity;
+            }, 400);
+        }
     }
     
     // UI 초기화
     AppState.updateUI();
-    validateStep1();
+    
+    // 현재 단계에 따른 초기 검증
+    if (AppState.currentStep === 1) {
+        validateStep1();
+    } else if (AppState.currentStep === 2) {
+        validateStep2();
+    } else if (AppState.currentStep === 3) {
+        // 3단계는 별도 검증 없이 정보만 표시
+        updateStep3Info();
+    }
 });
 </script>
 {% endblock %}
