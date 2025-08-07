@@ -124,6 +124,20 @@
                         </a>
                     </div>
                     
+                    <!-- 측정하기 -->
+                    <a href="{% url 'physical_education:paps_measure' %}" 
+                       class="flex items-center px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors sidebar-link
+                              {% if request.resolver_match.url_name == 'paps_measure' %}
+                                  text-blue-600 bg-blue-50 font-medium cursor-default
+                              {% else %}
+                                  text-gray-600 hover:bg-gray-50
+                              {% endif %}"
+                       data-current="{% if request.resolver_match.url_name == 'paps_measure' %}true{% else %}false{% endif %}"
+                       aria-current="{% if request.resolver_match.url_name == 'paps_measure' %}page{% endif %}">
+                        <i class="fas fa-ruler mr-3" aria-hidden="true"></i>
+                        측정하기
+                    </a>
+                    
                     <!-- 통계 -->
                     <button class="flex items-center justify-between w-full px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
                             onclick="toggleMenu('statistics-menu')"

@@ -34,6 +34,11 @@ urlpatterns = [
         views.paps_batch_measurement_view,
         name="paps_batch_measurement",
     ),
+    path(
+        "teachers/paps/measurement/measure/",
+        views.paps_measure_view,
+        name="paps_measure",
+    ),
     # PAPS API 엔드포인트
     path(
         "api/paps/save-measurement/",

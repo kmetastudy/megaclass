@@ -2499,3 +2499,119 @@ def paps_batch_measurement_view(request):
     return render(
         request, "physical_education/teachers/paps/measurement/batch_input.html", context
     )
+
+
+@login_required
+@teacher_required
+def paps_measure_view(request):
+    """PAPS 측정하기 뷰"""
+    teacher_id = request.user.teacher.id
+    
+    # 1. 측정회차 데이터
+    sessions = PAPSSession.objects.filter(
+        teacher_id=teacher_id
+    ).order_by("-school_year", "-measurement_date")
+    
+    # 2. 활성화된 PAPSSessionActivity 전체 데이터 조회
+    session_ids = sessions.values_list('id', flat=True)
+    active_session_activities = PAPSSessionActivity.objects.filter(
+        session_id__in=session_ids,
+        is_active=True
+    ).order_by('session_id', 'grade', 'category_id')
+    
+    # PAPSSessionActivity 데이터 구조화
+    session_activities_data = []
+    for activity in active_session_activities:
+        session_activities_data.append({
+            'id': str(activity.id),
+            'session_id': str(activity.session_id),
+            'grade': activity.grade,
+            'grade_display': activity.get_grade_display(),
+            'category_id': str(activity.category_id),
+            'activity_id': str(activity.activity_id),
+            'is_active': activity.is_active,
+            'created_at': activity.created_at.isoformat() if activity.created_at else None
+        })
+    
+    # 학년 정보 추출 (기존 로직 유지)
+    active_grades = set(sa['grade'] for sa in session_activities_data)
+    
+    # 3. 담당 학급 데이터 (활성화된 학년만)
+    teacher_classes = ClassTeacher.objects.filter(
+        teacher_id=teacher_id
+    ).select_related("class_instance").order_by(
+        "class_instance__grade", 
+        "class_instance__class_number"
+    )
+    
+    # 활성화된 학년에 해당하는 학급만 필터링
+    classes_data = []
+    grades_set = set()
+    for ct in teacher_classes:
+        cls = ct.class_instance
+        if cls.grade in active_grades:
+            classes_data.append({
+                "id": cls.id,
+                "grade": cls.grade,
+                "class_number": cls.class_number,
+                "name": f"{cls.grade}학년 {cls.class_number}반"
+            })
+            grades_set.add(cls.grade)
+    
+    # 학년도 목록
+    school_years = sorted(set(
+        sessions.values_list("school_year", flat=True)
+    ), reverse=True)
+    
+    # 3. PAPS 카테고리 데이터를 배열로 처리
+    categories = PAPSCategory.objects.all().order_by("order")
+    categories_data = []
+    for category in categories:
+        categories_data.append({
+            "id": str(category.id),
+            "name": category.name,  # 원본 (예: "CARDIO")
+            "display_name": category.get_name_display(),  # 한글명 (예: "심폐지구력")
+            "evaluation_type": category.evaluation_type,
+            "order": category.order
+        })
+    
+    # 4. PAPS 활동 데이터를 배열로 처리
+    activities = PAPSActivity.objects.all().order_by("created_at")
+    activities_data = []
+    for activity in activities:
+        activities_data.append({
+            "id": str(activity.id),
+            "name": activity.name,  # 원본 (예: "SHUTTLE_RUN")
+            "display_name": activity.get_name_display(),  # 한글명 (예: "왕복오래달리기")
+            "category_id": str(activity.category_id),
+            "measurement_schema": activity.measurement_schema,
+            "evaluation_criteria": activity.evaluation_criteria,
+            "created_at": activity.created_at.isoformat() if activity.created_at else None
+        })
+    
+    # 세션 데이터를 JSON 직렬화 가능한 형태로 변환
+    sessions_data = []
+    for session in sessions:
+        sessions_data.append({
+            "id": str(session.id),
+            "name": session.name,
+            "teacher_id": session.teacher_id,
+            "school_year": session.school_year,
+            "session_type": session.session_type,
+            "session_type_display": session.get_session_type_display(),
+            "measurement_date": session.measurement_date.isoformat() if session.measurement_date else None,
+            "is_active": session.is_active,
+            "created_at": session.created_at.isoformat() if session.created_at else None
+        })
+    
+    context = {
+        "school_years": school_years,
+        # JSON 직렬화된 데이터 추가
+        "classes_json": json.dumps(classes_data),
+        "sessions_json": json.dumps(sessions_data),
+        "categories_json": json.dumps(categories_data),
+        "activities_json": json.dumps(activities_data),
+        "session_activities_json": json.dumps(session_activities_data),
+    }
+
+    return render(request, "physical_education/teachers/paps/measurement/measure.html", context)
