@@ -71,12 +71,12 @@
                   <div class="text-sm text-gray-500">1단계</div>
                 </div>
                 
-                <!-- 측정 대상 선택 내용 -->
-                <div class="space-y-6">
+                <!-- 측정 대상 선택 폼 -->
+                <form id="step1-form" class="space-y-6">
                   <!-- 1. 학년도 선택 -->
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">학년도 선택</label>
-                    <select id="school-year-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="school-year-select" name="school_year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                       <option value="">학년도를 선택하세요</option>
                       {% for year in school_years %}
                         <option value="{{ year }}">{{ year }}년도</option>
@@ -87,7 +87,7 @@
                   <!-- 2. 측정회차 선택 -->
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">측정회차 선택</label>
-                    <select id="session-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                    <select id="session-select" name="session_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
                       <option value="">먼저 학년도를 선택하세요</option>
                     </select>
                   </div>
@@ -95,11 +95,11 @@
                   <!-- 3. 학년 선택 -->
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">학년 선택</label>
-                    <select id="grade-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                    <select id="grade-select" name="grade" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
                       <option value="">먼저 측정회차를 선택해주세요</option>
                     </select>
                   </div>
-                </div>
+                </form>
                 
                 <!-- 1단계 네비게이션 -->
                 <div class="flex justify-end mt-8 pt-6 border-t border-gray-200">
@@ -118,8 +118,8 @@
                   <div class="text-sm text-gray-500">2단계</div>
                 </div>
                 
-                <!-- 학급과 측정종목 선택 -->
-                <div class="space-y-6">
+                <!-- 학급과 측정종목 선택 폼 -->
+                <form id="step2-form" class="space-y-6">
                   <!-- 선택된 정보 표시 -->
                   <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div class="flex items-center">
@@ -134,7 +134,7 @@
                     <!-- 학급 선택 -->
                     <div class="flex-1">
                       <label class="block text-sm font-medium text-gray-700 mb-2">학급 선택</label>
-                      <select id="class-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <select id="class-select" name="class_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">학급을 선택하세요</option>
                       </select>
                     </div>
@@ -142,12 +142,12 @@
                     <!-- 측정종목 선택 -->
                     <div class="flex-1">
                       <label class="block text-sm font-medium text-gray-700 mb-2">측정종목 선택</label>
-                      <select id="activity-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <select id="activity-select" name="activity_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">측정종목을 선택하세요</option>
                       </select>
                     </div>
                   </div>
-                </div>
+                </form>
                 
                 <!-- 2단계 네비게이션 -->
                 <div class="flex justify-between mt-8 pt-6 border-t border-gray-200">
@@ -195,14 +195,29 @@
                   </div>
                 </div>
                 
-                <!-- 측정 화면 컨테이너 (추후 종목별 템플릿이 포함될 예정) -->
+                <!-- 측정 화면 컨테이너 - HTMX로 동적 로드 -->
                 <div class="mt-6">
-                  <div id="measurement-container" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                    <div class="text-gray-500">
-                      <i class="fas fa-chart-line text-4xl mb-4"></i>
-                      <h3 class="text-lg font-medium mb-2">측정 화면 준비 중</h3>
-                      <p class="text-sm">선택된 종목에 따른 측정 화면이 여기에 표시됩니다.</p>
-                      <p class="text-sm text-gray-400 mt-1">종목별 측정 템플릿 개발 완료 후 활성화 예정</p>
+                  <div id="measurement-container" 
+                       hx-trigger="load-measurement from:body"
+                       hx-get="/paps/load-measurement/"
+                       hx-include="#step1-form, #step2-form"
+                       hx-indicator="#loading-indicator">
+                    
+                    <!-- 로딩 인디케이터 -->
+                    <div id="loading-indicator" class="htmx-indicator border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <div class="text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium mb-2">측정 화면 로딩 중...</h3>
+                      </div>
+                    </div>
+                    
+                    <!-- 초기 상태 -->
+                    <div class="initial-content border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <div class="text-gray-500">
+                        <i class="fas fa-chart-line text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium mb-2">측정 화면 준비 중</h3>
+                        <p class="text-sm">선택된 종목에 따른 측정 화면이 여기에 표시됩니다.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -223,7 +238,36 @@
 </div>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+/* HTMX 로딩 인디케이터 스타일 */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: block;
+}
+
+.htmx-request .initial-content {
+    display: none;
+}
+
+/* 트랜지션 효과 */
+#measurement-container {
+    transition: opacity 0.3s ease;
+}
+
+#measurement-container.htmx-request {
+    opacity: 0.7;
+}
+</style>
+{% endblock %}
+
 {% block extra_js %}
+<!-- HTMX 라이브러리 -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
 <script>
 // ================ JSON 데이터 파싱 ================
 const papsData = {
@@ -234,112 +278,114 @@ const papsData = {
     sessionActivities: {{ session_activities_json|safe }}
 };
 
-// 콘솔에서 데이터 확인 가능
-console.log('PAPS 데이터:', papsData);
-
 document.addEventListener('DOMContentLoaded', function() {
     
-    // ================ 상태 관리 시스템 ================
-    const AppState = {
-        currentStep: 1,
-        selectedSchoolYear: null,
-        selectedSession: null,
-        selectedGrade: null,
-        selectedClass: null,
-        selectedActivity: null,
+    // ================ 개선된 상태 관리 시스템 ================
+    class StateManager {
+        constructor() {
+            this.state = {
+                currentStep: 1,
+                selectedSchoolYear: null,
+                selectedSession: null,
+                selectedGrade: null,
+                selectedClass: null,
+                selectedActivity: null
+            };
+            
+            this.listeners = new Map();
+            this.storageKey = 'paps_measure_state';
+        }
         
         // 상태 업데이트
-        setStep(step) {
-            this.currentStep = step;
-            this.updateUI();
-            this.updateHash();
-            this.saveToStorage();
-        },
+        setState(updates) {
+            const oldState = { ...this.state };
+            this.state = { ...this.state, ...updates };
+            
+            // 변경된 키들만 리스너 호출
+            Object.keys(updates).forEach(key => {
+                if (oldState[key] !== this.state[key]) {
+                    this.notify(key, this.state[key]);
+                }
+            });
+            
+            this.persist();
+        }
         
-        setSelection(schoolYear, session, grade) {
-            this.selectedSchoolYear = schoolYear;
-            this.selectedSession = session;
-            this.selectedGrade = grade;
-            this.saveToStorage();
-        },
+        // 리스너 등록
+        subscribe(key, callback) {
+            if (!this.listeners.has(key)) {
+                this.listeners.set(key, new Set());
+            }
+            this.listeners.get(key).add(callback);
+        }
         
-        setClassAndActivity(classId, activityId) {
-            this.selectedClass = classId;
-            this.selectedActivity = activityId;
-            this.saveToStorage();
-        },
+        // 리스너 알림
+        notify(key, value) {
+            this.listeners.get(key)?.forEach(callback => callback(value));
+        }
         
-        // 로컬스토리지에 상태 저장
-        saveToStorage() {
-            localStorage.setItem('paps_measure_state', JSON.stringify({
-                currentStep: this.currentStep,
-                selectedSchoolYear: this.selectedSchoolYear,
-                selectedSession: this.selectedSession,
-                selectedGrade: this.selectedGrade,
-                selectedClass: this.selectedClass,
-                selectedActivity: this.selectedActivity
-            }));
-        },
+        // sessionStorage에 저장
+        persist() {
+            sessionStorage.setItem(this.storageKey, JSON.stringify(this.state));
+        }
         
-        // 로컬스토리지에서 상태 복원
-        loadFromStorage() {
+        // sessionStorage에서 복원
+        restore() {
             try {
-                const saved = localStorage.getItem('paps_measure_state');
+                const saved = sessionStorage.getItem(this.storageKey);
                 if (saved) {
-                    const data = JSON.parse(saved);
-                    this.currentStep = data.currentStep || 1;
-                    this.selectedSchoolYear = data.selectedSchoolYear;
-                    this.selectedSession = data.selectedSession;
-                    this.selectedGrade = data.selectedGrade;
-                    this.selectedClass = data.selectedClass;
-                    this.selectedActivity = data.selectedActivity;
+                    this.state = JSON.parse(saved);
+                    return true;
                 }
             } catch (e) {
                 console.error('상태 복원 중 오류:', e);
             }
-        },
+            return false;
+        }
         
         // 상태 초기화
         reset() {
-            this.currentStep = 1;
-            this.selectedSchoolYear = null;
-            this.selectedSession = null;
-            this.selectedGrade = null;
-            this.selectedClass = null;
-            this.selectedActivity = null;
+            this.state = {
+                currentStep: 1,
+                selectedSchoolYear: null,
+                selectedSession: null,
+                selectedGrade: null,
+                selectedClass: null,
+                selectedActivity: null
+            };
+            this.persist();
             this.updateUI();
-            this.updateHash();
-            this.saveToStorage();
-        },
+        }
         
         // URL 해시 업데이트
         updateHash() {
-            const newHash = `#step-${this.currentStep}`;
+            const newHash = `#step-${this.state.currentStep}`;
             if (window.location.hash !== newHash) {
-                window.location.hash = newHash;
+                history.replaceState(null, null, newHash);
             }
-        },
+        }
         
         // 해시에서 단계 추출
         getStepFromHash() {
             const hash = window.location.hash;
             const match = hash.match(/#step-(\d+)/);
             return match ? parseInt(match[1]) : 1;
-        },
+        }
         
         // UI 업데이트
         updateUI() {
             this.updateStepIndicators();
             this.updateStepContent();
             this.updateMobileStepCounter();
-        },
+            this.updateHash();
+        }
         
         updateStepIndicators() {
             for (let i = 1; i <= 3; i++) {
                 const indicator = document.querySelector(`.step-indicator[data-step="${i}"]`);
                 const label = indicator?.nextElementSibling;
                 
-                if (i < this.currentStep) {
+                if (i < this.state.currentStep) {
                     // 완료된 단계
                     indicator?.classList.remove('bg-gray-300', 'text-gray-500', 'bg-blue-600');
                     indicator?.classList.add('bg-green-600', 'text-white');
@@ -350,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const connector = document.querySelector(`.step-connector[data-step="${i}-${i+1}"]`);
                     connector?.classList.remove('bg-gray-300');
                     connector?.classList.add('bg-green-600');
-                } else if (i === this.currentStep) {
+                } else if (i === this.state.currentStep) {
                     // 현재 단계
                     indicator?.classList.remove('bg-gray-300', 'text-gray-500', 'bg-green-600');
                     indicator?.classList.add('bg-blue-600', 'text-white');
@@ -369,175 +415,225 @@ document.addEventListener('DOMContentLoaded', function() {
                     connector?.classList.add('bg-gray-300');
                 }
             }
-        },
+        }
         
         updateStepContent() {
-            for (let i = 1; i <= 3; i++) {
-                const content = document.getElementById(`step-${i}`);
-                if (content) {
-                    content.classList.toggle('hidden', i !== this.currentStep);
-                }
-            }
-        },
+            document.querySelectorAll('.step-content').forEach((content, index) => {
+                content.classList.toggle('hidden', index + 1 !== this.state.currentStep);
+            });
+        }
         
         updateMobileStepCounter() {
             const counter = document.getElementById('current-step-mobile');
             if (counter) {
-                counter.textContent = this.currentStep;
+                counter.textContent = this.state.currentStep;
             }
         }
-    };
+        
+        // 단계 이동
+        goToStep(step) {
+            if (step >= 1 && step <= 3) {
+                this.setState({ currentStep: step });
+                this.updateUI();
+            }
+        }
+    }
     
-    // ================ 이벤트 리스너 설정 ================
+    // 상태 관리자 인스턴스 생성
+    const AppState = new StateManager();
     
-    // 해시 변경 이벤트 처리
-    window.addEventListener('hashchange', function() {
-        const step = AppState.getStepFromHash();
-        if (step >= 1 && step <= 3) {
-            AppState.currentStep = step;
-            AppState.updateUI();
-            AppState.saveToStorage();
+    // ================ 폼 데이터 관리 ================
+    class FormManager {
+        constructor() {
+            this.forms = {
+                step1: document.getElementById('step1-form'),
+                step2: document.getElementById('step2-form')
+            };
+        }
+        
+        // 폼 데이터 수집
+        getFormData(formId) {
+            const form = this.forms[formId];
+            if (!form) return {};
+            
+            const formData = new FormData(form);
+            return Object.fromEntries(formData.entries());
+        }
+        
+        // 폼 데이터 복원
+        restoreFormData(formId, data) {
+            const form = this.forms[formId];
+            if (!form) return;
+            
+            Object.entries(data).forEach(([key, value]) => {
+                const element = form.querySelector(`[name="${key}"]`);
+                if (element && value) {
+                    element.value = value;
+                }
+            });
+        }
+        
+        // 모든 폼 데이터 수집
+        getAllFormData() {
+            return {
+                ...this.getFormData('step1'),
+                ...this.getFormData('step2')
+            };
+        }
+    }
+    
+    const formManager = new FormManager();
+    
+    // ================ 이벤트 핸들러 ================
+    
+    // 이벤트 위임을 통한 select 변경 처리
+    document.getElementById('step1-form').addEventListener('change', function(e) {
+        const target = e.target;
+        
+        if (target.id === 'school-year-select') {
+            handleSchoolYearChange(target.value);
+        } else if (target.id === 'session-select') {
+            handleSessionChange(target.value);
+        } else if (target.id === 'grade-select') {
+            handleGradeChange(target.value);
         }
     });
     
-    // 학년도 선택 이벤트
-    document.getElementById('school-year-select').addEventListener('change', function() {
-        const selectedYear = parseInt(this.value);
-        AppState.selectedSchoolYear = selectedYear;
+    document.getElementById('step2-form').addEventListener('change', function(e) {
+        const target = e.target;
+        
+        if (target.id === 'class-select') {
+            AppState.setState({ selectedClass: target.value });
+        } else if (target.id === 'activity-select') {
+            AppState.setState({ selectedActivity: target.value });
+        }
+        
+        validateStep2();
+    });
+    
+    // 학년도 변경 핸들러
+    function handleSchoolYearChange(value) {
+        const selectedYear = value ? parseInt(value) : null;
+        AppState.setState({ selectedSchoolYear: selectedYear });
         
         if (selectedYear) {
-            // 해당 학년도의 측정회차만 필터링
             const filteredSessions = papsData.sessions.filter(s => s.school_year === selectedYear);
-            
-            // 측정회차 select 업데이트
-            const sessionSelect = document.getElementById('session-select');
-            let options = '<option value="">측정회차를 선택하세요</option>';
-            
-            filteredSessions.forEach(session => {
-                options += `<option value="${session.id}">${session.name}</option>`;
-            });
-            
-            sessionSelect.innerHTML = options;
-            sessionSelect.disabled = false;
+            updateSessionOptions(filteredSessions);
         } else {
-            // 학년도 미선택시 하위 select 초기화
             resetSessionSelect();
             resetGradeSelect();
         }
         
         validateStep1();
-    });
+    }
     
-    // 측정회차 선택 이벤트
-    document.getElementById('session-select').addEventListener('change', function() {
-        const selectedSessionId = this.value;
-        AppState.selectedSession = selectedSessionId;
+    // 측정회차 변경 핸들러
+    function handleSessionChange(value) {
+        AppState.setState({ selectedSession: value });
         
-        if (selectedSessionId) {
-            // sessionActivities에서 해당 session_id의 unique 학년 추출
+        if (value) {
             const sessionActivities = papsData.sessionActivities.filter(
-                sa => sa.session_id === selectedSessionId
+                sa => sa.session_id === value
             );
             
-            // unique 학년 추출 및 정렬
             const uniqueGrades = [...new Set(sessionActivities.map(sa => sa.grade))].sort((a, b) => a - b);
-            
-            // 학년 select 업데이트
-            const gradeSelect = document.getElementById('grade-select');
-            let options = '<option value="">학년을 선택하세요</option>';
-            
-            uniqueGrades.forEach(grade => {
-                const gradeDisplay = getGradeDisplay(grade);
-                options += `<option value="${grade}">${gradeDisplay}</option>`;
-            });
-            
-            gradeSelect.innerHTML = options;
-            gradeSelect.disabled = false;
+            updateGradeOptions(uniqueGrades);
         } else {
             resetGradeSelect();
         }
         
         validateStep1();
-    });
+    }
     
-    // 학년 선택 이벤트
-    document.getElementById('grade-select').addEventListener('change', function() {
-        AppState.selectedGrade = this.value;
+    // 학년 변경 핸들러
+    function handleGradeChange(value) {
+        AppState.setState({ selectedGrade: value });
         validateStep1();
-    });
+    }
     
-    // 다음 단계 버튼
-    document.getElementById('next-btn-step1').addEventListener('click', function() {
-        if (validateStep1()) {
-            AppState.setStep(2);
-            updateSelectedInfo();
-            loadClassOptions();
-            loadActivityOptions();
-        }
-    });
+    // ================ UI 업데이트 함수 ================
     
-    // 이전 단계 버튼
-    document.getElementById('prev-btn-step2').addEventListener('click', function() {
-        AppState.setStep(1);
-    });
-    
-    // 학급 선택 이벤트
-    document.getElementById('class-select').addEventListener('change', function() {
-        const selectedClass = this.value;
-        AppState.selectedClass = selectedClass;
+    function updateSessionOptions(sessions) {
+        const sessionSelect = document.getElementById('session-select');
+        let options = '<option value="">측정회차를 선택하세요</option>';
         
-        validateStep2();
-    });
+        sessions.forEach(session => {
+            options += `<option value="${session.id}">${session.name}</option>`;
+        });
+        
+        sessionSelect.innerHTML = options;
+        sessionSelect.disabled = false;
+    }
     
-    // 측정종목 선택 이벤트
-    document.getElementById('activity-select').addEventListener('change', function() {
-        AppState.selectedActivity = this.value;
-        validateStep2();
-    });
-    
-    // 2단계 다음 단계 버튼
-    document.getElementById('next-btn-step2').addEventListener('click', function() {
-        if (validateStep2()) {
-            AppState.setStep(3);
-            updateStep3Info();
-        }
-    });
-    
-    // 3단계 이전 단계 버튼
-    document.getElementById('prev-btn-step3').addEventListener('click', function() {
-        AppState.setStep(2);
-    });
-    
-    
-    // ================ 유틸리티 함수 ================
+    function updateGradeOptions(grades) {
+        const gradeSelect = document.getElementById('grade-select');
+        let options = '<option value="">학년을 선택하세요</option>';
+        
+        grades.forEach(grade => {
+            const gradeDisplay = getGradeDisplay(grade);
+            options += `<option value="${grade}">${gradeDisplay}</option>`;
+        });
+        
+        gradeSelect.innerHTML = options;
+        gradeSelect.disabled = false;
+    }
     
     function resetSessionSelect() {
         const sessionSelect = document.getElementById('session-select');
         sessionSelect.innerHTML = '<option value="">먼저 학년도를 선택하세요</option>';
         sessionSelect.disabled = true;
-        AppState.selectedSession = null;
+        AppState.setState({ selectedSession: null });
     }
     
     function resetGradeSelect() {
         const gradeSelect = document.getElementById('grade-select');
         gradeSelect.innerHTML = '<option value="">먼저 측정회차를 선택해주세요</option>';
         gradeSelect.disabled = true;
-        AppState.selectedGrade = null;
+        AppState.setState({ selectedGrade: null });
     }
     
-    function getGradeDisplay(grade) {
-        if (grade <= 6) return `초${grade}`;
-        else if (grade <= 9) return `중${grade - 6}`;
-        else return `고${grade - 9}`;
+    // ================ 네비게이션 버튼 이벤트 ================
+    
+    document.getElementById('next-btn-step1').addEventListener('click', function() {
+        if (validateStep1()) {
+            AppState.goToStep(2);
+            updateSelectedInfo();
+            loadStep2Options();
+        }
+    });
+    
+    document.getElementById('prev-btn-step2').addEventListener('click', function() {
+        AppState.goToStep(1);
+    });
+    
+    document.getElementById('next-btn-step2').addEventListener('click', function() {
+        if (validateStep2()) {
+            AppState.goToStep(3);
+            updateStep3Info();
+            
+            // HTMX 트리거 발생
+            setTimeout(() => {
+                document.body.dispatchEvent(new CustomEvent('load-measurement'));
+            }, 100);
+        }
+    });
+    
+    document.getElementById('prev-btn-step3').addEventListener('click', function() {
+        AppState.goToStep(2);
+    });
+    
+    // ================ 2단계 관련 함수 ================
+    
+    function loadStep2Options() {
+        loadClassOptions();
+        loadActivityOptions();
     }
     
-    // 2단계 관련 함수들
     function loadClassOptions() {
-        if (!AppState.selectedGrade) return;
+        if (!AppState.state.selectedGrade) return;
         
-        // 선택된 학년에 해당하는 학급만 필터링
         const filteredClasses = papsData.classes.filter(cls => 
-            cls.grade === parseInt(AppState.selectedGrade)
+            cls.grade === parseInt(AppState.state.selectedGrade)
         );
         
         const classSelect = document.getElementById('class-select');
@@ -548,22 +644,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         classSelect.innerHTML = options;
-        classSelect.disabled = false;
     }
     
     function loadActivityOptions() {
-        if (!AppState.selectedSession || !AppState.selectedGrade) return;
+        if (!AppState.state.selectedSession || !AppState.state.selectedGrade) return;
         
-        // 선택된 측정회차와 학년에 해당하는 활동들 필터링
         const sessionActivities = papsData.sessionActivities.filter(sa => 
-            sa.session_id === AppState.selectedSession && 
-            sa.grade === parseInt(AppState.selectedGrade)
+            sa.session_id === AppState.state.selectedSession && 
+            sa.grade === parseInt(AppState.state.selectedGrade)
         );
         
         const activitySelect = document.getElementById('activity-select');
         let options = '<option value="">측정종목을 선택하세요</option>';
         
-        // 카테고리별로 그룹화
         const categorizedActivities = {};
         sessionActivities.forEach(sa => {
             const activity = papsData.activities.find(act => act.id === sa.activity_id);
@@ -580,7 +673,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // optgroup으로 카테고리별 표시
         Object.keys(categorizedActivities).forEach(categoryName => {
             options += `<optgroup label="${categoryName}">`;
             categorizedActivities[categoryName].forEach(activity => {
@@ -592,162 +684,196 @@ document.addEventListener('DOMContentLoaded', function() {
         activitySelect.innerHTML = options;
     }
     
-    function resetActivitySelect() {
-        const activitySelect = document.getElementById('activity-select');
-        activitySelect.innerHTML = '<option value="">측정종목을 선택하세요</option>';
-        AppState.selectedActivity = null;
-    }
-    
-    function validateStep2() {
-        const isValid = AppState.selectedClass && AppState.selectedActivity;
-        const nextBtn = document.getElementById('next-btn-step2');
-        
-        if (nextBtn) {
-            nextBtn.disabled = !isValid;
-        }
-        
-        return isValid;
-    }
+    // ================ 유효성 검사 ================
     
     function validateStep1() {
-        const isValid = AppState.selectedSchoolYear && AppState.selectedSession && AppState.selectedGrade;
-        const nextBtn = document.getElementById('next-btn-step1');
+        const isValid = AppState.state.selectedSchoolYear && 
+                       AppState.state.selectedSession && 
+                       AppState.state.selectedGrade;
         
+        const nextBtn = document.getElementById('next-btn-step1');
         nextBtn.disabled = !isValid;
         
         return isValid;
     }
     
+    function validateStep2() {
+        const isValid = AppState.state.selectedClass && 
+                       AppState.state.selectedActivity;
+        
+        const nextBtn = document.getElementById('next-btn-step2');
+        nextBtn.disabled = !isValid;
+        
+        return isValid;
+    }
+    
+    // ================ 정보 표시 업데이트 ================
+    
     function updateSelectedInfo() {
         const infoElement = document.getElementById('selected-target-info');
-        if (AppState.selectedSchoolYear && AppState.selectedSession && AppState.selectedGrade) {
-            const selectedSessionData = papsData.sessions.find(s => s.id === AppState.selectedSession);
-            const gradeDisplay = getGradeDisplay(parseInt(AppState.selectedGrade));
+        if (AppState.state.selectedSchoolYear && AppState.state.selectedSession && AppState.state.selectedGrade) {
+            const selectedSessionData = papsData.sessions.find(s => s.id === AppState.state.selectedSession);
+            const gradeDisplay = getGradeDisplay(parseInt(AppState.state.selectedGrade));
             
             if (selectedSessionData) {
-                const info = `${AppState.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
+                const info = `${AppState.state.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
                 infoElement.textContent = info;
             }
         }
     }
     
     function updateStep3Info() {
-        // 3단계에서 선택된 대상 정보 업데이트
         const targetInfoElement = document.getElementById('selected-target-info-step3');
-        if (AppState.selectedSchoolYear && AppState.selectedSession && AppState.selectedGrade) {
-            const selectedSessionData = papsData.sessions.find(s => s.id === AppState.selectedSession);
-            const gradeDisplay = getGradeDisplay(parseInt(AppState.selectedGrade));
+        if (AppState.state.selectedSchoolYear && AppState.state.selectedSession && AppState.state.selectedGrade) {
+            const selectedSessionData = papsData.sessions.find(s => s.id === AppState.state.selectedSession);
+            const gradeDisplay = getGradeDisplay(parseInt(AppState.state.selectedGrade));
             
             if (selectedSessionData) {
-                const info = `${AppState.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
+                const info = `${AppState.state.selectedSchoolYear}년도 ${selectedSessionData.session_type_display} - ${gradeDisplay}`;
                 targetInfoElement.textContent = info;
             }
         }
         
-        // 선택된 학급 정보 업데이트
         const classInfoElement = document.getElementById('selected-class-info');
-        if (AppState.selectedClass) {
-            const selectedClassData = papsData.classes.find(cls => cls.id === parseInt(AppState.selectedClass));
+        if (AppState.state.selectedClass) {
+            const selectedClassData = papsData.classes.find(cls => cls.id === parseInt(AppState.state.selectedClass));
             if (selectedClassData) {
                 classInfoElement.textContent = selectedClassData.name;
             }
         }
         
-        // 선택된 종목 정보 업데이트
         const activityInfoElement = document.getElementById('selected-activity-info');
-        if (AppState.selectedActivity) {
-            const selectedActivityData = papsData.activities.find(act => act.id === parseInt(AppState.selectedActivity));
+        console.log("Selected Activity ID:", AppState.state.selectedActivity);
+        console.log("Available Activities:", papsData.activities);
+        if (AppState.state.selectedActivity) {
+            const selectedActivityData = papsData.activities.find(act => act.id === AppState.state.selectedActivity);
             if (selectedActivityData) {
                 activityInfoElement.textContent = selectedActivityData.display_name;
             }
         }
     }
     
+    // ================ 유틸리티 함수 ================
+    
+    function getGradeDisplay(grade) {
+        if (grade <= 6) return `초${grade}`;
+        else if (grade <= 9) return `중${grade - 6}`;
+        else return `고${grade - 9}`;
+    }
+    
+    // ================ 해시 변경 처리 ================
+    
+    window.addEventListener('hashchange', function() {
+        const step = AppState.getStepFromHash();
+        if (step !== AppState.state.currentStep) {
+            AppState.goToStep(step);
+        }
+    });
+    
+    // ================ HTMX 이벤트 처리 ================
+    
+    // 측정 화면 로드 완료 시
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'measurement-container') {
+            console.log('측정 화면 로드 완료');
+        }
+    });
+    
+    // 측정 화면 로드 에러 시
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        if (evt.detail.target.id === 'measurement-container') {
+            console.error('측정 화면 로드 실패');
+            evt.detail.target.innerHTML = `
+                <div class="border-2 border-red-300 bg-red-50 rounded-lg p-8 text-center">
+                    <div class="text-red-600">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium mb-2">로드 실패</h3>
+                        <p class="text-sm">측정 화면을 불러오는데 실패했습니다.</p>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
     // ================ 초기화 ================
     
-    // 상태 복원
-    AppState.loadFromStorage();
-    
-    // 해시에서 단계 확인
-    const hashStep = AppState.getStepFromHash();
-    if (hashStep !== AppState.currentStep) {
-        AppState.currentStep = hashStep;
-    }
-    
-    // 상태 복원 로직
-    if (AppState.selectedSchoolYear) {
-        document.getElementById('school-year-select').value = AppState.selectedSchoolYear;
-        // 학년도 선택 이벤트 트리거
-        document.getElementById('school-year-select').dispatchEvent(new Event('change'));
-    }
-    
-    if (AppState.selectedSession && AppState.selectedSchoolYear) {
-        setTimeout(() => {
-            document.getElementById('session-select').value = AppState.selectedSession;
-            // 측정회차 선택 이벤트 트리거
-            document.getElementById('session-select').dispatchEvent(new Event('change'));
-        }, 100);
-    }
-    
-    if (AppState.selectedGrade && AppState.selectedSession) {
-        setTimeout(() => {
-            document.getElementById('grade-select').value = AppState.selectedGrade;
+    function initialize() {
+        // 상태 복원
+        const hasRestoredState = AppState.restore();
+        
+        // 해시에서 단계 확인
+        const hashStep = AppState.getStepFromHash();
+        if (hashStep !== AppState.state.currentStep) {
+            AppState.setState({ currentStep: hashStep });
+        }
+        
+        // 상태가 복원되었다면 폼 데이터 복원
+        if (hasRestoredState) {
+            restoreAllForms();
+        }
+        
+        // UI 초기화
+        AppState.updateUI();
+        
+        // 현재 단계에 따른 초기 검증
+        if (AppState.state.currentStep === 1) {
             validateStep1();
-        }, 200);
-    }
-    
-    if (AppState.currentStep === 2) {
-        updateSelectedInfo();
-        loadClassOptions();
-        loadActivityOptions();
-        
-        // 2단계 상태 복원
-        if (AppState.selectedClass) {
+        } else if (AppState.state.currentStep === 2) {
+            updateSelectedInfo();
+            loadStep2Options();
+            validateStep2();
+        } else if (AppState.state.currentStep === 3) {
+            updateSelectedInfo();
+            loadStep2Options();
+            updateStep3Info();
+            
+            // 3단계로 직접 접근한 경우 측정 화면 로드
             setTimeout(() => {
-                document.getElementById('class-select').value = AppState.selectedClass;
-            }, 300);
-        }
-        
-        if (AppState.selectedActivity) {
-            setTimeout(() => {
-                document.getElementById('activity-select').value = AppState.selectedActivity;
-                validateStep2();
-            }, 400);
+                document.body.dispatchEvent(new CustomEvent('load-measurement'));
+            }, 100);
         }
     }
     
-    if (AppState.currentStep === 3) {
-        updateSelectedInfo();
-        loadClassOptions();
-        loadActivityOptions();
-        updateStep3Info();
-        
-        // 3단계 상태 복원 - 2단계 선택값들 복원
-        if (AppState.selectedClass) {
-            setTimeout(() => {
-                document.getElementById('class-select').value = AppState.selectedClass;
-            }, 300);
+    // 폼 데이터 복원
+    function restoreAllForms() {
+        // Step 1 폼 복원
+        if (AppState.state.selectedSchoolYear) {
+            document.getElementById('school-year-select').value = AppState.state.selectedSchoolYear;
+            handleSchoolYearChange(AppState.state.selectedSchoolYear);
         }
         
-        if (AppState.selectedActivity) {
-            setTimeout(() => {
-                document.getElementById('activity-select').value = AppState.selectedActivity;
-            }, 400);
+        if (AppState.state.selectedSession) {
+            // 옵션이 로드된 후 값 설정
+            requestAnimationFrame(() => {
+                document.getElementById('session-select').value = AppState.state.selectedSession;
+                handleSessionChange(AppState.state.selectedSession);
+            });
+        }
+        
+        if (AppState.state.selectedGrade) {
+            // 옵션이 로드된 후 값 설정
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    document.getElementById('grade-select').value = AppState.state.selectedGrade;
+                });
+            });
+        }
+        
+        // Step 2 폼 복원
+        if (AppState.state.currentStep >= 2) {
+            requestAnimationFrame(() => {
+                if (AppState.state.selectedClass) {
+                    document.getElementById('class-select').value = AppState.state.selectedClass;
+                }
+                if (AppState.state.selectedActivity) {
+                    document.getElementById('activity-select').value = AppState.state.selectedActivity;
+                }
+            });
         }
     }
     
-    // UI 초기화
-    AppState.updateUI();
-    
-    // 현재 단계에 따른 초기 검증
-    if (AppState.currentStep === 1) {
-        validateStep1();
-    } else if (AppState.currentStep === 2) {
-        validateStep2();
-    } else if (AppState.currentStep === 3) {
-        // 3단계는 별도 검증 없이 정보만 표시
-        updateStep3Info();
-    }
+    // 초기화 실행
+    initialize();
 });
 </script>
 {% endblock %}
