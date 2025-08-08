@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, apis
+from . import views, apis, measurement_views
 
 app_name = "physical_education"
 
@@ -38,6 +38,12 @@ urlpatterns = [
         "teachers/paps/measurement/measure/",
         views.paps_measure_view,
         name="paps_measure",
+    ),
+    # PAPS 측정 화면 동적 로드 (HTMX용)
+    path(
+        "paps/load-measurement/",
+        measurement_views.paps_load_measurement_view,
+        name="paps_load_measurement",
     ),
     # PAPS API 엔드포인트
     path(
