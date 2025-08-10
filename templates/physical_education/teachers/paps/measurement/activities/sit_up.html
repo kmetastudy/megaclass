@@ -96,10 +96,16 @@
 <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     const studentContainer = document.getElementById('student-list-container');
     const saveAllBtn = document.getElementById('save-all-btn');
     const toastContainer = document.getElementById('toast-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS sit_up template not properly loaded');
+        return;
+    }
 
     // 측정 데이터 (Django 컨텍스트에서 전달)
     const measurementData = {
@@ -259,5 +265,5 @@ document.addEventListener('DOMContentLoaded', function() {
     saveAllBtn.addEventListener('click', function() {
         showToast('일괄 저장 기능은 개발 중입니다.', 'error');
     });
-});
+})();
 </script>
