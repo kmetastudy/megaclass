@@ -17,6 +17,20 @@ if TYPE_CHECKING:
 
 # ==================== 유틸리티 함수 ====================
 
+def get_korean_name(user):
+    """Django User 객체의 한국식 이름 반환
+    
+    Args:
+        user: Django User 객체
+        
+    Returns:
+        str: "성이름" 형식의 한국식 이름 (예: 김철수)
+    """
+    if user.last_name and user.first_name:
+        return f"{user.last_name}{user.first_name}"
+    return user.get_full_name() or user.username
+
+
 def get_grade_from_number(grade_number: int) -> str:
     """학년 숫자를 한글 학년으로 변환"""
     grade_mapping = {
@@ -601,7 +615,7 @@ def create_default_paps_records(session_activity, teacher_id):
                     skipped_count += 1
                     students_info.append({
                         'student_id': student.id,
-                        'student_name': student.user.get_full_name(),
+                        'student_name': get_korean_name(student.user),
                         'status': 'skipped',
                         'reason': 'already_exists'
                     })
@@ -619,7 +633,7 @@ def create_default_paps_records(session_activity, teacher_id):
                     created_count += 1
                     students_info.append({
                         'student_id': student.id,
-                        'student_name': student.user.get_full_name(),
+                        'student_name': get_korean_name(student.user),
                         'status': 'created',
                         'class_name': str(student.school_class)
                     })

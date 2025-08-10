@@ -16,7 +16,7 @@ from .models import (
     PAPSRecord,
 )
 from .forms import PAPSSessionForm, PAPSActivitySelectionForm
-from .utils import calculate_paps_grade, get_measurement_value, get_activity_display_name, get_activity_unit, get_grade_from_number
+from .utils import calculate_paps_grade, get_measurement_value, get_activity_display_name, get_activity_unit, get_grade_from_number, get_korean_name
 from accounts.models import ClassTeacher, Class, Student
 import json
 
@@ -38,7 +38,7 @@ def get_student_gender(student):
     """학생 성별 정보 추출 (임시로 이름 기반 추정)"""
     # 실제로는 User 모델에 성별 필드가 있거나 Profile 모델을 통해 관리해야 함
     # 현재는 임시로 이름 기반으로 추정
-    name = student.user.get_full_name() or student.user.username
+    name = get_korean_name(student.user)
 
     # 한국 이름의 일반적인 패턴으로 간단히 추정 (실제로는 정확한 데이터가 필요)
     male_endings = ["수", "호", "민", "진", "현", "우", "석", "준", "혁", "영"]
@@ -873,7 +873,7 @@ def api_get_students_by_class(request):
             students_data.append(
                 {
                     "id": student.id,
-                    "name": student.user.get_full_name() or student.user.username,
+                    "name": get_korean_name(student.user),
                     "number": get_student_number_from_id(student.student_id),
                     "gender": get_student_gender(student),
                     "student_id": student.student_id,
@@ -967,7 +967,7 @@ def api_paps_get_measurements_by_activity(request):
             
             student_data = {
                 "id": student.id,
-                "name": student.user.get_full_name() or student.user.username,
+                "name": get_korean_name(student.user),
                 "number": get_student_number_from_id(student.student_id),
                 "gender": get_student_gender(student),
                 "student_id": student.student_id,
@@ -1704,7 +1704,7 @@ def api_individual_profile(request):
             'data': {
                 'student_info': {
                     'id': student.id,
-                    'name': student.user.get_full_name() or student.user.username,
+                    'name': get_korean_name(student.user),
                     'class': student.school_class.name,
                     'grade': student.school_class.grade,
                     'grade_display': get_grade_display_name(student.school_class.grade)
@@ -1805,7 +1805,7 @@ def api_individual_growth(request):
                 'data': {
                     'student_info': {
                         'id': student.id,
-                        'name': student.user.get_full_name() or student.user.username,
+                        'name': get_korean_name(student.user),
                         'class': student.school_class.name,  
                         'grade': student.school_class.grade
                     },
@@ -1877,7 +1877,7 @@ def api_individual_growth(request):
             'data': {
                 'student_info': {
                     'id': student.id,
-                    'name': student.user.get_full_name() or student.user.username,
+                    'name': get_korean_name(student.user),
                     'class': student.school_class.name,
                     'grade': student.school_class.grade,
                     'grade_display': get_grade_display_name(student.school_class.grade)
@@ -1944,7 +1944,7 @@ def api_get_class_students(request):
         for student in students:
             students_data.append({
                 'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
+                'name': get_korean_name(student.user),
                 'student_number': student.student_id  # JavaScript와 일치
             })
         

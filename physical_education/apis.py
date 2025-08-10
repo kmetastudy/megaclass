@@ -18,6 +18,7 @@ from .models import (
 )
 from accounts.models import Student, Class
 from .forms import PAPSActivitySelectionForm
+from .utils import get_korean_name
 
 
 # ================= PAPSSessionActivity 관리 API =================
@@ -651,7 +652,7 @@ def api_export_paps_records(request):
                 'grade_display': get_grade_display(grade),
                 'class_name': f"{student.school_class.class_number}반",
                 'student_number': student.student_id,
-                'student_name': student.user.last_name + student.user.first_name,
+                'student_name': get_korean_name(student.user),
                 'student_id': student.id
             }
             
@@ -777,7 +778,7 @@ def api_download_paps_template(request):
                 'grade_display': get_grade_display(grade),
                 'class_name': f"{student.school_class.class_number}반",
                 'student_number': student.student_id,
-                'student_name': student.user.last_name + student.user.first_name,
+                'student_name': get_korean_name(student.user),
                 'student_id': student.id
             }
             students_data.append(student_data)
@@ -925,7 +926,7 @@ def api_get_batch_records(request):
                 'grade_display': get_grade_display(grade),
                 'class_name': f"{student.school_class.class_number}반",
                 'student_number': student.student_id,
-                'student_name': student.user.last_name + student.user.first_name,
+                'student_name': get_korean_name(student.user),
                 'is_modified': False  # 변경사항 추적용
             }
             

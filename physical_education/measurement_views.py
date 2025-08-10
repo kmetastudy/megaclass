@@ -16,6 +16,7 @@ from .models import (
 )
 from accounts.models import ClassTeacher, Class, Student
 from .views import get_student_gender, get_student_number_from_id
+from .utils import get_korean_name
 import json
 
 
@@ -154,7 +155,7 @@ def paps_load_measurement_view(request):
             
             student_data = {
                 'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
+                'name': get_korean_name(student.user),
                 'number': get_student_number_from_id(student.student_id),
                 'gender': get_student_gender(student),
                 'student_id': student.student_id,
