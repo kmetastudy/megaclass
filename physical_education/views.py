@@ -16,7 +16,7 @@ from .models import (
     PAPSRecord,
 )
 from .forms import PAPSSessionForm, PAPSActivitySelectionForm
-from .utils import calculate_paps_grade, get_measurement_value, get_activity_display_name, get_activity_unit, get_grade_from_number
+from .utils import calculate_paps_grade, get_measurement_value, get_activity_display_name, get_activity_unit, get_grade_from_number, get_korean_name
 from accounts.models import ClassTeacher, Class, Student
 import json
 
@@ -38,7 +38,7 @@ def get_student_gender(student):
     """학생 성별 정보 추출 (임시로 이름 기반 추정)"""
     # 실제로는 User 모델에 성별 필드가 있거나 Profile 모델을 통해 관리해야 함
     # 현재는 임시로 이름 기반으로 추정
-    name = student.user.get_full_name() or student.user.username
+    name = get_korean_name(student.user)
 
     # 한국 이름의 일반적인 패턴으로 간단히 추정 (실제로는 정확한 데이터가 필요)
     male_endings = ["수", "호", "민", "진", "현", "우", "석", "준", "혁", "영"]
@@ -873,7 +873,7 @@ def api_get_students_by_class(request):
             students_data.append(
                 {
                     "id": student.id,
-                    "name": student.user.get_full_name() or student.user.username,
+                    "name": get_korean_name(student.user),
                     "number": get_student_number_from_id(student.student_id),
                     "gender": get_student_gender(student),
                     "student_id": student.student_id,
@@ -967,7 +967,7 @@ def api_paps_get_measurements_by_activity(request):
             
             student_data = {
                 "id": student.id,
-                "name": student.user.get_full_name() or student.user.username,
+                "name": get_korean_name(student.user),
                 "number": get_student_number_from_id(student.student_id),
                 "gender": get_student_gender(student),
                 "student_id": student.student_id,
@@ -1145,11 +1145,18 @@ def api_activity_average(request):
             teacher=teacher
         ).values_list('class_instance_id', flat=True)
         
-        # 기본 쿼리셋 구성
+        # 활성화된 PAPSSessionActivity의 session_id들 조회
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리셋 구성 (활성 종목에 대한 기록만)
         records_query = PAPSRecord.objects.filter(
             activity_id=activity_id,
             evaluation_grade__isnull=False,  # 완전한 측정 기록만
-            class_id__in=teacher_classes
+            class_id__in=teacher_classes,
+            session_id__in=active_sessions  # 활성 종목만
         )
         
         # 학년 필터 적용
@@ -1314,11 +1321,18 @@ def api_grade_distribution(request):
             teacher=teacher
         ).values_list('class_instance_id', flat=True)
         
-        # 기본 쿼리셋 구성 (등급이 있는 완전한 측정 기록만)
+        # 활성화된 PAPSSessionActivity의 session_id들 조회
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리셋 구성 (활성 종목의 등급이 있는 완전한 측정 기록만)
         records_query = PAPSRecord.objects.filter(
             activity_id=activity_id,
             evaluation_grade__isnull=False,  # 완전한 측정 기록만
-            class_id__in=teacher_classes
+            class_id__in=teacher_classes,
+            session_id__in=active_sessions  # 활성 종목만
         )
         
         # 학년 필터 적용
@@ -1596,10 +1610,17 @@ def api_individual_profile(request):
                 'error': '측정 회차를 찾을 수 없습니다.'
             })
         
-        # 학생의 측정 기록 조회
+        # 해당 세션의 활성화된 종목들 조회
+        active_activity_ids = PAPSSessionActivity.objects.filter(
+            session_id=session_id,
+            is_active=True
+        ).values_list('activity_id', flat=True)
+        
+        # 학생의 측정 기록 조회 (활성 종목만)
         records = PAPSRecord.objects.filter(
             session_id=session_id,
             student_id=student_id,
+            activity_id__in=active_activity_ids,  # 활성 종목만
             evaluation_grade__isnull=False  # 완전한 측정 기록만
         ).select_related()
         
@@ -1640,9 +1661,15 @@ def api_individual_profile(request):
             except (PAPSActivity.DoesNotExist, PAPSCategory.DoesNotExist):
                 continue
         
-        # 최근 측정 히스토리 (최근 5개)
+        # 최근 측정 히스토리 (최근 5개, 활성 종목만)
+        # 모든 활성 종목 ID들 조회
+        all_active_activity_ids = PAPSSessionActivity.objects.filter(
+            is_active=True
+        ).values_list('activity_id', flat=True).distinct()
+        
         recent_records = PAPSRecord.objects.filter(
             student_id=student_id,
+            activity_id__in=all_active_activity_ids,  # 활성 종목만
             evaluation_grade__isnull=False
         ).order_by('-measured_at')[:5]
         
@@ -1677,7 +1704,7 @@ def api_individual_profile(request):
             'data': {
                 'student_info': {
                     'id': student.id,
-                    'name': student.user.get_full_name() or student.user.username,
+                    'name': get_korean_name(student.user),
                     'class': student.school_class.name,
                     'grade': student.school_class.grade,
                     'grade_display': get_grade_display_name(student.school_class.grade)
@@ -1747,10 +1774,17 @@ def api_individual_growth(request):
                 'error': '종목을 찾을 수 없습니다.'
             })
         
-        # 기본 쿼리 (해당 학생의 해당 종목 기록)
+        # 해당 종목의 활성화된 세션들 조회  
+        active_sessions = PAPSSessionActivity.objects.filter(
+            activity_id=activity_id,
+            is_active=True
+        ).values_list('session_id', flat=True).distinct()
+        
+        # 기본 쿼리 (해당 학생의 해당 종목 기록, 활성 종목만)
         records_query = PAPSRecord.objects.filter(
             student_id=student_id,
             activity_id=activity_id,
+            session_id__in=active_sessions,  # 활성 종목만
             evaluation_grade__isnull=False  # 완전한 측정 기록만
         )
         
@@ -1771,7 +1805,7 @@ def api_individual_growth(request):
                 'data': {
                     'student_info': {
                         'id': student.id,
-                        'name': student.user.get_full_name() or student.user.username,
+                        'name': get_korean_name(student.user),
                         'class': student.school_class.name,  
                         'grade': student.school_class.grade
                     },
@@ -1843,7 +1877,7 @@ def api_individual_growth(request):
             'data': {
                 'student_info': {
                     'id': student.id,
-                    'name': student.user.get_full_name() or student.user.username,
+                    'name': get_korean_name(student.user),
                     'class': student.school_class.name,
                     'grade': student.school_class.grade,
                     'grade_display': get_grade_display_name(student.school_class.grade)
@@ -1910,7 +1944,7 @@ def api_get_class_students(request):
         for student in students:
             students_data.append({
                 'id': student.id,
-                'name': student.user.get_full_name() or student.user.username,
+                'name': get_korean_name(student.user),
                 'student_number': student.student_id  # JavaScript와 일치
             })
         
@@ -2080,7 +2114,17 @@ def api_class_compare(request):
             activity_averages = []
             
             for activity in activities:
-                # 해당 활동의 측정 기록 조회
+                # 해당 활동이 활성화되어 있는지 확인
+                is_activity_active = PAPSSessionActivity.objects.filter(
+                    session_id=session_id,
+                    activity_id=activity.id,
+                    is_active=True
+                ).exists()
+                
+                if not is_activity_active:
+                    continue
+                
+                # 해당 활동의 측정 기록 조회 (활성 종목만)
                 records = PAPSRecord.objects.filter(
                     session_id=session_id,
                     activity_id=activity.id,
@@ -2211,7 +2255,17 @@ def api_class_distribution(request):
         all_values = []
         
         for activity in activities:
-            # 해당 활동의 측정 기록 조회
+            # 해당 활동이 활성화되어 있는지 확인
+            is_activity_active = PAPSSessionActivity.objects.filter(
+                session_id=session_id,
+                activity_id=activity.id,
+                is_active=True
+            ).exists()
+            
+            if not is_activity_active:
+                continue
+            
+            # 해당 활동의 측정 기록 조회 (활성 종목만)
             records = PAPSRecord.objects.filter(
                 session_id=session_id,
                 activity_id=activity.id,
@@ -2325,3 +2379,239 @@ def api_class_distribution(request):
             'success': False,
             'error': f'데이터 처리 중 오류가 발생했습니다: {str(e)}'
         })
+
+
+@login_required
+@teacher_required
+def paps_batch_measurement_view(request):
+    """PAPS 일괄입력 뷰"""
+    teacher_id = request.user.teacher.id
+
+    # 전체 카테고리 조회 (필수평가 + 선택평가)
+    all_categories = PAPSCategory.objects.all().order_by("order")
+
+    # 전체 활동(종목) 조회
+    all_activities = PAPSActivity.objects.all()
+
+    # 교사의 측정회차 목록 조회
+    available_sessions = PAPSSession.objects.filter(teacher_id=teacher_id).order_by(
+        "-created_at"
+    )
+
+    # 교사가 담당하는 학급들 조회 (ClassTeacher 모델 기반)
+    teacher_classes = (
+        ClassTeacher.objects.filter(teacher_id=teacher_id)
+        .select_related("class_instance")
+        .order_by("class_instance__grade", "class_instance__class_number")
+    )
+
+    # 교사가 담당하는 실제 학년 목록 추출 (중복 제거, PAPS 대상만)
+    paps_grades = set()
+    for ct in teacher_classes:
+        grade = ct.class_instance.grade
+        if 4 <= grade <= 12:  # PAPS 대상: 초4~고3
+            paps_grades.add(grade)
+
+    # 학년 선택지 생성 (실제 담당 학년만)
+    grade_choices = [
+        (grade, get_grade_display_name(grade)) for grade in sorted(paps_grades)
+    ]
+
+    # 교사가 담당하는 실제 학급 목록 생성
+    available_classes = []
+    for ct in teacher_classes:
+        cls = ct.class_instance
+        if 4 <= cls.grade <= 12:  # PAPS 대상만
+            available_classes.append(
+                {
+                    "id": cls.id,
+                    "name": f"{cls.class_number}반",
+                    "full_name": f"{cls.grade}학년 {cls.class_number}반",
+                    "grade": cls.grade,
+                    "class_number": cls.class_number,
+                    "role": ct.get_role_display(),
+                }
+            )
+
+    # 년도 범위 생성 (현재 년도 기준 ±5년)
+    current_year = timezone.now().year
+    year_range = range(current_year - 5, current_year + 6)
+
+    # 전체 카테고리 JSON 직렬화를 위한 처리
+    all_categories_json = []
+    for category in all_categories:
+        all_categories_json.append(
+            {
+                "id": str(category.id),
+                "name": category.name,
+                "display_name": category.get_name_display(),
+                "evaluation_type": category.evaluation_type,
+                "order": category.order,
+            }
+        )
+
+    # 전체 활동(종목) JSON 직렬화를 위한 처리
+    all_activities_json = []
+    for activity in all_activities:
+        all_activities_json.append(
+            {
+                "id": str(activity.id),
+                "name": activity.name,
+                "display_name": activity.get_name_display(),
+                "category_id": str(activity.category_id),
+                "measurement_schema": activity.measurement_schema,
+                "evaluation_criteria": activity.evaluation_criteria,
+            }
+        )
+
+    # 측정회차 JSON 직렬화를 위한 처리
+    sessions_json = []
+    for session in available_sessions:
+        sessions_json.append(
+            {
+                "id": str(session.id),
+                "name": session.name,
+                "school_year": session.school_year,
+                "session_type": session.session_type,
+                "session_type_display": session.get_session_type_display(),
+                "measurement_date": session.measurement_date.strftime("%Y-%m-%d"),
+                "is_completed": session.is_completed,
+            }
+        )
+
+    context = {
+        "all_categories": all_categories,
+        "all_activities": all_activities,
+        "available_sessions": available_sessions,
+        "available_classes": available_classes,
+        "grade_choices": grade_choices,
+        "year_range": year_range,
+        "current_year": current_year,
+        "evaluation_type": "batch",
+        "title": "PAPS 일괄입력",
+        # JavaScript에서 사용할 JSON 데이터
+        "all_categories_json": json.dumps(all_categories_json),
+        "all_activities_json": json.dumps(all_activities_json),
+        "available_sessions_json": json.dumps(sessions_json),
+        "available_classes_json": json.dumps(available_classes),
+        "grade_choices_json": json.dumps(grade_choices),
+    }
+    return render(
+        request, "physical_education/teachers/paps/measurement/batch_input.html", context
+    )
+
+
+@login_required
+@teacher_required
+def paps_measure_view(request):
+    """PAPS 측정하기 뷰"""
+    teacher_id = request.user.teacher.id
+    
+    # 1. 측정회차 데이터
+    sessions = PAPSSession.objects.filter(
+        teacher_id=teacher_id
+    ).order_by("-school_year", "-measurement_date")
+    
+    # 2. 활성화된 PAPSSessionActivity 전체 데이터 조회
+    session_ids = sessions.values_list('id', flat=True)
+    active_session_activities = PAPSSessionActivity.objects.filter(
+        session_id__in=session_ids,
+        is_active=True
+    ).order_by('session_id', 'grade', 'category_id')
+    
+    # PAPSSessionActivity 데이터 구조화
+    session_activities_data = []
+    for activity in active_session_activities:
+        session_activities_data.append({
+            'id': str(activity.id),
+            'session_id': str(activity.session_id),
+            'grade': activity.grade,
+            'grade_display': activity.get_grade_display(),
+            'category_id': str(activity.category_id),
+            'activity_id': str(activity.activity_id),
+            'is_active': activity.is_active,
+            'created_at': activity.created_at.isoformat() if activity.created_at else None
+        })
+    
+    # 학년 정보 추출 (기존 로직 유지)
+    active_grades = set(sa['grade'] for sa in session_activities_data)
+    
+    # 3. 담당 학급 데이터 (활성화된 학년만)
+    teacher_classes = ClassTeacher.objects.filter(
+        teacher_id=teacher_id
+    ).select_related("class_instance").order_by(
+        "class_instance__grade", 
+        "class_instance__class_number"
+    )
+    
+    # 활성화된 학년에 해당하는 학급만 필터링
+    classes_data = []
+    grades_set = set()
+    for ct in teacher_classes:
+        cls = ct.class_instance
+        if cls.grade in active_grades:
+            classes_data.append({
+                "id": cls.id,
+                "grade": cls.grade,
+                "class_number": cls.class_number,
+                "name": f"{cls.grade}학년 {cls.class_number}반"
+            })
+            grades_set.add(cls.grade)
+    
+    # 학년도 목록
+    school_years = sorted(set(
+        sessions.values_list("school_year", flat=True)
+    ), reverse=True)
+    
+    # 3. PAPS 카테고리 데이터를 배열로 처리
+    categories = PAPSCategory.objects.all().order_by("order")
+    categories_data = []
+    for category in categories:
+        categories_data.append({
+            "id": str(category.id),
+            "name": category.name,  # 원본 (예: "CARDIO")
+            "display_name": category.get_name_display(),  # 한글명 (예: "심폐지구력")
+            "evaluation_type": category.evaluation_type,
+            "order": category.order
+        })
+    
+    # 4. PAPS 활동 데이터를 배열로 처리
+    activities = PAPSActivity.objects.all().order_by("created_at")
+    activities_data = []
+    for activity in activities:
+        activities_data.append({
+            "id": str(activity.id),
+            "name": activity.name,  # 원본 (예: "SHUTTLE_RUN")
+            "display_name": activity.get_name_display(),  # 한글명 (예: "왕복오래달리기")
+            "category_id": str(activity.category_id),
+            "measurement_schema": activity.measurement_schema,
+            "evaluation_criteria": activity.evaluation_criteria,
+            "created_at": activity.created_at.isoformat() if activity.created_at else None
+        })
+    
+    # 세션 데이터를 JSON 직렬화 가능한 형태로 변환
+    sessions_data = []
+    for session in sessions:
+        sessions_data.append({
+            "id": str(session.id),
+            "name": session.name,
+            "teacher_id": session.teacher_id,
+            "school_year": session.school_year,
+            "session_type": session.session_type,
+            "session_type_display": session.get_session_type_display(),
+            "measurement_date": session.measurement_date.isoformat() if session.measurement_date else None,
+            "is_active": session.is_active,
+            "created_at": session.created_at.isoformat() if session.created_at else None
+        })
+    
+    context = {
+        "school_years": school_years,
+        # JSON 직렬화된 데이터 추가
+        "classes_json": json.dumps(classes_data),
+        "sessions_json": json.dumps(sessions_data),
+        "categories_json": json.dumps(categories_data),
+        "activities_json": json.dumps(activities_data),
+        "session_activities_json": json.dumps(session_activities_data),
+    }
+
+    return render(request, "physical_education/teachers/paps/measurement/measure.html", context)

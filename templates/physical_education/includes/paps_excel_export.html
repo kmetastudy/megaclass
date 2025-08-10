@@ -1,0 +1,389 @@
+<!-- PAPS 엑셀 Export 모듈 (ExcelJS 버전) -->
+
+<!-- 엑셀 Export 버튼 영역 -->
+<div id="excel-export-area" class="flex gap-2">
+    <button id="download-template-btn" 
+            class="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-download mr-2"></i>템플릿 다운로드
+    </button>
+    <button id="import-excel-btn" 
+            class=" hidden px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-file-import mr-2"></i>Excel 가져오기
+    </button>
+    <button id="export-data-btn" 
+            class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled>
+        <i class="fas fa-file-export mr-2"></i>데이터 Export
+    </button>
+</div>
+
+<script>
+// 엑셀 Export 모듈 (ExcelJS 버전)
+const ExcelExporter = {
+    // 초기화
+    init() {
+        this.setupEventListeners();
+        this.updateButtonStates();
+        console.log('엑셀 Export 모듈 초기화 완료 (ExcelJS)');
+    },
+    
+    // 이벤트 리스너 설정
+    setupEventListeners() {
+        const templateBtn = document.getElementById('download-template-btn');
+        const importBtn = document.getElementById('import-excel-btn');
+        const exportBtn = document.getElementById('export-data-btn');
+        
+        if (templateBtn) {
+            templateBtn.addEventListener('click', () => this.downloadTemplate());
+        }
+        
+        if (importBtn) {
+            importBtn.addEventListener('click', () => this.showImportArea());
+        }
+        
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportData());
+        }
+    },
+    
+    // 버튼 상태 업데이트
+    updateButtonStates() {
+        const hasSelection = appState.selectedActivities && appState.selectedActivities.length > 0;
+        const templateBtn = document.getElementById('download-template-btn');
+        const importBtn = document.getElementById('import-excel-btn');
+        const exportBtn = document.getElementById('export-data-btn');
+        
+        if (templateBtn && importBtn && exportBtn) {
+            templateBtn.disabled = !hasSelection;
+            importBtn.disabled = !hasSelection;
+            exportBtn.disabled = !hasSelection;
+        }
+    },
+    
+    // Excel Import 영역 표시
+    showImportArea() {
+        if (typeof showExcelImportArea === 'function') {
+            showExcelImportArea();
+        } else {
+            console.warn('showExcelImportArea 함수를 찾을 수 없습니다.');
+        }
+    },
+    
+    // 로딩 상태 설정
+    setLoadingState(buttonId, loading, originalText = '') {
+        const button = document.getElementById(buttonId);
+        if (!button) return;
+        
+        if (loading) {
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>처리 중...';
+        } else {
+            button.disabled = false;
+            button.innerHTML = originalText;
+        }
+    },
+    
+    // ExcelJS를 사용한 워크북 생성
+    async createWorkbook(columns, data, options = {}) {
+        try {
+            console.log('createWorkbook 호출됨');
+            console.log('columns:', columns);
+            console.log('data length:', data ? data.length : 0);
+            
+            if (!window.ExcelJS) {
+                throw new Error('ExcelJS 라이브러리가 로드되지 않았습니다.');
+            }
+            
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet(options.sheetName || 'Sheet1');
+            
+            // 헤더 생성
+            const headers = ['학년도', '학년', '반명', '반코드', '번호', '학생성명'];
+            
+            // 측정 항목 컬럼 추가
+            if (columns && Array.isArray(columns)) {
+                columns.forEach(col => {
+                    headers.push(col.name || col.field || '알 수 없는 항목');
+                });
+                console.log('최종 헤더:', headers);
+            } else {
+                console.warn('columns가 배열이 아닙니다:', typeof columns);
+            }
+            
+            // 헤더 행 추가
+            const headerRow = worksheet.addRow(headers);
+            
+            // 헤더 스타일 적용
+            headerRow.eachCell((cell, colNumber) => {
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE5E5E5' }
+                };
+                cell.font = { 
+                    bold: true,
+                    color: { argb: 'FF000000' }
+                };
+                cell.alignment = { 
+                    horizontal: 'center', 
+                    vertical: 'middle' 
+                };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+            
+            // 데이터 행 추가
+            if (data && Array.isArray(data)) {
+                data.forEach((row, rowIndex) => {
+                    const rowData = [
+                        row.school_year || '',
+                        row.grade_display || '',
+                        row.class_name || '',
+                        '', // 반코드는 비워둠
+                        row.student_number || '',
+                        row.student_name || ''
+                    ];
+                    
+                    // 측정값 추가
+                    if (columns && Array.isArray(columns)) {
+                        columns.forEach(col => {
+                            const fieldValue = row[col.field] || '';
+                            rowData.push(fieldValue);
+                        });
+                    }
+                    
+                    const dataRow = worksheet.addRow(rowData);
+                    
+                    // 데이터 행 스타일 적용
+                    dataRow.eachCell((cell, colNumber) => {
+                        cell.alignment = { 
+                            horizontal: 'center', 
+                            vertical: 'middle' 
+                        };
+                        cell.border = {
+                            top: { style: 'thin' },
+                            left: { style: 'thin' },
+                            bottom: { style: 'thin' },
+                            right: { style: 'thin' }
+                        };
+                    });
+                });
+            }
+            
+            // 한글 텍스트 너비 계산 함수
+            function calculateTextWidth(text) {
+                if (!text) return 0;
+                let width = 0;
+                for (const char of text.toString()) {
+                    // 한글, 한자, 일본어 등 동아시아 문자는 1.5배 너비로 계산
+                    if (/[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\uac00-\ud7a3]/.test(char)) {
+                        width += 1.5;
+                    } else {
+                        width += 1;
+                    }
+                }
+                return Math.ceil(width);
+            }
+            
+            // 컬럼 너비 최적화
+            worksheet.columns.forEach((column, index) => {
+                let width;
+                
+                // 기본 컬럼들은 고정 너비
+                if (index === 0) width = 10;      // 학년도
+                else if (index === 1) width = 15; // 학년
+                else if (index === 2) width = 10; // 반명
+                else if (index === 3) width = 10; // 반코드
+                else if (index === 4) width = 8;  // 번호
+                else if (index === 5) width = 15; // 학생성명
+                else {
+                    // 측정 항목들은 헤더 텍스트 기반으로 너비 계산
+                    const headerCell = worksheet.getCell(1, index + 1);
+                    const headerLength = calculateTextWidth(headerCell.value);
+                    width = Math.max(20, Math.min(headerLength + 4, 40));
+                }
+                
+                column.width = width;
+            });
+            
+            console.log('워크북 생성 완료');
+            return workbook;
+            
+        } catch (error) {
+            console.error('워크북 생성 중 오류:', error);
+            throw error;
+        }
+    },
+    
+    // 파일 다운로드 (ExcelJS용)
+    async downloadWorkbook(workbook, fileName) {
+        try {
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('파일 다운로드 완료:', fileName);
+        } catch (error) {
+            console.error('파일 다운로드 중 오류:', error);
+            throw error;
+        }
+    },
+    
+    // 템플릿 다운로드
+    async downloadTemplate() {
+        if (!appState.selectedActivities || appState.selectedActivities.length === 0) {
+            this.showMessage('warning', '측정 항목을 선택해주세요.');
+            return;
+        }
+        
+        this.setLoadingState('download-template-btn', true);
+        
+        try {
+            console.log('템플릿 다운로드 요청 시작');
+            console.log('요청 데이터:', {
+                session_id: appState.selectedSession,
+                activity_ids: appState.selectedActivities,
+                grade: appState.selectedGrade
+            });
+            
+            const response = await fetch('/physical_education/api/paps/download-template/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': djangoData.csrfToken
+                },
+                body: JSON.stringify({
+                    session_id: appState.selectedSession,
+                    activity_ids: appState.selectedActivities,
+                    grade: appState.selectedGrade
+                })
+            });
+            
+            const data = await response.json();
+            console.log('API 응답:', data);
+            
+            if (data.success) {
+                // 빈 템플릿 생성
+                const wb = await this.createWorkbook(data.columns, data.students, {
+                    sheetName: 'PAPS측정템플릿'
+                });
+                
+                // 파일 다운로드
+                const fileName = `${data.session_name}_템플릿.xlsx`;
+                await this.downloadWorkbook(wb, fileName);
+                
+                this.showMessage('success', `템플릿이 다운로드되었습니다: ${fileName}`);
+            } else {
+                this.showMessage('error', data.error || '템플릿 생성에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('템플릿 다운로드 오류:', error);
+            this.showMessage('error', '템플릿 다운로드 중 오류가 발생했습니다: ' + error.message);
+        } finally {
+            this.setLoadingState('download-template-btn', false, 
+                '<i class="fas fa-download mr-2"></i>템플릿 다운로드');
+        }
+    },
+    
+    // 데이터 Export
+    async exportData() {
+        if (!appState.selectedActivities || appState.selectedActivities.length === 0) {
+            this.showMessage('warning', '측정 항목을 선택해주세요.');
+            return;
+        }
+        
+        this.setLoadingState('export-data-btn', true);
+        
+        try {
+            console.log('데이터 Export 요청 시작');
+            console.log('요청 데이터:', {
+                session_id: appState.selectedSession,
+                activity_ids: appState.selectedActivities,
+                grade: appState.selectedGrade
+            });
+            
+            const response = await fetch('/physical_education/api/paps/export-records/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': djangoData.csrfToken
+                },
+                body: JSON.stringify({
+                    session_id: appState.selectedSession,
+                    activity_ids: appState.selectedActivities,
+                    grade: appState.selectedGrade
+                })
+            });
+            
+            const data = await response.json();
+            console.log('API 응답:', data);
+            
+            if (data.success) {
+                // 데이터가 포함된 엑셀 생성
+                const wb = await this.createWorkbook(data.columns, data.records, {
+                    sheetName: 'PAPS측정데이터'
+                });
+                
+                // 파일 다운로드
+                const fileName = `${data.session_name}_일괄입력.xlsx`;
+                await this.downloadWorkbook(wb, fileName);
+                
+                this.showMessage('success', 
+                    `데이터가 Export되었습니다: ${fileName} (학생 ${data.total_students}명, 측정항목 ${data.total_columns}개)`);
+            } else {
+                this.showMessage('error', data.error || 'Export에 실패했습니다.');
+            }
+        } catch (error) {
+            console.error('데이터 Export 오류:', error);
+            this.showMessage('error', '데이터 Export 중 오류가 발생했습니다: ' + error.message);
+        } finally {
+            this.setLoadingState('export-data-btn', false, 
+                '<i class="fas fa-file-export mr-2"></i>데이터 Export');
+        }
+    },
+    
+    // 메시지 표시 (부모 페이지의 showMessage 함수 사용)
+    showMessage(type, message) {
+        if (typeof showMessage === 'function') {
+            showMessage(type, message);
+        } else {
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+    }
+};
+
+// 활동 선택 변경 시 버튼 상태 업데이트
+function updateExcelButtonStates() {
+    if (typeof ExcelExporter !== 'undefined') {
+        ExcelExporter.updateButtonStates();
+    }
+}
+
+// DOM 로드 후 초기화 (메인 페이지 초기화 후 실행)
+document.addEventListener('DOMContentLoaded', () => {
+    // batch_input.html의 init이 먼저 실행된 후 실행
+    setTimeout(() => {
+        if (typeof ExcelExporter !== 'undefined') {
+            ExcelExporter.init();
+        }
+    }, 200);
+});
+
+console.log('PAPS 엑셀 Export 모듈 로드 완료 (ExcelJS 버전)');
+</script>

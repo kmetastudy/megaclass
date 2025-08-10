@@ -14,27 +14,59 @@ class Command(BaseCommand):
             action='store_true',
             help='실제 업데이트 없이 미리보기만 실행',
         )
+        parser.add_argument(
+            '--schema-only',
+            action='store_true',
+            help='measurement_schema만 업데이트',
+        )
+        parser.add_argument(
+            '--criteria-only',
+            action='store_true',
+            help='evaluation_criteria만 업데이트',
+        )
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
+        schema_only = options['schema_only']
+        criteria_only = options['criteria_only']
+        
+        # 상호 배타적 옵션 검증
+        if schema_only and criteria_only:
+            self.stdout.write(
+                self.style.ERROR('--schema-only와 --criteria-only는 동시에 사용할 수 없습니다.')
+            )
+            return
+        
+        # 업데이트 모드 표시
+        if schema_only:
+            update_mode = "measurement_schema만"
+        elif criteria_only:
+            update_mode = "evaluation_criteria만"
+        else:
+            update_mode = "measurement_schema와 evaluation_criteria 모두"
         
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN 모드: 실제 업데이트는 하지 않습니다.'))
         
-        self.stdout.write(self.style.SUCCESS('PAPS 스키마 업데이트를 시작합니다...'))
+        self.stdout.write(self.style.SUCCESS(f'PAPS 스키마 업데이트를 시작합니다... ({update_mode})'))
         
         # JSON 파일 경로
         data_path = os.path.join(settings.BASE_DIR, 'physical_education', 'data')
         schemas_file = os.path.join(data_path, 'measurement_schemas.json')
         criteria_file = os.path.join(data_path, 'evaluation_criteria.json')
         
-        # JSON 파일 로드
+        # JSON 파일 로드 (필요한 것만)
+        measurement_schemas = None
+        evaluation_criteria = None
+        
         try:
-            with open(schemas_file, 'r', encoding='utf-8') as f:
-                measurement_schemas = json.load(f)
+            if not criteria_only:
+                with open(schemas_file, 'r', encoding='utf-8') as f:
+                    measurement_schemas = json.load(f)
             
-            with open(criteria_file, 'r', encoding='utf-8') as f:
-                evaluation_criteria = json.load(f)
+            if not schema_only:
+                with open(criteria_file, 'r', encoding='utf-8') as f:
+                    evaluation_criteria = json.load(f)
         except FileNotFoundError as e:
             self.stdout.write(
                 self.style.ERROR(f'JSON 파일을 찾을 수 없습니다: {e}')
@@ -64,49 +96,68 @@ class Command(BaseCommand):
         for activity in activities:
             activity_name = activity.name
             
-            # measurement_schema 업데이트
-            new_schema = measurement_schemas.get(activity_name)
-            if new_schema is None:
-                self.stdout.write(
-                    self.style.WARNING(f'⚠️  {activity.get_name_display()}: measurement_schema를 찾을 수 없음')
-                )
-                skipped_count += 1
-                continue
+            # 업데이트할 데이터 확인
+            new_schema = None
+            new_criteria = None
+            skip_activity = False
             
-            # evaluation_criteria 업데이트 (선택평가는 없을 수 있음)
-            new_criteria = evaluation_criteria.get(activity_name)
+            if not criteria_only:
+                new_schema = measurement_schemas.get(activity_name)
+                if new_schema is None:
+                    self.stdout.write(
+                        self.style.WARNING(f'⚠️  {activity.get_name_display()}: measurement_schema를 찾을 수 없음')
+                    )
+                    if schema_only:  # schema_only 모드에서 스키마를 찾을 수 없으면 건너뛰기
+                        skipped_count += 1
+                        continue
+                    skip_activity = True
+            
+            if not schema_only:
+                new_criteria = evaluation_criteria.get(activity_name)
             
             try:
                 if dry_run:
                     self.stdout.write(f'📋 {activity.get_name_display()}:')
-                    self.stdout.write(f'   - measurement_schema: {"업데이트 예정" if new_schema else "변경 없음"}')
-                    self.stdout.write(f'   - evaluation_criteria: {"업데이트 예정" if new_criteria else "제거 예정 (선택평가)"}')
+                    if not criteria_only:
+                        schema_status = "업데이트 예정" if new_schema else "변경 없음" if not skip_activity else "찾을 수 없음"
+                        self.stdout.write(f'   - measurement_schema: {schema_status}')
+                    if not schema_only:
+                        criteria_status = "업데이트 예정" if new_criteria else "제거 예정 (선택평가)"
+                        self.stdout.write(f'   - evaluation_criteria: {criteria_status}')
                 else:
                     # 실제 업데이트 수행
                     old_schema = activity.measurement_schema
                     old_criteria = activity.evaluation_criteria
                     
-                    activity.measurement_schema = new_schema
-                    activity.evaluation_criteria = new_criteria  # None일 수 있음 (선택평가)
+                    # 선택적 업데이트
+                    if not criteria_only and new_schema:
+                        activity.measurement_schema = new_schema
+                    if not schema_only:
+                        activity.evaluation_criteria = new_criteria  # None일 수 있음 (선택평가)
+                    
                     activity.save()
                     
                     # 변경사항 로깅
                     self.stdout.write(f'✅ {activity.get_name_display()}:')
                     
                     # measurement_schema 변경사항
-                    if old_schema != new_schema:
+                    if not criteria_only and new_schema and old_schema != new_schema:
                         old_fields = len(old_schema.get('fields', [])) if old_schema else 0
                         new_fields = len(new_schema.get('fields', []))
                         self.stdout.write(f'   - measurement_schema: {old_fields}개 → {new_fields}개 필드')
+                    elif not criteria_only and not new_schema:
+                        self.stdout.write(f'   - measurement_schema: 변경 없음')
                     
                     # evaluation_criteria 변경사항
-                    if old_criteria != new_criteria:
+                    if not schema_only and old_criteria != new_criteria:
                         if new_criteria is None:
                             self.stdout.write(f'   - evaluation_criteria: 제거됨 (선택평가)')
                         elif old_criteria is None:
                             self.stdout.write(f'   - evaluation_criteria: 새로 추가됨')
                         else:
                             self.stdout.write(f'   - evaluation_criteria: 업데이트됨')
+                    elif not schema_only:
+                        self.stdout.write(f'   - evaluation_criteria: 변경 없음')
                 
                 updated_count += 1
                 

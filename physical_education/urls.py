@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, apis
+from . import views, apis, measurement_views
 
 app_name = "physical_education"
 
@@ -28,6 +28,22 @@ urlpatterns = [
         "teachers/paps/measurement/optional/",
         views.paps_optional_measurement_view,
         name="paps_optional_measurement",
+    ),
+    path(
+        "teachers/paps/measurement/batch/",
+        views.paps_batch_measurement_view,
+        name="paps_batch_measurement",
+    ),
+    path(
+        "teachers/paps/measurement/measure/",
+        views.paps_measure_view,
+        name="paps_measure",
+    ),
+    # PAPS 측정 화면 동적 로드 (HTMX용)
+    path(
+        "paps/load-measurement/",
+        measurement_views.paps_load_measurement_view,
+        name="paps_load_measurement",
     ),
     # PAPS API 엔드포인트
     path(
@@ -67,6 +83,34 @@ urlpatterns = [
         "api/paps/session-activities/existing/",
         apis.api_get_existing_activities,
         name="api_get_existing_activities",
+    ),
+    # 세션별 활성 활동 조회 (일괄입력용)
+    path(
+        "api/paps/session-activities/",
+        apis.api_get_session_activities,
+        name="api_get_session_activities",
+    ),
+    # 일괄입력 API
+    path(
+        "api/paps/get-batch-records/",
+        apis.api_get_batch_records,
+        name="api_get_batch_records",
+    ),
+    path(
+        "api/paps/batch-save-measurements/",
+        apis.api_batch_save_measurements,
+        name="api_batch_save_measurements",
+    ),
+    # 엑셀 Export API
+    path(
+        "api/paps/export-records/",
+        apis.api_export_paps_records,
+        name="api_export_paps_records",
+    ),
+    path(
+        "api/paps/download-template/",
+        apis.api_download_paps_template,
+        name="api_download_paps_template",
     ),
     
     # PAPS 통계 페이지

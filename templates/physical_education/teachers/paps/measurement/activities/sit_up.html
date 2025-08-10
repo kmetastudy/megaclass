@@ -1,0 +1,269 @@
+<!-- 윗몸말아올리기 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-teal-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <!-- 목록 헤더 -->
+            <div class="grid grid-cols-3 items-center gap-2 px-3 py-2 bg-gray-100 rounded-t-lg border-b">
+                <span class="font-semibold text-gray-600">이름</span>
+                <span class="font-semibold text-gray-600 text-center">기록 (회)</span>
+                <span class="font-semibold text-gray-600 text-center">관리</span>
+            </div>
+
+            <!-- 학생 목록 -->
+            <div id="student-list-container" class="border border-t-0 rounded-b-lg">
+                {% for student in students %}
+                <div class="grid grid-cols-3 items-center gap-2 p-3 {% if forloop.counter0|divisibleby:2 %}bg-white{% else %}bg-gray-50{% endif %}" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 -->
+                    <span class="font-medium truncate">{{ student.name }}</span>
+                    
+                    <!-- 기록 표시/입력 -->
+                    <div class="text-center">
+                        {% if student.record %}
+                            <span class="text-lg text-teal-600 font-bold measurement-display">
+                                {{ student.measurement_data.sit_up|default:"미측정" }} 회
+                            </span>
+                            <input type="number" class="w-full p-2 border border-teal-500 rounded-md text-center shadow-sm focus:ring-teal-500 focus:border-teal-500 measurement-input hidden" 
+                                   value="{{ student.measurement_data.sit_up|default:"" }}" 
+                                   min="0" max="200" data-field="sit_up">
+                        {% else %}
+                            <span class="text-lg text-gray-500 measurement-display">미측정</span>
+                            <input type="number" class="w-full p-2 border border-teal-500 rounded-md text-center shadow-sm focus:ring-teal-500 focus:border-teal-500 measurement-input hidden" 
+                                   value="" min="0" max="200" data-field="sit_up">
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-1 px-2 rounded transition text-xs ml-1 hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 일괄 저장 버튼 -->
+        <div class="flex justify-center mt-6 pt-4 border-t">
+            <button id="save-all-btn" class="hidden px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
+                모든 기록 저장
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<script>
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    const saveAllBtn = document.getElementById('save-all-btn');
+    const toastContainer = document.getElementById('toast-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS sit_up template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 토스트 메시지 표시
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `px-4 py-2 rounded-lg text-white text-sm mb-2 transform transition-all duration-300 translate-x-full ${
+            type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        }`;
+        toast.textContent = message;
+        
+        toastContainer.appendChild(toast);
+        
+        // 애니메이션
+        setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toastContainer.removeChild(toast), 300);
+        }, 3000);
+    }
+
+    // 개별 학생 기록 저장
+    async function saveStudentRecord(studentElement, studentId) {
+        const input = studentElement.querySelector('.measurement-input');
+        const value = input.value;
+        
+        if (!value || value === '') {
+            showToast('기록을 입력해주세요.', 'error');
+            return false;
+        }
+
+        const measurementValue = parseInt(value);
+        if (isNaN(measurementValue) || measurementValue < 0 || measurementValue > 200) {
+            showToast('올바른 기록을 입력해주세요. (0-200회)', 'error');
+            return false;
+        }
+
+        try {
+            const response = await fetch('/physical_education/api/paps/save-measurement/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': measurementData.csrfToken
+                },
+                body: JSON.stringify({
+                    session_id: measurementData.sessionId,
+                    student_id: studentId,
+                    activity_id: measurementData.activityId,
+                    measurement_data: {
+                        sit_up: measurementValue
+                    }
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // UI 업데이트
+                const display = studentElement.querySelector('.measurement-display');
+                display.textContent = `${measurementValue} 회`;
+                display.classList.remove('text-gray-500');
+                display.classList.add('text-teal-600', 'font-bold');
+                
+                // 버튼 텍스트 변경
+                const editBtn = studentElement.querySelector('.edit-btn');
+                editBtn.textContent = '수정';
+                editBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                editBtn.classList.add('bg-yellow-400', 'hover:bg-yellow-500');
+                
+                showToast(`${studentElement.querySelector('span').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    // 편집 모드 전환
+    function toggleEditMode(studentElement, isEditing) {
+        const display = studentElement.querySelector('.measurement-display');
+        const input = studentElement.querySelector('.measurement-input');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            display.classList.add('hidden');
+            input.classList.remove('hidden');
+            input.focus();
+            input.select();
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            display.classList.remove('hidden');
+            input.classList.add('hidden');
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    // 이벤트 위임을 통한 버튼 처리
+    studentContainer.addEventListener('click', async function(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await saveStudentRecord(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            // 원래 값으로 복원
+            const input = studentElement.querySelector('.measurement-input');
+            const originalValue = studentElement.querySelector('.measurement-display').textContent;
+            if (originalValue !== '미측정') {
+                input.value = originalValue.replace(' 회', '');
+            } else {
+                input.value = '';
+            }
+            toggleEditMode(studentElement, false);
+        }
+    });
+
+    // Enter 키로 저장
+    studentContainer.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.classList.contains('measurement-input')) {
+            const studentElement = e.target.closest('[data-student-id]');
+            const saveBtn = studentElement.querySelector('.save-btn');
+            saveBtn.click();
+        }
+    });
+
+    // 일괄 저장 (추후 구현)
+    saveAllBtn.addEventListener('click', function() {
+        showToast('일괄 저장 기능은 개발 중입니다.', 'error');
+    });
+})();
+</script>

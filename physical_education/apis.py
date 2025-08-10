@@ -10,12 +10,15 @@ from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.db import transaction
+from django.utils import timezone
 from teacher.decorators import teacher_required
 from .models import (
     PAPSSession, PAPSSessionActivity, PAPSCategory, 
-    PAPSActivity
+    PAPSActivity, PAPSRecord
 )
+from accounts.models import Student, Class
 from .forms import PAPSActivitySelectionForm
+from .utils import get_korean_name
 
 
 # ================= PAPSSessionActivity 관리 API =================
@@ -455,6 +458,78 @@ def api_get_existing_activities(request):
         })
 
 
+@login_required
+@teacher_required
+@require_http_methods(["GET"])
+def api_get_session_activities(request):
+    """
+    선택된 세션과 학년에 대한 활성화된 PAPSSessionActivity 조회
+    GET /api/paps/session-activities/?session_id=xxx&grade=6
+    """
+    try:
+        session_id = request.GET.get('session_id')
+        grade = request.GET.get('grade')
+        
+        if not session_id:
+            return JsonResponse({
+                'success': False, 
+                'error': '측정회차 ID가 필요합니다.'
+            })
+        
+        # 세션 확인 및 권한 검증
+        try:
+            session = PAPSSession.objects.get(
+                id=session_id,
+                teacher_id=request.user.teacher.id
+            )
+        except PAPSSession.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'error': '측정회차를 찾을 수 없습니다.'
+            })
+        
+        # 활성화된 PAPSSessionActivity 조회
+        query = PAPSSessionActivity.objects.filter(
+            session_id=session_id,
+            is_active=True
+        )
+        
+        if grade:
+            query = query.filter(grade=int(grade))
+        
+        # 관련 Activity와 Category 정보 조합
+        activities_data = []
+        for session_activity in query:
+            try:
+                activity = PAPSActivity.objects.get(id=session_activity.activity_id)
+                category = PAPSCategory.objects.get(id=activity.category_id)
+                
+                activities_data.append({
+                    'id': str(session_activity.id),
+                    'activity_id': str(activity.id),
+                    'name': activity.get_name_display(),
+                    'category_name': category.get_name_display(),
+                    'evaluation_type': category.evaluation_type,
+                    'grade': session_activity.grade,
+                    'grade_display': get_grade_display(session_activity.grade)
+                })
+            except (PAPSActivity.DoesNotExist, PAPSCategory.DoesNotExist):
+                # 참조 무결성 오류 시 해당 항목 스킵
+                continue
+        
+        return JsonResponse({
+            'success': True,
+            'activities': activities_data,
+            'total': len(activities_data)
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'데이터 조회 중 오류가 발생했습니다: {str(e)}'
+        })
+
+
 # ================= 헬퍼 함수 =================
 
 def get_grade_display(grade):
@@ -465,3 +540,583 @@ def get_grade_display(grade):
         return f"중학 {grade - 6}학년"
     else:
         return f"고등 {grade - 9}학년"
+
+
+# ================= 엑셀 Export API =================
+
+@login_required
+@teacher_required
+@require_POST
+def api_export_paps_records(request):
+    """
+    PAPS 측정 데이터를 엑셀 Export용으로 조회
+    POST /api/paps/export-records/
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        activity_ids = data.get('activity_ids', [])
+        grade = data.get('grade')
+        
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차 ID가 필요합니다.'
+            })
+        
+        if not activity_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '측정 항목을 선택해주세요.'
+            })
+        
+        # 세션 확인 및 권한 검증
+        try:
+            session = PAPSSession.objects.get(
+                id=session_id,
+                teacher_id=request.user.teacher.id
+            )
+        except PAPSSession.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차를 찾을 수 없습니다.'
+            })
+        
+        # activity_ids에 해당하는 PAPSActivity들을 DB 순서대로 조회
+        activities = PAPSActivity.objects.filter(id__in=activity_ids).order_by('created_at')
+        
+        # 활동 정보 조회 및 컬럼 생성
+        columns = []
+        activities_info = {}
+        
+        for activity in activities:
+            activity_id = str(activity.id)
+            if activity_id not in activity_ids:
+                continue
+                
+            activities_info[activity_id] = activity
+            
+            # measurement_schema에서 readonly=false인 필드들만 추출
+            if activity.measurement_schema and 'fields' in activity.measurement_schema:
+                for field in activity.measurement_schema['fields']:
+                    if not field.get('readonly', False):
+                        columns.append({
+                            'name': field['name'],
+                            'field': field['field'],
+                            'activity_id': activity_id,
+                            'activity_name': activity.name,
+                            'type': field.get('type', 'text'),
+                            'validation': {
+                                'min': field.get('min'),
+                                'max': field.get('max'),
+                                'decimal_places': field.get('decimal_places')
+                            }
+                        })
+        
+        # 학생 목록 조회 (교사가 담당하는 학급의 해당 학년 학생들)
+        from accounts.models import ClassTeacher
+        
+        teacher_classes = ClassTeacher.objects.filter(
+            teacher_id=request.user.teacher.id
+        ).select_related('class_instance')
+        
+        class_ids = []
+        for ct in teacher_classes:
+            if ct.class_instance.grade == grade:
+                class_ids.append(ct.class_instance.id)
+        
+        students = Student.objects.filter(
+            school_class_id__in=class_ids
+        ).select_related('school_class').order_by('school_class_id', 'student_id')
+        
+        # PAPSRecord 조회
+        records = PAPSRecord.objects.filter(
+            session_id=session_id,
+            activity_id__in=activity_ids,
+            measured_by_teacher_id=request.user.teacher.id,
+            student_grade=grade
+        )
+        
+        # 데이터 구성
+        records_data = []
+        records_dict = {}
+        
+        # records를 dict로 변환 (student_id, activity_id를 키로)
+        for record in records:
+            key = f"{record.student_id}_{record.activity_id}"
+            records_dict[key] = record
+        
+        for student in students:
+            student_data = {
+                'school_year': session.school_year,
+                'grade_display': get_grade_display(grade),
+                'class_name': f"{student.school_class.class_number}반",
+                'student_number': student.student_id,
+                'student_name': get_korean_name(student.user),
+                'student_id': student.id
+            }
+            
+            # 각 측정값 추가
+            for col in columns:
+                key = f"{student.id}_{col['activity_id']}"
+                if key in records_dict:
+                    measurement_data = records_dict[key].measurement_data
+                    student_data[col['field']] = measurement_data.get(col['field'], '')
+                else:
+                    student_data[col['field']] = ''
+            
+            records_data.append(student_data)
+        
+        return JsonResponse({
+            'success': True,
+            'session_name': session.name,
+            'columns': columns,
+            'records': records_data,
+            'total_students': len(records_data),
+            'total_columns': len(columns)
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'JSON 데이터가 올바르지 않습니다.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'데이터 조회 중 오류가 발생했습니다: {str(e)}'
+        })
+
+
+@login_required
+@teacher_required
+@require_POST
+def api_download_paps_template(request):
+    """
+    PAPS 측정 템플릿을 위한 스키마 정보 제공
+    POST /api/paps/download-template/
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        activity_ids = data.get('activity_ids', [])
+        grade = data.get('grade')
+        
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차 ID가 필요합니다.'
+            })
+        
+        if not activity_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '측정 항목을 선택해주세요.'
+            })
+        
+        # 세션 확인 및 권한 검증
+        try:
+            session = PAPSSession.objects.get(
+                id=session_id,
+                teacher_id=request.user.teacher.id
+            )
+        except PAPSSession.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차를 찾을 수 없습니다.'
+            })
+        
+        # activity_ids에 해당하는 PAPSActivity들을 DB 순서대로 조회
+        activities = PAPSActivity.objects.filter(id__in=activity_ids).order_by('created_at')
+        
+        # 활동 정보 조회 및 컬럼 생성 (Export와 동일한 로직)
+        columns = []
+        
+        for activity in activities:
+            activity_id = str(activity.id)
+            if activity_id not in activity_ids:
+                continue
+            
+            # measurement_schema에서 readonly=false인 필드들만 추출
+            if activity.measurement_schema and 'fields' in activity.measurement_schema:
+                for field in activity.measurement_schema['fields']:
+                    if not field.get('readonly', False):
+                        columns.append({
+                            'name': field['name'],
+                            'field': field['field'],
+                            'activity_id': activity_id,
+                            'activity_name': activity.name,
+                            'type': field.get('type', 'text'),
+                            'validation': {
+                                'min': field.get('min'),
+                                'max': field.get('max'),
+                                'decimal_places': field.get('decimal_places')
+                            }
+                        })
+        
+        # 학생 목록 조회 (빈 템플릿용)
+        from accounts.models import ClassTeacher
+        
+        teacher_classes = ClassTeacher.objects.filter(
+            teacher_id=request.user.teacher.id
+        ).select_related('class_instance')
+        
+        class_ids = []
+        for ct in teacher_classes:
+            if ct.class_instance.grade == grade:
+                class_ids.append(ct.class_instance.id)
+        
+        students = Student.objects.filter(
+            school_class_id__in=class_ids
+        ).select_related('school_class').order_by('school_class_id', 'student_id')
+        
+        # 학생 기본 정보만 포함 (측정값은 빈값)
+        students_data = []
+        for student in students:
+            student_data = {
+                'school_year': session.school_year,
+                'grade_display': get_grade_display(grade),
+                'class_name': f"{student.school_class.class_number}반",
+                'student_number': student.student_id,
+                'student_name': get_korean_name(student.user),
+                'student_id': student.id
+            }
+            students_data.append(student_data)
+        
+        return JsonResponse({
+            'success': True,
+            'session_name': session.name,
+            'columns': columns,
+            'students': students_data,
+            'total_students': len(students_data),
+            'total_columns': len(columns)
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'JSON 데이터가 올바르지 않습니다.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'템플릿 생성 중 오류가 발생했습니다: {str(e)}'
+        })
+
+
+@login_required
+@teacher_required
+@require_POST
+def api_get_batch_records(request):
+    """
+    일괄입력을 위한 학생별 측정 기록 조회
+    POST /api/paps/get-batch-records/
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        activity_ids = data.get('activity_ids', [])
+        grade = data.get('grade')
+        
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차 ID가 필요합니다.'
+            })
+        
+        if not activity_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '측정 항목을 선택해주세요.'
+            })
+        
+        # 세션 확인 및 권한 검증
+        try:
+            session = PAPSSession.objects.get(
+                id=session_id,
+                teacher_id=request.user.teacher.id
+            )
+        except PAPSSession.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차를 찾을 수 없습니다.'
+            })
+        
+        # activity_ids에 해당하는 PAPSActivity들을 DB 순서대로 조회
+        activities = PAPSActivity.objects.filter(id__in=activity_ids).order_by('created_at')
+        
+        # 활동 정보 조회 및 컬럼 생성
+        columns = []
+        activity_info = {}
+        
+        for activity in activities:
+            activity_id = str(activity.id)
+            if activity_id not in activity_ids:
+                continue
+            
+            activity_info[activity_id] = {
+                'name': activity.get_name_display(),
+                'category_name': '',  # 추후 PAPSCategory 조회 시 설정
+                'columns': []
+            }
+            
+            # measurement_schema에서 readonly=false인 필드들만 추출
+            if activity.measurement_schema and 'fields' in activity.measurement_schema:
+                for field in activity.measurement_schema['fields']:
+                    if not field.get('readonly', False):
+                        col_info = {
+                            'name': field['name'],
+                            'field': field['field'],
+                            'activity_id': activity_id,
+                            'activity_name': activity.get_name_display(),
+                            'type': field.get('type', 'text'),
+                            'validation': {
+                                'min': field.get('min'),
+                                'max': field.get('max'),
+                                'decimal_places': field.get('decimal_places'),
+                                'required': field.get('required', False)
+                            }
+                        }
+                        columns.append(col_info)
+                        activity_info[activity_id]['columns'].append(col_info)
+        
+        # 학생 목록 조회 (교사가 담당하는 학급의 해당 학년 학생들)
+        from accounts.models import ClassTeacher
+        
+        teacher_classes = ClassTeacher.objects.filter(
+            teacher_id=request.user.teacher.id
+        ).select_related('class_instance')
+        
+        class_ids = []
+        for ct in teacher_classes:
+            if ct.class_instance.grade == grade:
+                class_ids.append(ct.class_instance.id)
+        
+        if not class_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '담당하는 해당 학년 학급이 없습니다.'
+            })
+        
+        students = Student.objects.filter(
+            school_class_id__in=class_ids
+        ).select_related('school_class').order_by('school_class_id', 'student_id')
+        
+        # PAPSRecord 조회
+        records = PAPSRecord.objects.filter(
+            session_id=session_id,
+            activity_id__in=activity_ids,
+            measured_by_teacher_id=request.user.teacher.id,
+            student_grade=grade
+        )
+        
+        # 데이터 구성
+        records_data = []
+        records_dict = {}
+        
+        # records를 dict로 변환 (student_id, activity_id를 키로)
+        for record in records:
+            key = f"{record.student_id}_{record.activity_id}"
+            records_dict[key] = record
+        
+        for student in students:
+            student_data = {
+                'student_id': student.id,
+                'school_year': session.school_year,
+                'grade_display': get_grade_display(grade),
+                'class_name': f"{student.school_class.class_number}반",
+                'student_number': student.student_id,
+                'student_name': get_korean_name(student.user),
+                'is_modified': False  # 변경사항 추적용
+            }
+            
+            # 각 측정값 추가
+            for col in columns:
+                key = f"{student.id}_{col['activity_id']}"
+                field_key = f"{col['activity_id']}_{col['field']}"
+                
+                if key in records_dict:
+                    measurement_data = records_dict[key].measurement_data
+                    student_data[field_key] = measurement_data.get(col['field'], '')
+                else:
+                    student_data[field_key] = ''
+            
+            records_data.append(student_data)
+        
+        return JsonResponse({
+            'success': True,
+            'session_name': session.name,
+            'columns': columns,
+            'activity_info': activity_info,
+            'students': records_data,
+            'total_students': len(records_data),
+            'total_columns': len(columns)
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'JSON 데이터가 올바르지 않습니다.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'데이터 조회 중 오류가 발생했습니다: {str(e)}'
+        })
+
+
+@login_required
+@teacher_required
+@require_POST
+def api_batch_save_measurements(request):
+    """
+    일괄 측정 데이터 저장
+    POST /api/paps/batch-save-measurements/
+    """
+    try:
+        from django.db import transaction
+        from .utils import process_measurement_data, calculate_paps_grade
+        
+        data = json.loads(request.body)
+        session_id = data.get('session_id')
+        measurements = data.get('measurements', [])
+        
+        if not session_id:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차 ID가 필요합니다.'
+            })
+        
+        if not measurements:
+            return JsonResponse({
+                'success': False,
+                'error': '저장할 측정 데이터가 없습니다.'
+            })
+        
+        # 세션 확인 및 권한 검증
+        try:
+            session = PAPSSession.objects.get(
+                id=session_id,
+                teacher_id=request.user.teacher.id
+            )
+        except PAPSSession.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '측정회차를 찾을 수 없습니다.'
+            })
+        
+        if session.is_completed:
+            return JsonResponse({
+                'success': False,
+                'error': '완료된 측정회차는 수정할 수 없습니다.'
+            })
+        
+        # 데이터 검증 및 처리
+        processed_measurements = []
+        validation_errors = []
+        
+        for i, measurement in enumerate(measurements):
+            student_id = measurement.get('student_id')
+            activity_id = measurement.get('activity_id')
+            measurement_data = measurement.get('measurement_data', {})
+            
+            if not student_id or not activity_id:
+                validation_errors.append(f'측정 {i+1}: 학생 ID 또는 활동 ID가 누락되었습니다.')
+                continue
+            
+            try:
+                # 학생 확인
+                student = Student.objects.get(id=student_id)
+                
+                # 활동 확인
+                activity = PAPSActivity.objects.get(id=activity_id)
+                
+                # 데이터 처리 (자동 계산 포함)
+                processed_data = process_measurement_data(
+                    activity.name, 
+                    measurement_data, 
+                    student.school_class.grade
+                )
+                
+                processed_measurements.append({
+                    'student': student,
+                    'activity': activity,
+                    'measurement_data': processed_data,
+                    'student_grade': student.school_class.grade
+                })
+                
+            except Student.DoesNotExist:
+                validation_errors.append(f'측정 {i+1}: 학생을 찾을 수 없습니다. (ID: {student_id})')
+            except PAPSActivity.DoesNotExist:
+                validation_errors.append(f'측정 {i+1}: 활동을 찾을 수 없습니다. (ID: {activity_id})')
+            except Exception as e:
+                validation_errors.append(f'측정 {i+1}: 데이터 처리 오류 - {str(e)}')
+        
+        if validation_errors:
+            return JsonResponse({
+                'success': False,
+                'error': '검증 오류',
+                'validation_errors': validation_errors
+            })
+        
+        # 트랜잭션 내에서 일괄 저장
+        success_count = 0
+        error_count = 0
+        
+        with transaction.atomic():
+            for processed in processed_measurements:
+                try:
+                    # 기존 레코드 확인
+                    record, created = PAPSRecord.objects.get_or_create(
+                        session_id=session.id,
+                        student_id=processed['student'].id,
+                        activity_id=processed['activity'].id,
+                        defaults={
+                            'measured_by_teacher_id': request.user.teacher.id,
+                            'class_id': processed['student'].school_class.id,
+                            'student_grade': processed['student_grade'],
+                            'measurement_data': processed['measurement_data'],
+                            'measured_at': timezone.now()
+                        }
+                    )
+                    
+                    if not created:
+                        # 기존 레코드 업데이트
+                        record.measurement_data = processed['measurement_data']
+                        record.measured_at = timezone.now()
+                        record.save()
+                    
+                    # 등급 계산
+                    if processed['activity'].evaluation_criteria:
+                        grade_result = calculate_paps_grade(
+                            processed['activity'],
+                            processed['measurement_data'],
+                            processed['student_grade']
+                        )
+                        if grade_result and 'processed_data' in grade_result:
+                            record.evaluation_grade = grade_result['processed_data'].get('grade')
+                            record.save()
+                    
+                    success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    print(f"저장 오류: {str(e)}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'저장 완료: 성공 {success_count}건, 오류 {error_count}건',
+            'success_count': success_count,
+            'error_count': error_count
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'JSON 데이터가 올바르지 않습니다.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'저장 중 오류가 발생했습니다: {str(e)}'
+        })

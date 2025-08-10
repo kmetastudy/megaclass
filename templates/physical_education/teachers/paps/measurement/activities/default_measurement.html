@@ -1,0 +1,119 @@
+<!-- 기본 측정 화면 (템플릿 개발 중인 종목용) -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 개발 중 안내 -->
+        <div class="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+            <div class="text-yellow-700">
+                <i class="fas fa-tools text-4xl mb-4"></i>
+                <h3 class="text-lg font-medium mb-2">측정 화면 개발 중</h3>
+                <p class="text-sm">{{ activity.get_name_display }} 종목의 측정 화면을 준비 중입니다.</p>
+                <p class="text-xs mt-2 text-gray-600">곧 완성된 측정 인터페이스를 제공할 예정입니다.</p>
+            </div>
+        </div>
+
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="text-md font-semibold text-blue-800 mb-3">측정 정보</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생 목록 -->
+        <div class="mb-6">
+            <h3 class="text-md font-semibold text-gray-700 mb-3">학생 목록</h3>
+            <div class="border border-gray-200 rounded-lg">
+                <div class="grid grid-cols-4 gap-2 px-4 py-2 bg-gray-100 rounded-t-lg border-b text-sm font-medium text-gray-600">
+                    <span>번호</span>
+                    <span>이름</span>
+                    <span>기존 기록</span>
+                    <span>상태</span>
+                </div>
+                {% for student in students %}
+                <div class="grid grid-cols-4 gap-2 px-4 py-3 {% if forloop.counter0|divisibleby:2 %}bg-white{% else %}bg-gray-50{% endif %} text-sm">
+                    <span class="text-gray-600">{{ student.number }}</span>
+                    <span class="font-medium">{{ student.name }}</span>
+                    <span class="text-gray-500">
+                        {% if student.record %}
+                            {% if student.measurement_data %}
+                                <span class="text-green-600">측정 완료</span>
+                            {% else %}
+                                <span class="text-gray-400">기록 없음</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-gray-400">미측정</span>
+                        {% endif %}
+                    </span>
+                    <span>
+                        {% if student.record %}
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">완료</span>
+                        {% else %}
+                            <span class="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">대기</span>
+                        {% endif %}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 측정 스키마 정보 (개발자용) -->
+        {% if activity.measurement_schema %}
+        <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 class="text-md font-semibold text-gray-700 mb-3">측정 스키마 (개발 참고용)</h3>
+            <pre class="text-xs text-gray-600 bg-white p-3 rounded border overflow-x-auto">{{ activity.measurement_schema|pprint }}</pre>
+        </div>
+        {% endif %}
+
+        <!-- 평가 기준 정보 (개발자용) -->
+        {% if activity.evaluation_criteria %}
+        <div class="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 class="text-md font-semibold text-gray-700 mb-3">평가 기준 (개발 참고용)</h3>
+            <pre class="text-xs text-gray-600 bg-white p-3 rounded border overflow-x-auto">{{ activity.evaluation_criteria|pprint }}</pre>
+        </div>
+        {% endif %}
+
+        <!-- 액션 버튼 -->
+        <div class="flex justify-center space-x-4">
+            <button class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
+                이전으로
+            </button>
+            <button class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition" disabled>
+                측정 시작 (준비 중)
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('측정 화면 로드 완료');
+    console.log('Activity:', '{{ activity.name }}');
+    console.log('Students:', {{ students_json|safe }});
+    
+    // 개발 완료 후 실제 측정 로직이 여기에 들어갈 예정
+});
+</script>
