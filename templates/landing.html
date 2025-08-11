@@ -868,7 +868,12 @@
             fields.forEach(field => {
                 const element = document.getElementById(field);
                 if (element) {
-                    data[field.replace('modal', '')] = element.value;
+                    // modal prefix 제거 후 camelCase로 변환
+                    let key = field.replace('modal', '');
+                    if (field.startsWith('modal')) {
+                        key = key.charAt(0).toLowerCase() + key.slice(1);
+                    }
+                    data[key] = element.value;
                 }
             });
             
