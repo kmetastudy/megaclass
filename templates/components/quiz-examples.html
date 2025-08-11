@@ -1,0 +1,287 @@
+{% load static %}
+
+<!-- Quiz Examples Component -->
+<div class="quiz-examples-wrapper">
+    <!-- CDN Links -->
+    <link rel="stylesheet" href="https://unpkg.com/embla-carousel/embla-carousel.css">
+    <link rel="stylesheet" href="{% static 'css/quiz-examples.css' %}">
+    
+    <div class="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto items-center">
+        <!-- Left Side: Description -->
+        <div>
+            <div class="mb-8">
+                <h3 class="text-xl font-bold mb-4 text-blue-600">
+                    <i class="fas fa-graduation-cap mr-2"></i>2022 개정 교육과정 완벽 연동
+                </h3>
+                <p class="text-gray-600">성취기준 DB가 연동된 템플릿으로, 실기/서술형/루브릭 평가를 몇 번의 클릭만으로 완성할 수 있습니다.</p>
+            </div>
+            
+            <div class="mb-8">
+                <h3 class="text-xl font-bold mb-4 text-purple-600">
+                    <i class="fas fa-brain mr-2"></i>AI 기반 추천 및 협업
+                </h3>
+                <p class="text-gray-600">AI가 유사 문항이나 난이도를 추천해주고, 동료 교사들과 문제 풀(Pool)을 공유하며 수업의 질을 함께 높일 수 있습니다.</p>
+            </div>
+        </div>
+        
+        <!-- Right Side: Interactive Quiz Carousel -->
+        <div class="quiz-container bg-gray-100 p-6 rounded-xl">
+            <!-- Quiz Type Navigation -->
+            <div class="quiz-nav-tabs flex flex-wrap justify-center mb-4 gap-2">
+                <button class="quiz-nav-tab active" data-type="ox">O/X퀴즈</button>
+                <button class="quiz-nav-tab" data-type="choice">객관식</button>
+                <button class="quiz-nav-tab" data-type="line_matching">라인매칭</button>
+                <button class="quiz-nav-tab" data-type="drag_drop">드래그앤드롭</button>
+                <button class="quiz-nav-tab" data-type="selection">선택형</button>
+            </div>
+            
+            <!-- Embla Carousel Container -->
+            <div class="embla quiz-carousel">
+                <div class="embla__container">
+                    
+                    <!-- OX Quiz Slide -->
+                    <div class="embla__slide quiz-slide" data-quiz-type="ox">
+                        <div class="quiz-content">
+                            <div class="quiz-header">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-brain text-blue-500 mr-2"></i>
+                                        <span class="quiz-type-label">O/X 퀴즈</span>
+                                    </div>
+                                    <span class="quiz-example-badge">예시</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-question mb-6">
+                                <p>세계보건기구(WHO)에 따르면, 건강이란 질병이 없거나 허약하지 않은 신체적 상태만을 의미한다.</p>
+                            </div>
+                            
+                            <div class="quiz-options space-y-3">
+                                <button class="quiz-option-btn ox-option" data-answer="O">
+                                    <i class="fas fa-circle text-green-500 mr-2"></i>
+                                    <span>O (맞다)</span>
+                                </button>
+                                <button class="quiz-option-btn ox-option" data-answer="X">
+                                    <i class="fas fa-times text-red-500 mr-2"></i>
+                                    <span>X (틀리다)</span>
+                                </button>
+                            </div>
+                            
+                            <button class="quiz-submit-btn" disabled>정답 확인</button>
+                            
+                            <div class="quiz-result-section hidden">
+                                <div class="quiz-feedback"></div>
+                                <div class="quiz-explanation">
+                                    <strong>해설:</strong> WHO는 건강을 신체적, 정신적, 사회적 안녕을 모두 포함하는 완전한 상태로 정의합니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Multiple Choice Quiz Slide -->
+                    <div class="embla__slide quiz-slide" data-quiz-type="choice">
+                        <div class="quiz-content">
+                            <div class="quiz-header">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-brain text-blue-500 mr-2"></i>
+                                        <span class="quiz-type-label">객관식 문제</span>
+                                    </div>
+                                    <span class="quiz-example-badge">예시</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-question mb-6">
+                                <p>다음 중 세계보건기구(WHO)가 정의한 건강의 요소에 포함되지 않는 것은?</p>
+                            </div>
+                            
+                            <div class="quiz-options space-y-3">
+                                <button class="quiz-option-btn choice-option" data-answer="1">
+                                    <span class="option-number">1)</span> 신체적 안녕
+                                </button>
+                                <button class="quiz-option-btn choice-option" data-answer="2">
+                                    <span class="option-number">2)</span> 정신적 안녕
+                                </button>
+                                <button class="quiz-option-btn choice-option" data-answer="3">
+                                    <span class="option-number">3)</span> 사회적 안녕
+                                </button>
+                                <button class="quiz-option-btn choice-option" data-answer="4">
+                                    <span class="option-number">4)</span> 경제적 안녕
+                                </button>
+                            </div>
+                            
+                            <button class="quiz-submit-btn" disabled>정답 확인</button>
+                            
+                            <div class="quiz-result-section hidden">
+                                <div class="quiz-feedback"></div>
+                                <div class="quiz-explanation">
+                                    <strong>해설:</strong> 경제적 안녕은 WHO가 정의한 건강의 3요소(신체적, 정신적, 사회적 안녕)에 포함되지 않습니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Line Matching Quiz Slide -->
+                    <div class="embla__slide quiz-slide" data-quiz-type="line_matching">
+                        <div class="quiz-content">
+                            <div class="quiz-header">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-brain text-blue-500 mr-2"></i>
+                                        <span class="quiz-type-label">라인 매칭</span>
+                                    </div>
+                                    <span class="quiz-example-badge">예시</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-question mb-6">
+                                <p>건강의 종류와 그 의미를 바르게 연결하시오.</p>
+                            </div>
+                            
+                            <div class="line-matching-container">
+                                <!-- SVG for drawing lines -->
+                                <svg class="connection-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <!-- Lines will be drawn here dynamically -->
+                                </svg>
+                                
+                                <div class="matching-columns">
+                                    <div class="left-column">
+                                        <div class="matching-item left-item" data-id="left-1">
+                                            <span class="connection-point"></span>
+                                            신체적 건강
+                                        </div>
+                                        <div class="matching-item left-item" data-id="left-2">
+                                            <span class="connection-point"></span>
+                                            정신적 건강
+                                        </div>
+                                        <div class="matching-item left-item" data-id="left-3">
+                                            <span class="connection-point"></span>
+                                            사회적 건강
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="right-column">
+                                        <div class="matching-item right-item" data-id="right-1">
+                                            <span class="connection-point"></span>
+                                            몸이 튼튼한 것
+                                        </div>
+                                        <div class="matching-item right-item" data-id="right-2">
+                                            <span class="connection-point"></span>
+                                            마음이 안정된 상태
+                                        </div>
+                                        <div class="matching-item right-item" data-id="right-3">
+                                            <span class="connection-point"></span>
+                                            친구들과 잘 어울리는 것
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="quiz-submit-btn" disabled>정답 확인</button>
+                            
+                            <div class="quiz-result-section hidden">
+                                <div class="quiz-feedback"></div>
+                                <div class="quiz-explanation">
+                                    <strong>해설:</strong> 신체적 건강-몸이 튼튼한 것, 정신적 건강-마음이 안정된 상태, 사회적 건강-친구들과 잘 어울리는 것
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Drag & Drop Quiz Slide -->
+                    <div class="embla__slide quiz-slide" data-quiz-type="drag_drop">
+                        <div class="quiz-content">
+                            <div class="quiz-header">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-brain text-blue-500 mr-2"></i>
+                                        <span class="quiz-type-label">드래그 앤 드롭</span>
+                                    </div>
+                                    <span class="quiz-example-badge">예시</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-question mb-6">
+                                <p>서 있을 때는 양발에 똑같이 힘을 주고, 시선은 앞을 보며 <span class="drop-zone" data-target="1">[빈칸1]</span>에 힘을 줍니다. 앉아 있을 때는 <span class="drop-zone" data-target="2">[빈칸2]</span>을/를 펴고 엉덩이를 의자 깊숙이 넣습니다.</p>
+                            </div>
+                            
+                            <div class="drag-options mb-6">
+                                <div class="drag-item" draggable="true" data-value="배">배</div>
+                                <div class="drag-item" draggable="true" data-value="등">등</div>
+                            </div>
+                            
+                            <button class="quiz-submit-btn" disabled>정답 확인</button>
+                            
+                            <div class="quiz-result-section hidden">
+                                <div class="quiz-feedback"></div>
+                                <div class="quiz-explanation">
+                                    <strong>해설:</strong> 올바른 자세를 위해서는 배에 힘을 주고, 등을 펴는 것이 중요합니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selection Quiz Slide -->
+                    <div class="embla__slide quiz-slide" data-quiz-type="selection">
+                        <div class="quiz-content">
+                            <div class="quiz-header">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-brain text-blue-500 mr-2"></i>
+                                        <span class="quiz-type-label">선택형 문제</span>
+                                    </div>
+                                    <span class="quiz-example-badge">예시</span>
+                                </div>
+                            </div>
+                            
+                            <div class="quiz-question mb-6">
+                                <p>건강한 생활 습관을 꾸준히 실천하면 몸과 마음이 건강해지고, 친구들과도 
+                                    <span class="selection-group">
+                                        <button class="selection-option" data-value="good">(잘 어울릴 수 있게)</button>
+                                        <span> / </span>
+                                        <button class="selection-option" data-value="bad">(어울리기 어렵게)</button>
+                                    </span> 된다.
+                                </p>
+                            </div>
+                            
+                            <button class="quiz-submit-btn" disabled>정답 확인</button>
+                            
+                            <div class="quiz-result-section hidden">
+                                <div class="quiz-feedback"></div>
+                                <div class="quiz-explanation">
+                                    <strong>해설:</strong> 건강한 생활 습관은 신체적, 정신적 건강뿐만 아니라 사회적 관계 형성에도 긍정적인 영향을 미칩니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <!-- Embla Navigation -->
+            <div class="embla-controls">
+                <!-- Previous/Next buttons -->
+                <button class="embla__prev" aria-label="이전 문제">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="embla__next" aria-label="다음 문제">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                
+                <!-- Dots -->
+                <div class="embla__dots">
+                    <button class="embla__dot" data-index="0" aria-label="1번 문제"></button>
+                    <button class="embla__dot" data-index="1" aria-label="2번 문제"></button>
+                    <button class="embla__dot" data-index="2" aria-label="3번 문제"></button>
+                    <button class="embla__dot" data-index="3" aria-label="4번 문제"></button>
+                    <button class="embla__dot" data-index="4" aria-label="5번 문제"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://unpkg.com/embla-carousel/embla-carousel.umd.js"></script>
+    <script src="https://unpkg.com/embla-carousel-autoplay/embla-carousel-autoplay.umd.js"></script>
+    <script src="{% static 'js/quiz-examples.js' %}"></script>
+</div>
