@@ -11,6 +11,16 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+import environ
+from django.core.exceptions import ImproperlyConfigured
+
+# django-environ 설정
+env = environ.Env(
+    DEBUG=(bool, True)
+)
+
+# .env 파일 읽기
+environ.Env.read_env(os.path.join(Path(__file__).resolve().parent.parent, '.env'))
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +30,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x49h7ss)z0g^+ke$ead*ua+24$zj$x=@!d_-x6dou3z+sw&g#s'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# settings.py에 추가할 디버깅 설정
+DEBUG = env('DEBUG')
 
 # Gemini AI API 설정
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyAP04dk1CIbnhvtCqVuxIWRXr03ff_Cnqo')
+GEMINI_API_KEY = env('GEMINI_API_KEY')
 
 # CP Agent 관련 설정
 CP_AGENT_SETTINGS = {
@@ -222,15 +231,25 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField' 
 
-# # 1. LOGIN_URL 설정 (로그인이 필요한 뷰에서 리다이렉트될 URL)
-# LOGIN_URL = '/accounts/login/'  # 실제 로그인 URL로 변경
-# LOGIN_REDIRECT_URL = '/'  # 로그인 후 리다이렉트될 URL
+# 이메일 설정
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# # 2. 세션 설정 확인
-# SESSION_COOKIE_AGE = 3600  # 1시간 (필요에 따라 조정)
-# SESSION_SAVE_EVERY_REQUEST = True
-# SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-# SESSION_COOKIE_AGE = 86400  # 24시간
-# SESSION_SAVE_EVERY_REQUEST = True
-# SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# Gmail SMTP 서버 설정
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+# 환경 변수에서 인증 정보 로드
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='test@gmail.com')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='test_password')
+
+# 기본 발신자 이메일
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# 이메일 전송 관련 추가 설정
+EMAIL_TIMEOUT = 30  # 30초 타임아웃
+EMAIL_CONNECTION_USE_TLS = True
+
 

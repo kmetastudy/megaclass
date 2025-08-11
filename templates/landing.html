@@ -877,9 +877,57 @@
                 }
             });
             
-            // 실제 서버로 전송하는 부분 (예시)
-            setTimeout(() => {
-                console.log('폼 데이터:', data);
+            // CSRF 토큰 가져오기
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            // 실제 서버로 이메일 전송
+            fetch('/physical_education/api/send-inquiry/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(result => {
+                // 로딩 해제
+                if (loading) {
+                    loading.style.display = 'none';
+                }
+                submitBtn.disabled = false;
+                
+                if (result.success) {
+                    // 성공 메시지
+                    showNotification(result.message, 'success');
+                    
+                    // 폼 초기화
+                    form.reset();
+                    
+                    // 모달 닫기
+                    if (formId === 'modalDemoForm') {
+                        closeDemoModal();
+                    }
+                } else {
+                    // 에러 메시지
+                    showNotification(result.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 
                 // 로딩 해제
                 if (loading) {
@@ -887,17 +935,9 @@
                 }
                 submitBtn.disabled = false;
                 
-                // 성공 메시지
-                showNotification('문의가 성공적으로 접수되었습니다! 빠른 시일 내에 연락드리겠습니다.');
-                
-                // 폼 초기화
-                form.reset();
-                
-                // 모달 닫기
-                if (formId === 'modalDemoForm') {
-                    closeDemoModal();
-                }
-            }, 1500);
+                // 에러 메시지
+                showNotification('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+            });
         }
 
         

@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views, apis, measurement_views
+from . import views, apis, measurement_views, emails
 
 app_name = "physical_education"
 
@@ -187,5 +187,12 @@ urlpatterns = [
         "api/paps/statistics/grade-distribution/",
         views.api_grade_distribution,
         name="api_grade_distribution",
+    ),
+    
+    # 이메일 전송 API
+    path(
+        "api/send-inquiry/",
+        emails.api_send_inquiry,
+        name="api_send_inquiry",
     ),
 ]
