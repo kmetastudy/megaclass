@@ -766,8 +766,9 @@
                 <input type="email" id="modalEmail" placeholder="이메일" class="w-full p-3 border rounded-lg" required>
                 <textarea id="modalInquiry" placeholder="문의 내용 (선택사항)" rows="3" class="w-full p-3 border rounded-lg"></textarea>
                 
-                <button type="submit" class="btn-primary w-full py-3 px-6 rounded-lg text-white font-bold">
-                    신청하기
+                <button type="submit" class="btn-primary w-full py-3 px-6 rounded-lg text-white font-bold flex items-center justify-center">
+                    <div class="loading"></div>
+                    <i class="fas fa-paper-plane mr-2"></i>신청하기
                 </button>
             </form>
         </div>
@@ -850,7 +851,9 @@
             const loading = submitBtn.querySelector('.loading');
             
             // 로딩 표시
-            loading.style.display = 'inline-block';
+            if (loading) {
+                loading.style.display = 'inline-block';
+            }
             submitBtn.disabled = true;
             
             // 폼 데이터 수집
@@ -874,7 +877,9 @@
                 console.log('폼 데이터:', data);
                 
                 // 로딩 해제
-                loading.style.display = 'none';
+                if (loading) {
+                    loading.style.display = 'none';
+                }
                 submitBtn.disabled = false;
                 
                 // 성공 메시지
