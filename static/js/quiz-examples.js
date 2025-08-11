@@ -131,6 +131,7 @@ class QuizExamples {
         this.setupDragDropQuiz();
         this.setupSelectionQuiz();
         this.setupSubmitButtons();
+        this.setupResultCloseButtons();
     }
     
     setupOXQuiz() {
@@ -389,6 +390,18 @@ class QuizExamples {
                 const slide = e.target.closest('.quiz-slide');
                 const quizType = slide.getAttribute('data-quiz-type');
                 this.checkAnswer(slide, quizType);
+            });
+        });
+    }
+    
+    setupResultCloseButtons() {
+        document.querySelectorAll('.quiz-result-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const resultSection = e.target.closest('.quiz-result-section');
+                if (resultSection) {
+                    resultSection.classList.add('hidden');
+                    resultSection.classList.remove('fade-in');
+                }
             });
         });
     }
