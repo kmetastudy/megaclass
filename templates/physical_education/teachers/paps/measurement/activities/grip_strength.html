@@ -333,6 +333,7 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
     function init() {
         setupEventListeners();
         setupInputVisualizers();
+        calculateInitialMaxValues();
     }
 
     function setupEventListeners() {
@@ -347,7 +348,41 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
             input.addEventListener('keydown', handleInputKeyDown);
             // 초기값이 있는 경우 visualizer 업데이트
             if (input.value) {
+                // Convert decimal value to visualizer format (multiply by 10)
+                const decimalValue = parseFloat(input.value);
+                if (!isNaN(decimalValue)) {
+                    input.value = Math.round(decimalValue * 10).toString();
+                }
                 updateVisualizer(input);
+            }
+        });
+    }
+
+    function calculateInitialMaxValues() {
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const displays = studentElement.querySelectorAll('.measurement-display');
+            const values = [];
+            
+            displays.forEach(display => {
+                const text = display.textContent.trim();
+                if (text !== '미측정' && text) {
+                    // Extract numeric value from text like "60 kg"
+                    const numericValue = parseFloat(text.replace(/[^0-9.]/g, ''));
+                    if (!isNaN(numericValue)) {
+                        values.push(numericValue);
+                    }
+                }
+            });
+
+            if (values.length > 0) {
+                const maxValue = Math.max(...values);
+                const finalRecordDisplay = studentElement.querySelector('.final-record');
+                if (finalRecordDisplay) {
+                    finalRecordDisplay.textContent = `${maxValue.toFixed(1)} kg`;
+                    finalRecordDisplay.classList.remove('text-gray-500');
+                    finalRecordDisplay.classList.add('text-orange-600');
+                }
             }
         });
     }
@@ -436,7 +471,20 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
     }
 
     function getNumericValue(input) {
-        if (!input || input.value === '') return null;
+        // Add defensive checks for element type and existence
+        if (!input) {
+            console.warn('getNumericValue: input element is null or undefined');
+            return null;
+        }
+        
+        if (input.tagName !== 'INPUT') {
+            console.warn('getNumericValue: element is not an INPUT tag, got:', input.tagName);
+            return null;
+        }
+        
+        if (!input.value || input.value === '') {
+            return null;
+        }
 
         let rawValue = input.value.replace(/[^0-9]/g, '');
         if (rawValue === '') return null;
@@ -453,10 +501,10 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
 
     function updateMaxValue(changedInput) {
         const studentElement = changedInput.closest('[data-student-id]');
-        const left1Input = studentElement.querySelector('[data-field="grip_strength_left_hand_1"]');
-        const left2Input = studentElement.querySelector('[data-field="grip_strength_left_hand_2"]');
-        const right1Input = studentElement.querySelector('[data-field="grip_strength_right_hand_1"]');
-        const right2Input = studentElement.querySelector('[data-field="grip_strength_right_hand_2"]');
+        const left1Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_left_hand_1"]');
+        const left2Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_left_hand_2"]');
+        const right1Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_right_hand_1"]');
+        const right2Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_right_hand_2"]');
         const finalRecordDisplay = studentElement.querySelector('.final-record');
 
         const values = [
@@ -480,10 +528,10 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
 
     // 개별 학생 기록 저장
     async function handleSaveStudent(studentElement, studentId) {
-        const left1Input = studentElement.querySelector('[data-field="grip_strength_left_hand_1"]');
-        const left2Input = studentElement.querySelector('[data-field="grip_strength_left_hand_2"]');
-        const right1Input = studentElement.querySelector('[data-field="grip_strength_right_hand_1"]');
-        const right2Input = studentElement.querySelector('[data-field="grip_strength_right_hand_2"]');
+        const left1Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_left_hand_1"]');
+        const left2Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_left_hand_2"]');
+        const right1Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_right_hand_1"]');
+        const right2Input = studentElement.querySelector('input.measurement-input[data-field="grip_strength_right_hand_2"]');
 
         const left1 = getNumericValue(left1Input);
         const left2 = getNumericValue(left2Input);
@@ -575,13 +623,30 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
         const cancelBtn = studentElement.querySelector('.cancel-btn');
 
         if (isEditing) {
+            // Initialize input values from display values before entering edit mode
+            const inputs = studentElement.querySelectorAll('.measurement-input');
+            displays.forEach((display, index) => {
+                const input = inputs[index];
+                if (input && display && display.textContent !== '미측정') {
+                    // Extract numeric value from display text like "60 kg"
+                    const displayValue = display.textContent.replace(/[^0-9.]/g, '');
+                    if (displayValue) {
+                        // Convert decimal value to visualizer format (multiply by 10)
+                        const decimalValue = parseFloat(displayValue);
+                        if (!isNaN(decimalValue)) {
+                            input.value = Math.round(decimalValue * 10).toString();
+                        }
+                        updateVisualizer(input);
+                    }
+                }
+            });
+            
             displays.forEach(display => display.classList.add('hidden'));
             containers.forEach(container => container.classList.remove('hidden'));
             
             const firstInput = containers[0]?.querySelector('.input-actual');
             if (firstInput) {
                 firstInput.focus();
-                updateVisualizer(firstInput);
             }
             
             editBtn.classList.add('hidden');
@@ -604,9 +669,16 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
         inputs.forEach((input, index) => {
             const display = displays[index];
             if (display && display.textContent !== '미측정') {
+                // Extract numeric value from display text like "60 kg"
                 const originalValue = display.textContent.replace(/[^0-9.]/g, '');
                 if (originalValue) {
-                    input.value = originalValue.replace('.', '');
+                    // Convert decimal value to visualizer format (multiply by 10)
+                    const decimalValue = parseFloat(originalValue);
+                    if (!isNaN(decimalValue)) {
+                        input.value = Math.round(decimalValue * 10).toString();
+                    } else {
+                        input.value = '';
+                    }
                     updateVisualizer(input);
                 } else {
                     input.value = '';
@@ -619,7 +691,9 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
         });
         
         // 최고값도 복원
-        updateMaxValue(inputs[0]);
+        if (inputs[0]) {
+            updateMaxValue(inputs[0]);
+        }
     }
 
 })();
