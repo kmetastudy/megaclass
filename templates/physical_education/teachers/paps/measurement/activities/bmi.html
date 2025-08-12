@@ -1,0 +1,484 @@
+<!-- BMI 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-cyan-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 신장/체중 입력</h2>
+            
+            <!-- 목록 헤더 -->
+            <div class="grid grid-cols-5 items-center gap-2 px-3 py-2 bg-gray-100 rounded-t-lg border-b">
+                <span class="font-semibold text-gray-600">이름</span>
+                <span class="font-semibold text-gray-600 text-center">신장 (cm)</span>
+                <span class="font-semibold text-gray-600 text-center">체중 (kg)</span>
+                <span class="font-semibold text-gray-600 text-center">BMI (kg/m²)</span>
+                <span class="font-semibold text-gray-600 text-center">관리</span>
+            </div>
+
+            <!-- 학생 목록 -->
+            <div id="student-list-container" class="border border-t-0 rounded-b-lg">
+                {% for student in students %}
+                <div class="grid grid-cols-5 items-center gap-2 p-3 {% if forloop.counter0|divisibleby:2 %}bg-white{% else %}bg-gray-50{% endif %}" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 -->
+                    <span class="font-medium truncate">{{ student.name }}</span>
+                    
+                    <!-- 신장 표시/입력 -->
+                    <div class="text-center">
+                        {% if student.record %}
+                            <span class="text-lg text-cyan-600 font-bold measurement-display" data-field="bmi_height">
+                                {{ student.measurement_data.bmi_height|default:"미측정" }}{% if student.measurement_data.bmi_height %} cm{% endif %}
+                            </span>
+                            <div class="input-container hidden">
+                                <div class="input-visualizer" id="height-visualizer-{{ student.id }}">
+                                    <span></span><span class="decimal-point">.</span><span></span>
+                                </div>
+                                <input type="text" 
+                                       class="input-actual measurement-input" 
+                                       data-field="bmi_height"
+                                       data-visualizer="height-visualizer-{{ student.id }}"
+                                       value="{{ student.measurement_data.bmi_height|default:"" }}"
+                                       data-min="100.0" 
+                                       data-max="300.0">
+                            </div>
+                        {% else %}
+                            <span class="text-lg text-gray-500 measurement-display" data-field="bmi_height">미측정</span>
+                            <div class="input-container hidden">
+                                <div class="input-visualizer" id="height-visualizer-{{ student.id }}">
+                                    <span></span><span class="decimal-point">.</span><span></span>
+                                </div>
+                                <input type="text" 
+                                       class="input-actual measurement-input" 
+                                       data-field="bmi_height"
+                                       data-visualizer="height-visualizer-{{ student.id }}"
+                                       value=""
+                                       data-min="100.0" 
+                                       data-max="300.0">
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 체중 표시/입력 -->
+                    <div class="text-center">
+                        {% if student.record %}
+                            <span class="text-lg text-cyan-600 font-bold measurement-display" data-field="bmi_weight">
+                                {{ student.measurement_data.bmi_weight|default:"미측정" }}{% if student.measurement_data.bmi_weight %} kg{% endif %}
+                            </span>
+                            <div class="input-container hidden">
+                                <div class="input-visualizer" id="weight-visualizer-{{ student.id }}">
+                                    <span></span><span class="decimal-point">.</span><span></span>
+                                </div>
+                                <input type="text" 
+                                       class="input-actual measurement-input" 
+                                       data-field="bmi_weight"
+                                       data-visualizer="weight-visualizer-{{ student.id }}"
+                                       value="{{ student.measurement_data.bmi_weight|default:"" }}"
+                                       data-min="10.0" 
+                                       data-max="300.0">
+                            </div>
+                        {% else %}
+                            <span class="text-lg text-gray-500 measurement-display" data-field="bmi_weight">미측정</span>
+                            <div class="input-container hidden">
+                                <div class="input-visualizer" id="weight-visualizer-{{ student.id }}">
+                                    <span></span><span class="decimal-point">.</span><span></span>
+                                </div>
+                                <input type="text" 
+                                       class="input-actual measurement-input" 
+                                       data-field="bmi_weight"
+                                       data-visualizer="weight-visualizer-{{ student.id }}"
+                                       value=""
+                                       data-min="10.0" 
+                                       data-max="300.0">
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- BMI 표시 -->
+                    <div class="text-center">
+                        <span class="text-lg font-bold measurement-display bmi-display" data-field="bmi_bmi">
+                            {% if student.measurement_data.bmi_bmi %}
+                                {{ student.measurement_data.bmi_bmi|floatformat:1 }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-1 px-2 rounded transition text-xs ml-1 hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<!-- CSS 스타일 -->
+<style>
+.input-container {
+    position: relative;
+    width: 100%;
+}
+
+.input-visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: #ffffff;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    min-height: 42px;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.input-visualizer.has-value {
+    color: #111827;
+}
+
+.input-visualizer .decimal-point {
+    margin: 0 1px;
+    display: none;
+}
+
+.input-actual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    color: transparent;
+    caret-color: #111827;
+    border: none;
+    text-align: center;
+    font-size: 1.25rem;
+    padding: 0;
+}
+
+.input-actual:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #06b6d4;
+    border-radius: 0.375rem;
+}
+</style>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, toggleEditMode, validateInput, updateMeasuredCount, setupCommonEventHandlers } from '{% static "js/physical_education/measure/common.js" %}';
+import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physical_education/measure/calculations.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS BMI template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        setupInputVisualizers();
+    }
+
+    function setupEventListeners() {
+        // 공통 이벤트 핸들러 설정
+        setupCommonEventHandlers(studentContainer, handleSaveStudent);
+    }
+
+    function setupInputVisualizers() {
+        const inputs = document.querySelectorAll('.input-actual');
+        inputs.forEach(input => {
+            input.addEventListener('input', handleInputChange);
+            input.addEventListener('keydown', handleKeyDown);
+            // 초기값이 있는 경우 visualizer 업데이트
+            if (input.value) {
+                updateVisualizer(input);
+            }
+        });
+    }
+
+    function handleInputChange(e) {
+        const input = e.target;
+        updateVisualizer(input);
+        updateBMIDisplay(input);
+    }
+
+    function handleKeyDown(e) {
+        const input = e.target;
+        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'];
+        
+        if (allowedKeys.includes(e.key)) {
+            return;
+        }
+        
+        if (e.key >= '0' && e.key <= '9') {
+            let currentValue = input.value.replace(/[^0-9]/g, '');
+            if (currentValue.length >= 4) {
+                e.preventDefault();
+            }
+            return;
+        }
+        
+        e.preventDefault();
+    }
+
+    function updateVisualizer(input) {
+        const visualizerId = input.dataset.visualizer;
+        const visualizer = document.getElementById(visualizerId);
+        if (!visualizer) return;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        
+        visualizer.classList.toggle('has-value', rawValue !== '');
+
+        let integerPart = '';
+        let decimalPart = '';
+
+        if (rawValue === '') {
+            visualizer.querySelector('.decimal-point').style.display = 'none';
+        } else {
+            visualizer.querySelector('.decimal-point').style.display = 'inline';
+            if (rawValue.length === 1) {
+                integerPart = '0';
+                decimalPart = rawValue;
+            } else {
+                integerPart = rawValue.slice(0, -1);
+                decimalPart = rawValue.slice(-1);
+            }
+        }
+        
+        const spans = visualizer.querySelectorAll('span');
+        spans[0].textContent = integerPart;
+        spans[2].textContent = decimalPart;
+    }
+
+    function getNumericValue(input) {
+        if (!input || input.value === '') return null;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        if (rawValue === '') return null;
+
+        let numericValue;
+        if (rawValue.length === 1) {
+            numericValue = parseFloat(`0.${rawValue}`);
+        } else {
+            numericValue = parseFloat(`${rawValue.slice(0, -1)}.${rawValue.slice(-1)}`);
+        }
+
+        return numericValue;
+    }
+
+    function updateBMIDisplay(changedInput) {
+        const studentElement = changedInput.closest('[data-student-id]');
+        const heightInput = studentElement.querySelector('[data-field="bmi_height"]');
+        const weightInput = studentElement.querySelector('[data-field="bmi_weight"]');
+        const bmiDisplay = studentElement.querySelector('.bmi-display');
+
+        const height = getNumericValue(heightInput);
+        const weight = getNumericValue(weightInput);
+
+        if (height && weight) {
+            const bmi = calculateBMI(height, weight);
+            if (bmi) {
+                bmiDisplay.textContent = formatDecimal(bmi, 1);
+                bmiDisplay.classList.remove('text-gray-500');
+                bmiDisplay.classList.add('text-cyan-600');
+            }
+        } else {
+            bmiDisplay.textContent = '—';
+            bmiDisplay.classList.add('text-gray-500');
+            bmiDisplay.classList.remove('text-cyan-600');
+        }
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const heightInput = studentElement.querySelector('[data-field="bmi_height"]');
+        const weightInput = studentElement.querySelector('[data-field="bmi_weight"]');
+
+        const height = getNumericValue(heightInput);
+        const weight = getNumericValue(weightInput);
+
+        // 입력값 검증
+        if (!height || !weight) {
+            showToast('신장과 체중을 모두 입력해주세요.', 'error');
+            return false;
+        }
+
+        const heightValidation = validateInput(height, 100.0, 300.0);
+        if (!heightValidation.valid) {
+            showToast(`신장: ${heightValidation.error}`, 'error');
+            return false;
+        }
+
+        const weightValidation = validateInput(weight, 10.0, 300.0);
+        if (!weightValidation.valid) {
+            showToast(`체중: ${weightValidation.error}`, 'error');
+            return false;
+        }
+
+        const bmi = calculateBMI(height, weight);
+        if (!bmi) {
+            showToast('BMI 계산에 실패했습니다.', 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                {
+                    bmi_height: height,
+                    bmi_weight: weight
+                },
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // UI 업데이트
+                updateStudentUI(studentElement, height, weight, bmi);
+                showToast(`${studentElement.querySelector('span').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUI(studentElement, height, weight, bmi) {
+        // 신장 표시 업데이트
+        const heightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_height"]');
+        heightDisplay.textContent = `${formatDecimal(height, 1)} cm`;
+        heightDisplay.classList.remove('text-gray-500');
+        heightDisplay.classList.add('text-cyan-600', 'font-bold');
+
+        // 체중 표시 업데이트
+        const weightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_weight"]');
+        weightDisplay.textContent = `${formatDecimal(weight, 1)} kg`;
+        weightDisplay.classList.remove('text-gray-500');
+        weightDisplay.classList.add('text-cyan-600', 'font-bold');
+
+        // BMI 표시 업데이트
+        const bmiDisplay = studentElement.querySelector('.bmi-display');
+        bmiDisplay.textContent = formatDecimal(bmi, 1);
+        bmiDisplay.classList.remove('text-gray-500');
+        bmiDisplay.classList.add('text-cyan-600');
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg transition text-sm';
+    }
+
+    // 편집 모드 전환 (오버라이드)
+    window.toggleBMIEditMode = function(studentElement, isEditing) {
+        const heightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_height"]');
+        const weightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_weight"]');
+        const heightContainer = studentElement.querySelector('[data-field="bmi_height"]').closest('.input-container');
+        const weightContainer = studentElement.querySelector('[data-field="bmi_weight"]').closest('.input-container');
+        
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            heightDisplay.classList.add('hidden');
+            weightDisplay.classList.add('hidden');
+            heightContainer.classList.remove('hidden');
+            weightContainer.classList.remove('hidden');
+            
+            const heightInput = heightContainer.querySelector('.input-actual');
+            if (heightInput) {
+                heightInput.focus();
+                updateVisualizer(heightInput);
+            }
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            heightDisplay.classList.remove('hidden');
+            weightDisplay.classList.remove('hidden');
+            heightContainer.classList.add('hidden');
+            weightContainer.classList.add('hidden');
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    };
+
+    // 공통 함수 오버라이드
+    const originalToggleEditMode = toggleEditMode;
+    window.toggleEditMode = function(studentElement, isEditing) {
+        window.toggleBMIEditMode(studentElement, isEditing);
+    };
+
+})();
+</script>

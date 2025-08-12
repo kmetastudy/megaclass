@@ -1,0 +1,626 @@
+<!-- 악력 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-orange-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">최고값</div>
+                            <div class="text-xl font-bold text-orange-600 final-record">
+                                {% if student.record and student.measurement_data %}
+                                    {% with data=student.measurement_data %}
+                                        {% if data.grip_strength_right_hand_1 or data.grip_strength_right_hand_2 or data.grip_strength_left_hand_1 or data.grip_strength_left_hand_2 %}
+                                            <!-- 최고값 표시를 위해 JavaScript에서 계산됨 -->
+                                            미측정
+                                        {% else %}
+                                            미측정
+                                        {% endif %}
+                                    {% endwith %}
+                                {% else %}
+                                    미측정
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 측정값 입력 영역 -->
+                    <div class="grid grid-cols-2 gap-6 mb-4">
+                        <!-- 왼손 -->
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-3 text-center">왼손</h4>
+                            <div class="space-y-3">
+                                <!-- 1차 측정 -->
+                                <div>
+                                    <label class="text-sm text-gray-600 mb-1 block">1차</label>
+                                    <div class="flex items-center space-x-2">
+                                        {% if student.record %}
+                                            <span class="text-lg text-orange-600 font-bold measurement-display" data-field="grip_strength_left_hand_1">
+                                                {{ student.measurement_data.grip_strength_left_hand_1|default:"미측정" }}{% if student.measurement_data.grip_strength_left_hand_1 %} kg{% endif %}
+                                            </span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="left1-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_left_hand_1"
+                                                       data-visualizer="left1-visualizer-{{ student.id }}"
+                                                       value="{{ student.measurement_data.grip_strength_left_hand_1|default:"" }}"
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500 measurement-display" data-field="grip_strength_left_hand_1">미측정</span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="left1-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_left_hand_1"
+                                                       data-visualizer="left1-visualizer-{{ student.id }}"
+                                                       value=""
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- 2차 측정 -->
+                                <div>
+                                    <label class="text-sm text-gray-600 mb-1 block">2차</label>
+                                    <div class="flex items-center space-x-2">
+                                        {% if student.record %}
+                                            <span class="text-lg text-orange-600 font-bold measurement-display" data-field="grip_strength_left_hand_2">
+                                                {{ student.measurement_data.grip_strength_left_hand_2|default:"미측정" }}{% if student.measurement_data.grip_strength_left_hand_2 %} kg{% endif %}
+                                            </span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="left2-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_left_hand_2"
+                                                       data-visualizer="left2-visualizer-{{ student.id }}"
+                                                       value="{{ student.measurement_data.grip_strength_left_hand_2|default:"" }}"
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500 measurement-display" data-field="grip_strength_left_hand_2">미측정</span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="left2-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_left_hand_2"
+                                                       data-visualizer="left2-visualizer-{{ student.id }}"
+                                                       value=""
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 오른손 -->
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-700 mb-3 text-center">오른손</h4>
+                            <div class="space-y-3">
+                                <!-- 1차 측정 -->
+                                <div>
+                                    <label class="text-sm text-gray-600 mb-1 block">1차</label>
+                                    <div class="flex items-center space-x-2">
+                                        {% if student.record %}
+                                            <span class="text-lg text-orange-600 font-bold measurement-display" data-field="grip_strength_right_hand_1">
+                                                {{ student.measurement_data.grip_strength_right_hand_1|default:"미측정" }}{% if student.measurement_data.grip_strength_right_hand_1 %} kg{% endif %}
+                                            </span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="right1-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_right_hand_1"
+                                                       data-visualizer="right1-visualizer-{{ student.id }}"
+                                                       value="{{ student.measurement_data.grip_strength_right_hand_1|default:"" }}"
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500 measurement-display" data-field="grip_strength_right_hand_1">미측정</span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="right1-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_right_hand_1"
+                                                       data-visualizer="right1-visualizer-{{ student.id }}"
+                                                       value=""
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- 2차 측정 -->
+                                <div>
+                                    <label class="text-sm text-gray-600 mb-1 block">2차</label>
+                                    <div class="flex items-center space-x-2">
+                                        {% if student.record %}
+                                            <span class="text-lg text-orange-600 font-bold measurement-display" data-field="grip_strength_right_hand_2">
+                                                {{ student.measurement_data.grip_strength_right_hand_2|default:"미측정" }}{% if student.measurement_data.grip_strength_right_hand_2 %} kg{% endif %}
+                                            </span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="right2-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_right_hand_2"
+                                                       data-visualizer="right2-visualizer-{{ student.id }}"
+                                                       value="{{ student.measurement_data.grip_strength_right_hand_2|default:"" }}"
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500 measurement-display" data-field="grip_strength_right_hand_2">미측정</span>
+                                            <div class="input-container hidden flex-1">
+                                                <div class="input-visualizer" id="right2-visualizer-{{ student.id }}">
+                                                    <span></span><span class="decimal-point">.</span><span></span>
+                                                </div>
+                                                <input type="text" 
+                                                       class="input-actual measurement-input" 
+                                                       data-field="grip_strength_right_hand_2"
+                                                       data-visualizer="right2-visualizer-{{ student.id }}"
+                                                       value=""
+                                                       data-min="0.0" 
+                                                       data-max="200.0">
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<!-- CSS 스타일 -->
+<style>
+.input-container {
+    position: relative;
+    width: 100%;
+}
+
+.input-visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: #ffffff;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    min-height: 42px;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.input-visualizer.has-value {
+    color: #111827;
+}
+
+.input-visualizer .decimal-point {
+    margin: 0 1px;
+    display: none;
+}
+
+.input-actual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    color: transparent;
+    caret-color: #111827;
+    border: none;
+    text-align: center;
+    font-size: 1.25rem;
+    padding: 0;
+}
+
+.input-actual:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #f97316;
+    border-radius: 0.375rem;
+}
+</style>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, validateInput, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+import { calculateMax, formatDecimal } from '{% static "js/physical_education/measure/calculations.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS grip strength template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        setupInputVisualizers();
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('keydown', handleKeyDown);
+    }
+
+    function setupInputVisualizers() {
+        const inputs = document.querySelectorAll('.input-actual');
+        inputs.forEach(input => {
+            input.addEventListener('input', handleInputChange);
+            input.addEventListener('keydown', handleInputKeyDown);
+            // 초기값이 있는 경우 visualizer 업데이트
+            if (input.value) {
+                updateVisualizer(input);
+            }
+        });
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === 'Enter' && e.target.classList.contains('save-btn')) {
+            e.target.click();
+        }
+    }
+
+    function handleInputChange(e) {
+        const input = e.target;
+        updateVisualizer(input);
+        updateMaxValue(input);
+    }
+
+    function handleInputKeyDown(e) {
+        const input = e.target;
+        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'];
+        
+        if (allowedKeys.includes(e.key)) {
+            return;
+        }
+        
+        if (e.key >= '0' && e.key <= '9') {
+            let currentValue = input.value.replace(/[^0-9]/g, '');
+            if (currentValue.length >= 4) {
+                e.preventDefault();
+            }
+            return;
+        }
+        
+        e.preventDefault();
+    }
+
+    function updateVisualizer(input) {
+        const visualizerId = input.dataset.visualizer;
+        const visualizer = document.getElementById(visualizerId);
+        if (!visualizer) return;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        
+        visualizer.classList.toggle('has-value', rawValue !== '');
+
+        let integerPart = '';
+        let decimalPart = '';
+
+        if (rawValue === '') {
+            visualizer.querySelector('.decimal-point').style.display = 'none';
+        } else {
+            visualizer.querySelector('.decimal-point').style.display = 'inline';
+            if (rawValue.length === 1) {
+                integerPart = '0';
+                decimalPart = rawValue;
+            } else {
+                integerPart = rawValue.slice(0, -1);
+                decimalPart = rawValue.slice(-1);
+            }
+        }
+        
+        const spans = visualizer.querySelectorAll('span');
+        spans[0].textContent = integerPart;
+        spans[2].textContent = decimalPart;
+    }
+
+    function getNumericValue(input) {
+        if (!input || input.value === '') return null;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        if (rawValue === '') return null;
+
+        let numericValue;
+        if (rawValue.length === 1) {
+            numericValue = parseFloat(`0.${rawValue}`);
+        } else {
+            numericValue = parseFloat(`${rawValue.slice(0, -1)}.${rawValue.slice(-1)}`);
+        }
+
+        return numericValue;
+    }
+
+    function updateMaxValue(changedInput) {
+        const studentElement = changedInput.closest('[data-student-id]');
+        const left1Input = studentElement.querySelector('[data-field="grip_strength_left_hand_1"]');
+        const left2Input = studentElement.querySelector('[data-field="grip_strength_left_hand_2"]');
+        const right1Input = studentElement.querySelector('[data-field="grip_strength_right_hand_1"]');
+        const right2Input = studentElement.querySelector('[data-field="grip_strength_right_hand_2"]');
+        const finalRecordDisplay = studentElement.querySelector('.final-record');
+
+        const values = [
+            getNumericValue(left1Input),
+            getNumericValue(left2Input),
+            getNumericValue(right1Input),
+            getNumericValue(right2Input)
+        ].filter(v => v !== null);
+
+        if (values.length > 0) {
+            const maxValue = calculateMax(...values);
+            finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} kg`;
+            finalRecordDisplay.classList.remove('text-gray-500');
+            finalRecordDisplay.classList.add('text-orange-600');
+        } else {
+            finalRecordDisplay.textContent = '미측정';
+            finalRecordDisplay.classList.add('text-gray-500');
+            finalRecordDisplay.classList.remove('text-orange-600');
+        }
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const left1Input = studentElement.querySelector('[data-field="grip_strength_left_hand_1"]');
+        const left2Input = studentElement.querySelector('[data-field="grip_strength_left_hand_2"]');
+        const right1Input = studentElement.querySelector('[data-field="grip_strength_right_hand_1"]');
+        const right2Input = studentElement.querySelector('[data-field="grip_strength_right_hand_2"]');
+
+        const left1 = getNumericValue(left1Input);
+        const left2 = getNumericValue(left2Input);
+        const right1 = getNumericValue(right1Input);
+        const right2 = getNumericValue(right2Input);
+
+        // 최소 하나의 값은 입력되어야 함
+        if (!left1 && !left2 && !right1 && !right2) {
+            showToast('최소 하나의 측정값을 입력해주세요.', 'error');
+            return false;
+        }
+
+        // 입력값 검증
+        const values = [left1, left2, right1, right2];
+        const fields = ['왼손 1차', '왼손 2차', '오른손 1차', '오른손 2차'];
+        
+        for (let i = 0; i < values.length; i++) {
+            const value = values[i];
+            if (value !== null) {
+                const validation = validateInput(value, 0.0, 200.0, false);
+                if (!validation.valid) {
+                    showToast(`${fields[i]}: ${validation.error}`, 'error');
+                    return false;
+                }
+            }
+        }
+
+        const measurementPayload = {};
+        if (left1 !== null) measurementPayload.grip_strength_left_hand_1 = left1;
+        if (left2 !== null) measurementPayload.grip_strength_left_hand_2 = left2;
+        if (right1 !== null) measurementPayload.grip_strength_right_hand_1 = right1;
+        if (right2 !== null) measurementPayload.grip_strength_right_hand_2 = right2;
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                measurementPayload,
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // UI 업데이트
+                updateStudentUI(studentElement, measurementPayload);
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUI(studentElement, measurementData) {
+        // 각 필드별 display 업데이트
+        Object.entries(measurementData).forEach(([field, value]) => {
+            const display = studentElement.querySelector(`.measurement-display[data-field="${field}"]`);
+            if (display) {
+                display.textContent = `${formatDecimal(value, 1)} kg`;
+                display.classList.remove('text-gray-500');
+                display.classList.add('text-orange-600', 'font-bold');
+            }
+        });
+
+        // 최고값 업데이트
+        const values = Object.values(measurementData);
+        const maxValue = calculateMax(...values);
+        const finalRecordDisplay = studentElement.querySelector('.final-record');
+        finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} kg`;
+        finalRecordDisplay.classList.remove('text-gray-500');
+        finalRecordDisplay.classList.add('text-orange-600');
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const displays = studentElement.querySelectorAll('.measurement-display');
+        const containers = studentElement.querySelectorAll('.input-container');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            displays.forEach(display => display.classList.add('hidden'));
+            containers.forEach(container => container.classList.remove('hidden'));
+            
+            const firstInput = containers[0]?.querySelector('.input-actual');
+            if (firstInput) {
+                firstInput.focus();
+                updateVisualizer(firstInput);
+            }
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            displays.forEach(display => display.classList.remove('hidden'));
+            containers.forEach(container => container.classList.add('hidden'));
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        const displays = studentElement.querySelectorAll('.measurement-display');
+        
+        inputs.forEach((input, index) => {
+            const display = displays[index];
+            if (display && display.textContent !== '미측정') {
+                const originalValue = display.textContent.replace(/[^0-9.]/g, '');
+                if (originalValue) {
+                    input.value = originalValue.replace('.', '');
+                    updateVisualizer(input);
+                } else {
+                    input.value = '';
+                    updateVisualizer(input);
+                }
+            } else {
+                input.value = '';
+                updateVisualizer(input);
+            }
+        });
+        
+        // 최고값도 복원
+        updateMaxValue(inputs[0]);
+    }
+
+})();
+</script>

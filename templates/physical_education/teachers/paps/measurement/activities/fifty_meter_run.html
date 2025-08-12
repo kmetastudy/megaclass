@@ -1,0 +1,529 @@
+<!-- 50m 달리기 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">기록</div>
+                            <div class="text-xl font-bold final-record text-gray-500">
+                                {% if student.record and student.measurement_data.fifty_meter_run %}
+                                    {{ student.measurement_data.fifty_meter_run|floatformat:2 }} 초
+                                {% else %}
+                                    미측정
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 측정 방법 선택 -->
+                    <div class="mb-4">
+                        <div class="flex justify-center space-x-4">
+                            <button class="mode-btn timer-mode-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg transition">
+                                타이머 측정
+                            </button>
+                            <button class="mode-btn manual-mode-btn bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-6 rounded-lg transition">
+                                직접 입력
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 타이머 측정 모드 -->
+                    <div class="timer-mode">
+                        <div class="text-center mb-4">
+                            <div class="timer-display text-6xl font-bold text-indigo-600 font-mono mb-4">00.00</div>
+                            <div class="flex justify-center space-x-4">
+                                <button class="start-timer-btn bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                                    시작
+                                </button>
+                                <button class="stop-timer-btn bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-lg transition hidden">
+                                    정지
+                                </button>
+                                <button class="reset-timer-btn bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                                    리셋
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 직접 입력 모드 -->
+                    <div class="manual-mode hidden">
+                        <div class="flex items-center justify-center space-x-2">
+                            <label class="text-sm font-medium text-gray-700">시간 (초):</label>
+                            <div class="input-container w-32">
+                                <div class="input-visualizer" id="time-visualizer-{{ student.id }}">
+                                    <span></span><span class="decimal-point">.</span><span></span><span></span>
+                                </div>
+                                <input type="text" 
+                                       class="input-actual manual-time-input" 
+                                       data-visualizer="time-visualizer-{{ student.id }}"
+                                       value="{% if student.record and student.measurement_data.fifty_meter_run %}{{ student.measurement_data.fifty_meter_run|floatformat:2|slice:":-1" }}{% endif %}"
+                                       data-min="5.0" 
+                                       data-max="30.0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center mt-4">
+                        <button class="save-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}저장{% endif %}
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<!-- CSS 스타일 -->
+<style>
+.input-container {
+    position: relative;
+    width: 100%;
+}
+
+.input-visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: #ffffff;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    min-height: 42px;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.input-visualizer.has-value {
+    color: #111827;
+}
+
+.input-visualizer .decimal-point {
+    margin: 0 1px;
+    display: none;
+}
+
+.input-actual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    color: transparent;
+    caret-color: #111827;
+    border: none;
+    text-align: center;
+    font-size: 1.25rem;
+    padding: 0;
+}
+
+.input-actual:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #4f46e5;
+    border-radius: 0.375rem;
+}
+</style>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, validateInput, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+import { formatDecimal } from '{% static "js/physical_education/measure/calculations.js" %}';
+import { IndividualTimer, formatSimpleTime } from '{% static "js/physical_education/measure/timer.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    const timers = new Map(); // studentId -> timer instance
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS 50m run template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        setupInputVisualizers();
+        initializeTimers();
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('input', handleInput);
+    }
+
+    function setupInputVisualizers() {
+        const inputs = document.querySelectorAll('.manual-time-input');
+        inputs.forEach(input => {
+            input.addEventListener('input', handleTimeInputChange);
+            input.addEventListener('keydown', handleTimeInputKeyDown);
+            // 초기값이 있는 경우 visualizer 업데이트
+            if (input.value) {
+                updateTimeVisualizer(input);
+            }
+        });
+    }
+
+    function initializeTimers() {
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const studentId = studentElement.dataset.studentId;
+            const timerDisplay = studentElement.querySelector('.timer-display');
+            
+            const timer = new IndividualTimer(timerDisplay, null, (elapsedTime) => {
+                const seconds = elapsedTime / 1000;
+                updateFinalRecord(studentElement, seconds);
+            });
+            
+            timers.set(studentId, timer);
+        });
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('timer-mode-btn')) {
+            switchToTimerMode(studentElement);
+        }
+        else if (e.target.classList.contains('manual-mode-btn')) {
+            switchToManualMode(studentElement);
+        }
+        else if (e.target.classList.contains('start-timer-btn')) {
+            startTimer(studentId, studentElement);
+        }
+        else if (e.target.classList.contains('stop-timer-btn')) {
+            stopTimer(studentId, studentElement);
+        }
+        else if (e.target.classList.contains('reset-timer-btn')) {
+            resetTimer(studentId, studentElement);
+        }
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            resetStudentState(studentElement, studentId);
+        }
+    }
+
+    function handleInput(e) {
+        if (e.target.classList.contains('manual-time-input')) {
+            const studentElement = e.target.closest('[data-student-id]');
+            const value = getTimeNumericValue(e.target);
+            if (value !== null) {
+                updateFinalRecord(studentElement, value);
+            }
+        }
+    }
+
+    function handleTimeInputChange(e) {
+        updateTimeVisualizer(e.target);
+    }
+
+    function handleTimeInputKeyDown(e) {
+        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'];
+        
+        if (allowedKeys.includes(e.key)) {
+            return;
+        }
+        
+        if (e.key >= '0' && e.key <= '9') {
+            let currentValue = e.target.value.replace(/[^0-9]/g, '');
+            if (currentValue.length >= 3) {
+                e.preventDefault();
+            }
+            return;
+        }
+        
+        e.preventDefault();
+    }
+
+    function switchToTimerMode(studentElement) {
+        const timerModeBtn = studentElement.querySelector('.timer-mode-btn');
+        const manualModeBtn = studentElement.querySelector('.manual-mode-btn');
+        const timerMode = studentElement.querySelector('.timer-mode');
+        const manualMode = studentElement.querySelector('.manual-mode');
+
+        timerModeBtn.classList.remove('bg-gray-300', 'text-gray-700');
+        timerModeBtn.classList.add('bg-indigo-500', 'text-white');
+        
+        manualModeBtn.classList.remove('bg-indigo-500', 'text-white');
+        manualModeBtn.classList.add('bg-gray-300', 'text-gray-700');
+
+        timerMode.classList.remove('hidden');
+        manualMode.classList.add('hidden');
+    }
+
+    function switchToManualMode(studentElement) {
+        const timerModeBtn = studentElement.querySelector('.timer-mode-btn');
+        const manualModeBtn = studentElement.querySelector('.manual-mode-btn');
+        const timerMode = studentElement.querySelector('.timer-mode');
+        const manualMode = studentElement.querySelector('.manual-mode');
+
+        manualModeBtn.classList.remove('bg-gray-300', 'text-gray-700');
+        manualModeBtn.classList.add('bg-indigo-500', 'text-white');
+        
+        timerModeBtn.classList.remove('bg-indigo-500', 'text-white');
+        timerModeBtn.classList.add('bg-gray-300', 'text-gray-700');
+
+        timerMode.classList.add('hidden');
+        manualMode.classList.remove('hidden');
+
+        // 입력 필드에 포커스
+        const input = manualMode.querySelector('.manual-time-input');
+        if (input) {
+            input.focus();
+        }
+    }
+
+    function startTimer(studentId, studentElement) {
+        const timer = timers.get(studentId);
+        const startBtn = studentElement.querySelector('.start-timer-btn');
+        const stopBtn = studentElement.querySelector('.stop-timer-btn');
+
+        if (timer) {
+            timer.start();
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+        }
+    }
+
+    function stopTimer(studentId, studentElement) {
+        const timer = timers.get(studentId);
+        const startBtn = studentElement.querySelector('.start-timer-btn');
+        const stopBtn = studentElement.querySelector('.stop-timer-btn');
+
+        if (timer) {
+            const elapsedTime = timer.stop();
+            const seconds = elapsedTime / 1000;
+            updateFinalRecord(studentElement, seconds);
+            
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+        }
+    }
+
+    function resetTimer(studentId, studentElement) {
+        const timer = timers.get(studentId);
+        const startBtn = studentElement.querySelector('.start-timer-btn');
+        const stopBtn = studentElement.querySelector('.stop-timer-btn');
+
+        if (timer) {
+            timer.reset();
+            updateFinalRecord(studentElement, null);
+            
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+        }
+    }
+
+    function updateTimeVisualizer(input) {
+        const visualizerId = input.dataset.visualizer;
+        const visualizer = document.getElementById(visualizerId);
+        if (!visualizer) return;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        
+        visualizer.classList.toggle('has-value', rawValue !== '');
+
+        let integerPart = '';
+        let decimalPart1 = '';
+        let decimalPart2 = '';
+
+        if (rawValue === '') {
+            visualizer.querySelector('.decimal-point').style.display = 'none';
+        } else {
+            visualizer.querySelector('.decimal-point').style.display = 'inline';
+            if (rawValue.length === 1) {
+                integerPart = '0';
+                decimalPart1 = '0';
+                decimalPart2 = rawValue;
+            } else if (rawValue.length === 2) {
+                integerPart = '0';
+                decimalPart1 = rawValue.slice(0, 1);
+                decimalPart2 = rawValue.slice(1);
+            } else {
+                integerPart = rawValue.slice(0, -2);
+                decimalPart1 = rawValue.slice(-2, -1);
+                decimalPart2 = rawValue.slice(-1);
+            }
+        }
+        
+        const spans = visualizer.querySelectorAll('span');
+        spans[0].textContent = integerPart;
+        spans[2].textContent = decimalPart1;
+        spans[3].textContent = decimalPart2;
+    }
+
+    function getTimeNumericValue(input) {
+        if (!input || input.value === '') return null;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        if (rawValue === '') return null;
+
+        let numericValue;
+        if (rawValue.length === 1) {
+            numericValue = parseFloat(`0.0${rawValue}`);
+        } else if (rawValue.length === 2) {
+            numericValue = parseFloat(`0.${rawValue}`);
+        } else {
+            numericValue = parseFloat(`${rawValue.slice(0, -2)}.${rawValue.slice(-2)}`);
+        }
+
+        return numericValue;
+    }
+
+    function updateFinalRecord(studentElement, seconds) {
+        const finalRecordDisplay = studentElement.querySelector('.final-record');
+
+        if (seconds !== null && seconds > 0) {
+            finalRecordDisplay.textContent = `${formatDecimal(seconds, 2)} 초`;
+            finalRecordDisplay.classList.remove('text-gray-500');
+            finalRecordDisplay.classList.add('text-indigo-600');
+        } else {
+            finalRecordDisplay.textContent = '미측정';
+            finalRecordDisplay.classList.add('text-gray-500');
+            finalRecordDisplay.classList.remove('text-indigo-600');
+        }
+    }
+
+    function getCurrentTime(studentElement) {
+        const timerMode = studentElement.querySelector('.timer-mode');
+        const manualMode = studentElement.querySelector('.manual-mode');
+
+        if (!timerMode.classList.contains('hidden')) {
+            // 타이머 모드에서 현재 표시된 시간 가져오기
+            const timerDisplay = studentElement.querySelector('.timer-display');
+            const timeText = timerDisplay.textContent;
+            return parseFloat(timeText);
+        } else {
+            // 직접 입력 모드에서 입력된 시간 가져오기
+            const input = manualMode.querySelector('.manual-time-input');
+            return getTimeNumericValue(input);
+        }
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const time = getCurrentTime(studentElement);
+
+        if (time === null || time <= 0) {
+            showToast('측정 시간을 입력해주세요.', 'error');
+            return false;
+        }
+
+        const validation = validateInput(time, 5.0, 30.0);
+        if (!validation.valid) {
+            showToast(`시간: ${validation.error}`, 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                {
+                    fifty_meter_run: time
+                },
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function resetStudentState(studentElement, studentId) {
+        // 타이머 리셋
+        resetTimer(studentId, studentElement);
+        
+        // 직접 입력 초기화
+        const manualInput = studentElement.querySelector('.manual-time-input');
+        if (manualInput) {
+            manualInput.value = '';
+            updateTimeVisualizer(manualInput);
+        }
+        
+        // 타이머 모드로 전환
+        switchToTimerMode(studentElement);
+    }
+
+})();
+</script>

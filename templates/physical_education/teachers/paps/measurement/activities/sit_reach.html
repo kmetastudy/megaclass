@@ -1,0 +1,546 @@
+<!-- 앉아윗몸앞으로굽히기 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-emerald-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">최종 기록</div>
+                            <div class="text-xl font-bold final-record text-gray-500">
+                                {% if student.record and student.measurement_data.sit_reach_best_record %}
+                                    {{ student.measurement_data.sit_reach_best_record|floatformat:1 }} cm
+                                {% else %}
+                                    미측정
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 측정값 입력 영역 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 measurement-inputs">
+                        <!-- 1차 측정 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">1차 시기 (cm)</label>
+                            <div class="flex items-center space-x-1">
+                                <div class="flex">
+                                    <button type="button" 
+                                            class="sign-btn w-10 h-10 rounded-l-md font-mono text-lg transition bg-gray-200"
+                                            data-target="first-{{ student.id }}" 
+                                            data-sign="+">+</button>
+                                    <button type="button" 
+                                            class="sign-btn w-10 h-10 rounded-r-md font-mono text-lg transition bg-gray-200"
+                                            data-target="first-{{ student.id }}" 
+                                            data-sign="-">-</button>
+                                </div>
+                                <div class="input-container flex-1">
+                                    <div class="input-visualizer" id="first-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
+                                    </div>
+                                    <input type="text" 
+                                           id="first-{{ student.id }}"
+                                           class="input-actual measurement-input" 
+                                           data-field="sit_reach_first_attempt"
+                                           data-sign="+"
+                                           data-visualizer="first-visualizer-{{ student.id }}"
+                                           data-preview="first-preview-{{ student.id }}"
+                                           value="{% if student.record and student.measurement_data.sit_reach_first_attempt %}{{ student.measurement_data.sit_reach_first_attempt|floatformat:1|slice:"1:" }}{% endif %}"
+                                           data-min="-40.0" 
+                                           data-max="50.0">
+                                </div>
+                            </div>
+                            <p id="first-preview-{{ student.id }}" class="text-right text-sm text-gray-600 h-5 pr-1 pt-1 font-mono"></p>
+                        </div>
+                        
+                        <!-- 2차 측정 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">2차 시기 (cm)</label>
+                            <div class="flex items-center space-x-1">
+                                <div class="flex">
+                                    <button type="button" 
+                                            class="sign-btn w-10 h-10 rounded-l-md font-mono text-lg transition bg-gray-200"
+                                            data-target="second-{{ student.id }}" 
+                                            data-sign="+">+</button>
+                                    <button type="button" 
+                                            class="sign-btn w-10 h-10 rounded-r-md font-mono text-lg transition bg-gray-200"
+                                            data-target="second-{{ student.id }}" 
+                                            data-sign="-">-</button>
+                                </div>
+                                <div class="input-container flex-1">
+                                    <div class="input-visualizer" id="second-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
+                                    </div>
+                                    <input type="text" 
+                                           id="second-{{ student.id }}"
+                                           class="input-actual measurement-input" 
+                                           data-field="sit_reach_second_attempt"
+                                           data-sign="+"
+                                           data-visualizer="second-visualizer-{{ student.id }}"
+                                           data-preview="second-preview-{{ student.id }}"
+                                           value="{% if student.record and student.measurement_data.sit_reach_second_attempt %}{{ student.measurement_data.sit_reach_second_attempt|floatformat:1|slice:"1:" }}{% endif %}"
+                                           data-min="-40.0" 
+                                           data-max="50.0">
+                                </div>
+                            </div>
+                            <p id="second-preview-{{ student.id }}" class="text-right text-sm text-gray-600 h-5 pr-1 pt-1 font-mono"></p>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center mt-4 measurement-buttons">
+                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+<!-- CSS 스타일 -->
+<style>
+.sign-btn.active {
+    filter: brightness(1.05);
+    transform: scale(1.05);
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+.input-container {
+    position: relative;
+    width: 100%;
+}
+
+.input-visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: #ffffff;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    min-height: 42px;
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.input-visualizer.has-value {
+    color: #111827;
+}
+
+.input-visualizer .decimal-point {
+    margin: 0 1px;
+    display: none;
+}
+
+.input-actual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    color: transparent;
+    caret-color: #111827;
+    border: none;
+    text-align: center;
+    font-size: 1.25rem;
+    padding: 0;
+}
+
+.input-actual:focus {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #10b981;
+    border-radius: 0.375rem;
+}
+</style>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, validateInput, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+import { calculateMax, formatDecimal } from '{% static "js/physical_education/measure/calculations.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS sit reach template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        initializeExistingData();
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('input', handleInput);
+    }
+
+    function initializeExistingData() {
+        // 기존 데이터가 있는 경우 UI 초기화
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const firstInput = studentElement.querySelector('[data-field="sit_reach_first_attempt"]');
+            const secondInput = studentElement.querySelector('[data-field="sit_reach_second_attempt"]');
+            
+            if (firstInput && firstInput.value) {
+                initializeInputWithValue(firstInput);
+            }
+            if (secondInput && secondInput.value) {
+                initializeInputWithValue(secondInput);
+            }
+            
+            updateMaxValue(studentElement);
+        });
+    }
+
+    function initializeInputWithValue(input) {
+        const value = parseFloat(input.value);
+        if (!isNaN(value)) {
+            const sign = value < 0 ? '-' : '+';
+            const absValue = Math.abs(value).toFixed(1).replace('.', '');
+            
+            input.dataset.sign = sign;
+            input.value = absValue;
+            
+            updateSignButtons(input);
+            updateVisualizer(input);
+            updatePreview(input);
+        }
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+        else if (e.target.classList.contains('sign-btn')) {
+            handleSignToggle(e.target);
+        }
+    }
+
+    function handleInput(e) {
+        if (e.target.classList.contains('input-actual')) {
+            const input = e.target;
+            let rawValue = input.value.replace(/[^0-9]/g, '');
+            if (rawValue.length > 3) {
+                rawValue = rawValue.slice(0, 3);
+                input.value = rawValue;
+            }
+            
+            updateVisualizer(input);
+            updatePreview(input);
+            updateMaxValue(input.closest('[data-student-id]'));
+        }
+    }
+
+    function handleSignToggle(button) {
+        const targetInputId = button.dataset.target;
+        const newSign = button.dataset.sign;
+        const targetInput = document.getElementById(targetInputId);
+        
+        if (!targetInput) return;
+        
+        targetInput.dataset.sign = newSign;
+        updateSignButtons(targetInput);
+        updatePreview(targetInput);
+        updateMaxValue(targetInput.closest('[data-student-id]'));
+    }
+
+    function updateSignButtons(input) {
+        const inputId = input.id;
+        const currentSign = input.dataset.sign;
+        const buttons = document.querySelectorAll(`[data-target="${inputId}"]`);
+        
+        buttons.forEach(btn => {
+            btn.classList.remove('active', 'bg-blue-600', 'bg-red-500', 'text-white');
+            btn.classList.add('bg-gray-200');
+            
+            if (btn.dataset.sign === currentSign) {
+                btn.classList.remove('bg-gray-200');
+                btn.classList.add('active');
+                if (currentSign === '+') {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    btn.classList.add('bg-red-500', 'text-white');
+                }
+            }
+        });
+    }
+
+    function updateVisualizer(input) {
+        const visualizerId = input.dataset.visualizer;
+        const visualizer = document.getElementById(visualizerId);
+        if (!visualizer) return;
+
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        
+        visualizer.classList.toggle('has-value', rawValue !== '');
+
+        let integerPart = '';
+        let decimalPart = '';
+        const decimalPointEl = visualizer.querySelector('.decimal-point');
+
+        if (rawValue === '') {
+            decimalPointEl.style.display = 'none';
+        } else {
+            decimalPointEl.style.display = 'inline';
+            if (rawValue.length === 1) {
+                integerPart = '0';
+                decimalPart = rawValue;
+            } else {
+                integerPart = rawValue.slice(0, -1);
+                decimalPart = rawValue.slice(-1);
+            }
+        }
+        
+        const spans = visualizer.querySelectorAll('span');
+        spans[0].textContent = integerPart;
+        spans[2].textContent = decimalPart;
+    }
+
+    function updatePreview(input) {
+        const previewId = input.dataset.preview;
+        const previewEl = document.getElementById(previewId);
+        if (!previewEl) return;
+
+        const numericValue = getNumericValue(input);
+        if (numericValue === null) {
+            previewEl.textContent = '';
+        } else {
+            const signChar = numericValue >= 0 ? '+' : '';
+            previewEl.textContent = `→ ${signChar}${numericValue.toFixed(1)} cm`;
+        }
+    }
+
+    function getNumericValue(input) {
+        if (!input || input.value === '') return null;
+
+        const sign = input.dataset.sign === '-' ? -1 : 1;
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        
+        if (rawValue === '') return null;
+
+        let numericValue;
+        if (rawValue.length === 1) {
+            numericValue = parseFloat(`0.${rawValue}`);
+        } else {
+            numericValue = parseFloat(`${rawValue.slice(0, -1)}.${rawValue.slice(-1)}`);
+        }
+        
+        return sign * numericValue;
+    }
+
+    function updateMaxValue(studentElement) {
+        const firstInput = studentElement.querySelector('[data-field="sit_reach_first_attempt"]');
+        const secondInput = studentElement.querySelector('[data-field="sit_reach_second_attempt"]');
+        const finalRecordDisplay = studentElement.querySelector('.final-record');
+
+        const first = getNumericValue(firstInput);
+        const second = getNumericValue(secondInput);
+
+        const values = [first, second].filter(v => v !== null);
+
+        if (values.length > 0) {
+            const maxValue = calculateMax(...values);
+            finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} cm`;
+            finalRecordDisplay.classList.remove('text-gray-500');
+            finalRecordDisplay.classList.add('text-emerald-600');
+        } else {
+            finalRecordDisplay.textContent = '미측정';
+            finalRecordDisplay.classList.add('text-gray-500');
+            finalRecordDisplay.classList.remove('text-emerald-600');
+        }
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const firstInput = studentElement.querySelector('[data-field="sit_reach_first_attempt"]');
+        const secondInput = studentElement.querySelector('[data-field="sit_reach_second_attempt"]');
+
+        const first = getNumericValue(firstInput);
+        const second = getNumericValue(secondInput);
+
+        // 입력값 검증
+        if (first === null || second === null) {
+            showToast('1차, 2차 측정값을 모두 입력해주세요.', 'error');
+            return false;
+        }
+
+        const firstValidation = validateInput(first, -40.0, 50.0);
+        if (!firstValidation.valid) {
+            showToast(`1차: ${firstValidation.error}`, 'error');
+            return false;
+        }
+
+        const secondValidation = validateInput(second, -40.0, 50.0);
+        if (!secondValidation.valid) {
+            showToast(`2차: ${secondValidation.error}`, 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                {
+                    sit_reach_first_attempt: first,
+                    sit_reach_second_attempt: second
+                },
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // UI 업데이트
+                updateStudentUI(studentElement, first, second);
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUI(studentElement, first, second) {
+        // 최고값 계산 및 표시
+        const maxValue = calculateMax(first, second);
+        const finalRecordDisplay = studentElement.querySelector('.final-record');
+        finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} cm`;
+        finalRecordDisplay.classList.remove('text-gray-500');
+        finalRecordDisplay.classList.add('text-emerald-600');
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const inputsContainer = studentElement.querySelector('.measurement-inputs');
+        const buttonsContainer = studentElement.querySelector('.measurement-buttons');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            inputsContainer.classList.remove('hidden');
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+            
+            // 첫 번째 입력 필드에 포커스
+            const firstInput = inputsContainer.querySelector('.input-actual');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        } else {
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        // 원래 값으로 복원하는 로직은 복잡하므로 페이지 새로고침으로 대체하거나
+        // 초기 데이터를 저장해두고 복원하는 방식으로 구현 가능
+        // 여기서는 간단히 입력값을 초기화
+        const inputs = studentElement.querySelectorAll('.input-actual');
+        inputs.forEach(input => {
+            input.value = '';
+            input.dataset.sign = '+';
+            updateSignButtons(input);
+            updateVisualizer(input);
+            updatePreview(input);
+        });
+        updateMaxValue(studentElement);
+    }
+
+})();
+</script>
