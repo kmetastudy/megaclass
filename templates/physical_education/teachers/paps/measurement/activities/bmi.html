@@ -241,7 +241,26 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
     }
 
     function setupEventListeners() {
-        // 공통 이벤트 핸들러 설정
+        // BMI 전용 edit/cancel 버튼 핸들러 (capture phase로 먼저 처리)
+        studentContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                e.stopPropagation(); // common.js 핸들러 실행 방지
+                const studentElement = e.target.closest('[data-student-id]');
+                if (studentElement) {
+                    toggleBMIEditMode(studentElement, true);
+                }
+            }
+            else if (e.target.classList.contains('cancel-btn')) {
+                e.stopPropagation(); // common.js 핸들러 실행 방지
+                const studentElement = e.target.closest('[data-student-id]');
+                if (studentElement) {
+                    restoreBMIOriginalValues(studentElement);
+                    toggleBMIEditMode(studentElement, false);
+                }
+            }
+        }, true); // true = capture phase
+        
+        // 공통 이벤트 핸들러 설정 (save 버튼용)
         setupCommonEventHandlers(studentContainer, handleSaveStudent);
     }
 
@@ -328,10 +347,22 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
         return numericValue;
     }
 
+    // 소수값을 raw 형식으로 변환 (예: 150.0 → "1500")
+    function convertDecimalToRaw(decimalValue) {
+        if (!decimalValue || decimalValue === '') return '';
+        
+        const num = parseFloat(decimalValue);
+        if (isNaN(num)) return '';
+        
+        // 소수점 한 자리로 고정하고 10을 곱해서 정수로 만듦
+        const multiplied = Math.round(num * 10);
+        return multiplied.toString();
+    }
+
     function updateBMIDisplay(changedInput) {
         const studentElement = changedInput.closest('[data-student-id]');
-        const heightInput = studentElement.querySelector('[data-field="bmi_height"]');
-        const weightInput = studentElement.querySelector('[data-field="bmi_weight"]');
+        const heightInput = studentElement.querySelector('input[data-field="bmi_height"]');
+        const weightInput = studentElement.querySelector('input[data-field="bmi_weight"]');
         const bmiDisplay = studentElement.querySelector('.bmi-display');
 
         const height = getNumericValue(heightInput);
@@ -353,8 +384,8 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
 
     // 개별 학생 기록 저장
     async function handleSaveStudent(studentElement, studentId) {
-        const heightInput = studentElement.querySelector('[data-field="bmi_height"]');
-        const weightInput = studentElement.querySelector('[data-field="bmi_weight"]');
+        const heightInput = studentElement.querySelector('input[data-field="bmi_height"]');
+        const weightInput = studentElement.querySelector('input[data-field="bmi_weight"]');
 
         const height = getNumericValue(heightInput);
         const weight = getNumericValue(weightInput);
@@ -399,6 +430,10 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
                 // UI 업데이트
                 updateStudentUI(studentElement, height, weight, bmi);
                 showToast(`${studentElement.querySelector('span').textContent} 학생 기록이 저장되었습니다.`);
+                
+                // Hide input containers using our custom toggle
+                toggleBMIEditMode(studentElement, false);
+                
                 return true;
             } else {
                 showToast(result.error || '저장에 실패했습니다.', 'error');
@@ -436,27 +471,88 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
         editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded-lg transition text-sm';
     }
 
+    // BMI 원래 값 복원 함수
+    function restoreBMIOriginalValues(studentElement) {
+        const heightInput = studentElement.querySelector('input[data-field="bmi_height"]');
+        const weightInput = studentElement.querySelector('input[data-field="bmi_weight"]');
+        const heightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_height"]');
+        const weightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_weight"]');
+        
+        // 신장 복원 - 표시값을 raw 형식으로 변환
+        if (heightDisplay && heightDisplay.textContent !== '미측정') {
+            const originalValue = heightDisplay.textContent.replace(/[^0-9.-]/g, '');
+            if (originalValue) {
+                heightInput.value = convertDecimalToRaw(originalValue);
+            } else {
+                heightInput.value = '';
+            }
+            updateVisualizer(heightInput);
+        } else {
+            heightInput.value = '';
+            updateVisualizer(heightInput);
+        }
+        
+        // 체중 복원 - 표시값을 raw 형식으로 변환
+        if (weightDisplay && weightDisplay.textContent !== '미측정') {
+            const originalValue = weightDisplay.textContent.replace(/[^0-9.-]/g, '');
+            if (originalValue) {
+                weightInput.value = convertDecimalToRaw(originalValue);
+            } else {
+                weightInput.value = '';
+            }
+            updateVisualizer(weightInput);
+        } else {
+            weightInput.value = '';
+            updateVisualizer(weightInput);
+        }
+        
+        // BMI 표시 업데이트
+        updateBMIDisplay(heightInput);
+    }
+
     // 편집 모드 전환 (오버라이드)
     window.toggleBMIEditMode = function(studentElement, isEditing) {
         const heightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_height"]');
         const weightDisplay = studentElement.querySelector('.measurement-display[data-field="bmi_weight"]');
-        const heightContainer = studentElement.querySelector('[data-field="bmi_height"]').closest('.input-container');
-        const weightContainer = studentElement.querySelector('[data-field="bmi_weight"]').closest('.input-container');
+        const heightContainer = heightDisplay ? heightDisplay.nextElementSibling : null;
+        const weightContainer = weightDisplay ? weightDisplay.nextElementSibling : null;
         
         const editBtn = studentElement.querySelector('.edit-btn');
         const saveBtn = studentElement.querySelector('.save-btn');
         const cancelBtn = studentElement.querySelector('.cancel-btn');
 
         if (isEditing) {
+            // 편집 모드 진입 시 기존 값을 raw 형식으로 변환
+            const heightInput = heightContainer.querySelector('.input-actual');
+            const weightInput = weightContainer.querySelector('.input-actual');
+            
+            // 신장 값 변환
+            if (heightInput && heightDisplay && heightDisplay.textContent !== '미측정') {
+                const displayValue = heightDisplay.textContent.replace(/[^0-9.-]/g, '');
+                if (displayValue) {
+                    heightInput.value = convertDecimalToRaw(displayValue);
+                }
+            }
+            
+            // 체중 값 변환
+            if (weightInput && weightDisplay && weightDisplay.textContent !== '미측정') {
+                const displayValue = weightDisplay.textContent.replace(/[^0-9.-]/g, '');
+                if (displayValue) {
+                    weightInput.value = convertDecimalToRaw(displayValue);
+                }
+            }
+            
             heightDisplay.classList.add('hidden');
             weightDisplay.classList.add('hidden');
             heightContainer.classList.remove('hidden');
             weightContainer.classList.remove('hidden');
             
-            const heightInput = heightContainer.querySelector('.input-actual');
             if (heightInput) {
-                heightInput.focus();
                 updateVisualizer(heightInput);
+                heightInput.focus();
+            }
+            if (weightInput) {
+                updateVisualizer(weightInput);
             }
             
             editBtn.classList.add('hidden');
@@ -474,11 +570,6 @@ import { calculateBMI, formatDecimal, getBMICategory } from '{% static "js/physi
         }
     };
 
-    // 공통 함수 오버라이드
-    const originalToggleEditMode = toggleEditMode;
-    window.toggleEditMode = function(studentElement, isEditing) {
-        window.toggleBMIEditMode(studentElement, isEditing);
-    };
 
 })();
 </script>
