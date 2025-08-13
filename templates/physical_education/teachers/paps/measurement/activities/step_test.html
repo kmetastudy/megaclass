@@ -1,158 +1,96 @@
 <!-- 스텝검사 측정 화면 -->
 <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
-    <header class="bg-red-600 text-white p-4 text-center rounded-t-lg">
+    <header class="bg-blue-600 text-white p-4 text-center rounded-t-lg">
         <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
         <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
     </header>
 
     <div class="p-6">
         <!-- 측정 정보 표시 -->
-        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
-                    <span class="text-blue-800 font-medium">학년도:</span>
-                    <span class="text-blue-900">{{ school_year }}년도</span>
+                    <span class="text-slate-800 font-medium">학년도:</span>
+                    <span class="text-slate-900">{{ school_year }}년도</span>
                 </div>
                 <div>
-                    <span class="text-blue-800 font-medium">측정회차:</span>
-                    <span class="text-blue-900">{{ session.name }}</span>
+                    <span class="text-slate-800 font-medium">측정회차:</span>
+                    <span class="text-slate-900">{{ session.name }}</span>
                 </div>
                 <div>
-                    <span class="text-blue-800 font-medium">전체 학생:</span>
-                    <span class="text-blue-900">{{ total_students }}명</span>
+                    <span class="text-slate-800 font-medium">전체 학생:</span>
+                    <span class="text-slate-900">{{ total_students }}명</span>
                 </div>
                 <div>
-                    <span class="text-blue-800 font-medium">측정 완료:</span>
-                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                    <span class="text-slate-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-slate-900">{{ measured_students }}명</span>
                 </div>
             </div>
         </div>
 
         <!-- 학생별 기록 입력 -->
         <div class="mb-6">
-            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            <h2 class="text-lg font-semibold mb-4 text-slate-700 border-b pb-2">학생별 기록 입력</h2>
             
             <div id="student-list-container" class="space-y-4">
                 {% for student in students %}
-                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
-                    <!-- 학생 이름 헤더 -->
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
-                        <div class="text-right">
-                            <div class="text-sm text-gray-500">측정 상태</div>
-                            <div class="text-xl font-bold measurement-status text-gray-500">
-                                {% if student.record %}
-                                    측정 완료
-                                {% else %}
-                                    미측정
-                                {% endif %}
+                <div class="bg-slate-100 p-4 rounded-xl border border-slate-200 transition-shadow hover:shadow-md" data-student-id="{{ student.id }}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-slate-800 text-lg">{{ student.name }}</p>
+                            <p class="text-sm text-slate-500">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+                        </div>
+                        <div class="flex items-end space-x-3">
+                            <!-- Individual palpation toggle -->
+                            <div class="flex items-center mb-1">
+                                <input type="checkbox" id="palpation-{{ student.id }}" 
+                                       class="student-palpation-toggle hidden"
+                                       data-original="{{ student.measurement_data.is_palpation|default:'false' }}"
+                                       {% if student.measurement_data.is_palpation %}checked{% endif %}>
+                                <label for="palpation-{{ student.id }}" class="mini-toggle-label">
+                                    <span class="mini-toggle-text toggle-text-left">비촉진</span>
+                                    <span class="mini-toggle-text toggle-text-right">촉진</span>
+                                </label>
+                            </div>
+                            <!-- Heart rate dropdowns -->
+                            <div class="flex items-end space-x-2 md:space-x-3">
+
+                            <div class="text-center">
+                                <label for="hr1-{{ student.id }}" class="text-xs font-medium text-slate-500 mb-1 block">1회</label>
+                                <select id="hr1-{{ student.id }}" class="heart-rate-select w-16 md:w-20 bg-white border border-slate-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" data-field="step_test_heart_rate_1" data-original="{{ student.measurement_data.step_test_heart_rate_1|default:"" }}">
+                                    <option value="">--</option>
+                                </select>
+                            </div>
+                            <div class="text-center">
+                                <label for="hr2-{{ student.id }}" class="text-xs font-medium text-slate-500 mb-1 block">2회</label>
+                                <select id="hr2-{{ student.id }}" class="heart-rate-select w-16 md:w-20 bg-white border border-slate-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" data-field="step_test_heart_rate_2" data-original="{{ student.measurement_data.step_test_heart_rate_2|default:"" }}">
+                                    <option value="">--</option>
+                                </select>
+                            </div>
+                            <div class="text-center">
+                                <label for="hr3-{{ student.id }}" class="text-xs font-medium text-slate-500 mb-1 block">3회</label>
+                                <select id="hr3-{{ student.id }}" class="heart-rate-select w-16 md:w-20 bg-white border border-slate-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" data-field="step_test_heart_rate_3" data-original="{{ student.measurement_data.step_test_heart_rate_3|default:"" }}">
+                                    <option value="">--</option>
+                                </select>
+                            </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 측정값 입력 영역 -->
-                    <div class="measurement-inputs">
-                        <!-- 촉진 여부 -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">촉진 여부</label>
-                            <div class="flex items-center space-x-4">
-                                {% if student.record %}
-                                    <span class="measurement-display" data-field="is_palpation">
-                                        {% if student.measurement_data.is_palpation %}촉진함{% else %}촉진 안함{% endif %}
-                                    </span>
-                                    <div class="hidden measurement-input-container">
-                                        <label class="inline-flex items-center">
-                                            <input type="checkbox" class="measurement-input" data-field="is_palpation"
-                                                   {% if student.measurement_data.is_palpation %}checked{% endif %}>
-                                            <span class="ml-2">촉진함</span>
-                                        </label>
-                                    </div>
-                                {% else %}
-                                    <span class="measurement-display" data-field="is_palpation">미측정</span>
-                                    <div class="hidden measurement-input-container">
-                                        <label class="inline-flex items-center">
-                                            <input type="checkbox" class="measurement-input" data-field="is_palpation">
-                                            <span class="ml-2">촉진함</span>
-                                        </label>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- 심박수 측정 -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <!-- 심박수 1 -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">심박수 1차 (회/분)</label>
-                                {% if student.record %}
-                                    <span class="block text-lg text-red-600 font-bold measurement-display" data-field="step_test_heart_rate_1">
-                                        {{ student.measurement_data.step_test_heart_rate_1|default:"미측정" }}{% if student.measurement_data.step_test_heart_rate_1 %} 회/분{% endif %}
-                                    </span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="{{ student.measurement_data.step_test_heart_rate_1|default:"" }}" 
-                                           min="20" max="250" data-field="step_test_heart_rate_1">
-                                {% else %}
-                                    <span class="block text-lg text-gray-500 measurement-display" data-field="step_test_heart_rate_1">미측정</span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="" min="20" max="250" data-field="step_test_heart_rate_1">
-                                {% endif %}
-                            </div>
-
-                            <!-- 심박수 2 -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">심박수 2차 (회/분)</label>
-                                {% if student.record %}
-                                    <span class="block text-lg text-red-600 font-bold measurement-display" data-field="step_test_heart_rate_2">
-                                        {{ student.measurement_data.step_test_heart_rate_2|default:"미측정" }}{% if student.measurement_data.step_test_heart_rate_2 %} 회/분{% endif %}
-                                    </span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="{{ student.measurement_data.step_test_heart_rate_2|default:"" }}" 
-                                           min="20" max="250" data-field="step_test_heart_rate_2">
-                                {% else %}
-                                    <span class="block text-lg text-gray-500 measurement-display" data-field="step_test_heart_rate_2">미측정</span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="" min="20" max="250" data-field="step_test_heart_rate_2">
-                                {% endif %}
-                            </div>
-
-                            <!-- 심박수 3 -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">심박수 3차 (회/분)</label>
-                                {% if student.record %}
-                                    <span class="block text-lg text-red-600 font-bold measurement-display" data-field="step_test_heart_rate_3">
-                                        {{ student.measurement_data.step_test_heart_rate_3|default:"미측정" }}{% if student.measurement_data.step_test_heart_rate_3 %} 회/분{% endif %}
-                                    </span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="{{ student.measurement_data.step_test_heart_rate_3|default:"" }}" 
-                                           min="20" max="250" data-field="step_test_heart_rate_3">
-                                {% else %}
-                                    <span class="block text-lg text-gray-500 measurement-display" data-field="step_test_heart_rate_3">미측정</span>
-                                    <input type="number" class="w-full p-2 border border-red-500 rounded-md text-center shadow-sm focus:ring-red-500 focus:border-red-500 measurement-input hidden" 
-                                           value="" min="20" max="250" data-field="step_test_heart_rate_3">
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 관리 버튼 -->
-                    <div class="text-center">
-                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
-                            {% if student.record %}수정{% else %}입력{% endif %}
-                        </button>
-                        <button class="save-btn bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
-                            저장
-                        </button>
-                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
-                            취소
-                        </button>
-                    </div>
                 </div>
                 {% empty %}
-                <div class="p-6 text-center text-gray-500">
+                <div class="p-6 text-center text-slate-500">
                     학생 목록이 없습니다.
                 </div>
                 {% endfor %}
             </div>
+        </div>
+        
+        <!-- 전체 저장 버튼 -->
+        <div class="p-4 md:p-6 bg-slate-50 border-t border-slate-200">
+            <button id="batch-save-btn" class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 cursor-not-allowed" disabled>
+                전체 저장하기
+            </button>
         </div>
     </div>
 </div>
@@ -160,214 +98,359 @@
 <!-- 저장 완료 토스트 -->
 <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
 
+<style>
+/* Mini toggle switch styles for individual students */
+.mini-toggle-label {
+    width: 80px;
+    height: 28px;
+    position: relative;
+    display: inline-block;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mini-toggle-label:before {
+    content: '';
+    position: absolute;
+    width: 36px;
+    height: 20px;
+    border-radius: 9999px;
+    top: 4px;
+    left: 4px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+input:checked + .mini-toggle-label {
+    background: #3b82f6;
+}
+
+input:checked + .mini-toggle-label:before {
+    transform: translateX(36px);
+}
+
+.mini-toggle-text {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 500;
+    user-select: none;
+    transition: color 0.2s ease-in-out;
+}
+
+.toggle-text-left {
+    left: 8px;
+    color: #1f2937;
+}
+
+.toggle-text-right {
+    right: 8px;
+    color: #6b7280;
+}
+
+input:checked + .mini-toggle-label .toggle-text-left {
+    color: #6b7280;
+}
+
+input:checked + .mini-toggle-label .toggle-text-right {
+    color: #1f2937;
+}
+</style>
+
 {% load static %}
 <script type="module">
-import { showToast, saveStudentRecord, validateInput, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+import { showToast, saveStudentRecord } from '{% static "js/physical_education/measure/common.js" %}';
 
 (function() {
+    // DOM elements
     const studentContainer = document.getElementById('student-list-container');
+    const batchSaveBtn = document.getElementById('batch-save-btn');
+    const measuredCountElement = document.getElementById('measured-count');
     
-    // DOM 요소 체크
-    if (!studentContainer) {
+    if (!studentContainer || !batchSaveBtn) {
         console.error('PAPS step test template not properly loaded');
         return;
     }
 
-    // 측정 데이터 (Django 컨텍스트에서 전달)
-    const measurementData = {
+    // Context data from Django
+    const contextData = {
         sessionId: '{{ session_id }}',
         activityId: '{{ activity_id }}',
-        schoolYear: {{ school_year }},
-        grade: {{ grade }},
-        classId: {{ class_id }},
         csrfToken: '{{ csrf_token }}'
     };
 
-    // 초기화
+    // Data tracking - now includes individual palpation per student
+    let originalData = {
+        students: {}
+    };
+    
+    let currentData = {
+        students: {}
+    };
+
+    // Initialize
     init();
 
     function init() {
+        setupInitialData();
+        setupDropdownOptions();
         setupEventListeners();
+        updateSaveButtonState();
     }
 
-    function setupEventListeners() {
-        studentContainer.addEventListener('click', handleClick);
-    }
-
-    async function handleClick(e) {
-        const studentElement = e.target.closest('[data-student-id]');
-        if (!studentElement) return;
-
-        const studentId = studentElement.dataset.studentId;
-
-        if (e.target.classList.contains('edit-btn')) {
-            toggleEditMode(studentElement, true);
-        } 
-        else if (e.target.classList.contains('save-btn')) {
-            const success = await handleSaveStudent(studentElement, studentId);
-            if (success) {
-                toggleEditMode(studentElement, false);
-                updateMeasuredCount();
-            }
-        }
-        else if (e.target.classList.contains('cancel-btn')) {
-            restoreOriginalValues(studentElement);
-            toggleEditMode(studentElement, false);
-        }
-    }
-
-    // 개별 학생 기록 저장
-    async function handleSaveStudent(studentElement, studentId) {
-        const palpationInput = studentElement.querySelector('[data-field="is_palpation"]');
-        const hr1Input = studentElement.querySelector('[data-field="step_test_heart_rate_1"]');
-        const hr2Input = studentElement.querySelector('[data-field="step_test_heart_rate_2"]');
-        const hr3Input = studentElement.querySelector('[data-field="step_test_heart_rate_3"]');
-
-        const palpation = palpationInput.checked;
-        const hr1 = parseInt(hr1Input.value);
-        const hr2 = parseInt(hr2Input.value);
-        const hr3 = parseInt(hr3Input.value);
-
-        // 입력값 검증
-        if (isNaN(hr1) || isNaN(hr2) || isNaN(hr3)) {
-            showToast('심박수를 모두 입력해주세요.', 'error');
-            return false;
-        }
-
-        const hr1Validation = validateInput(hr1, 20, 250);
-        if (!hr1Validation.valid) {
-            showToast(`심박수 1차: ${hr1Validation.error}`, 'error');
-            return false;
-        }
-
-        const hr2Validation = validateInput(hr2, 20, 250);
-        if (!hr2Validation.valid) {
-            showToast(`심박수 2차: ${hr2Validation.error}`, 'error');
-            return false;
-        }
-
-        const hr3Validation = validateInput(hr3, 20, 250);
-        if (!hr3Validation.valid) {
-            showToast(`심박수 3차: ${hr3Validation.error}`, 'error');
-            return false;
-        }
-
-        try {
-            const result = await saveStudentRecord(
-                studentId,
-                {
-                    is_palpation: palpation,
-                    step_test_heart_rate_1: hr1,
-                    step_test_heart_rate_2: hr2,
-                    step_test_heart_rate_3: hr3
-                },
-                measurementData.sessionId,
-                measurementData.activityId,
-                measurementData.csrfToken
-            );
+    function setupInitialData() {
+        // Initialize student data with individual palpation states
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const studentId = studentElement.dataset.studentId;
+            const palpationToggle = studentElement.querySelector('.student-palpation-toggle');
+            const hr1 = studentElement.querySelector('[data-field="step_test_heart_rate_1"]')?.dataset.original || '';
+            const hr2 = studentElement.querySelector('[data-field="step_test_heart_rate_2"]')?.dataset.original || '';
+            const hr3 = studentElement.querySelector('[data-field="step_test_heart_rate_3"]')?.dataset.original || '';
             
-            if (result.success) {
-                // UI 업데이트
-                updateStudentUI(studentElement, palpation, hr1, hr2, hr3);
-                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
-                return true;
-            } else {
-                showToast(result.error || '저장에 실패했습니다.', 'error');
-                return false;
-            }
-        } catch (error) {
-            console.error('Save error:', error);
-            showToast('저장 중 오류가 발생했습니다.', 'error');
-            return false;
-        }
+            // Parse palpation from data-original attribute (handles 'true'/'false' strings)
+            const palpationOriginal = palpationToggle?.dataset.original;
+            const palpation = palpationOriginal === 'True' || palpationOriginal === 'true';
+            
+            const studentData = {
+                palpation: palpation,
+                hr1: hr1 ? parseInt(hr1) : null,
+                hr2: hr2 ? parseInt(hr2) : null,
+                hr3: hr3 ? parseInt(hr3) : null
+            };
+            
+            originalData.students[studentId] = { ...studentData };
+            currentData.students[studentId] = { ...studentData };
+        });
     }
 
-    function updateStudentUI(studentElement, palpation, hr1, hr2, hr3) {
-        // 촉진 여부 업데이트
-        const palpationDisplay = studentElement.querySelector('.measurement-display[data-field="is_palpation"]');
-        palpationDisplay.textContent = palpation ? '촉진함' : '촉진 안함';
-
-        // 심박수 표시 업데이트
-        const hr1Display = studentElement.querySelector('.measurement-display[data-field="step_test_heart_rate_1"]');
-        hr1Display.textContent = `${hr1} 회/분`;
-        hr1Display.classList.remove('text-gray-500');
-        hr1Display.classList.add('text-red-600', 'font-bold');
-
-        const hr2Display = studentElement.querySelector('.measurement-display[data-field="step_test_heart_rate_2"]');
-        hr2Display.textContent = `${hr2} 회/분`;
-        hr2Display.classList.remove('text-gray-500');
-        hr2Display.classList.add('text-red-600', 'font-bold');
-
-        const hr3Display = studentElement.querySelector('.measurement-display[data-field="step_test_heart_rate_3"]');
-        hr3Display.textContent = `${hr3} 회/분`;
-        hr3Display.classList.remove('text-gray-500');
-        hr3Display.classList.add('text-red-600', 'font-bold');
-
-        // 측정 상태 업데이트
-        const statusDisplay = studentElement.querySelector('.measurement-status');
-        statusDisplay.textContent = '측정 완료';
-        statusDisplay.classList.remove('text-gray-500');
-        statusDisplay.classList.add('text-red-600');
-
-        // 버튼 텍스트 및 스타일 변경
-        const editBtn = studentElement.querySelector('.edit-btn');
-        editBtn.textContent = '수정';
-        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
-    }
-
-    function toggleEditMode(studentElement, isEditing) {
-        const displays = studentElement.querySelectorAll('.measurement-display');
-        const inputs = studentElement.querySelectorAll('.measurement-input');
-        const inputContainers = studentElement.querySelectorAll('.measurement-input-container');
-        const editBtn = studentElement.querySelector('.edit-btn');
-        const saveBtn = studentElement.querySelector('.save-btn');
-        const cancelBtn = studentElement.querySelector('.cancel-btn');
-
-        if (isEditing) {
-            displays.forEach(display => display.classList.add('hidden'));
-            inputs.forEach(input => input.classList.remove('hidden'));
-            inputContainers.forEach(container => container.classList.remove('hidden'));
-            
-            const firstInput = inputs[0];
-            if (firstInput && firstInput.type !== 'checkbox') {
-                firstInput.focus();
-                firstInput.select();
-            }
-            
-            editBtn.classList.add('hidden');
-            saveBtn.classList.remove('hidden');
-            cancelBtn.classList.remove('hidden');
-        } else {
-            displays.forEach(display => display.classList.remove('hidden'));
-            inputs.forEach(input => input.classList.add('hidden'));
-            inputContainers.forEach(container => container.classList.add('hidden'));
-            
-            editBtn.classList.remove('hidden');
-            saveBtn.classList.add('hidden');
-            cancelBtn.classList.add('hidden');
-        }
-    }
-
-    function restoreOriginalValues(studentElement) {
-        const inputs = studentElement.querySelectorAll('.measurement-input');
-        const displays = studentElement.querySelectorAll('.measurement-display');
+    function createDropdownOptions(isPalpation) {
+        let options = '<option value="">--</option>';
+        const min = isPalpation ? 20 : 40;
+        const max = isPalpation ? 125 : 250;
         
-        inputs.forEach((input, index) => {
-            if (input.type === 'checkbox') {
-                const display = displays.find(d => d.dataset.field === input.dataset.field);
-                if (display) {
-                    input.checked = display.textContent === '촉진함';
-                }
+        for (let i = min; i <= max; i++) {
+            options += `<option value="${i}">${i}</option>`;
+        }
+        return options;
+    }
+
+    function setupDropdownOptions() {
+        // Setup options for each student based on their individual palpation state
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const studentId = studentElement.dataset.studentId;
+            const isPalpation = currentData.students[studentId].palpation;
+            updateStudentDropdowns(studentId, isPalpation);
+        });
+    }
+
+    function updateStudentDropdowns(studentId, isPalpation) {
+        const studentElement = document.querySelector(`[data-student-id="${studentId}"]`);
+        if (!studentElement) return;
+        
+        const optionsHtml = createDropdownOptions(isPalpation);
+        const selects = studentElement.querySelectorAll('.heart-rate-select');
+        
+        selects.forEach(select => {
+            const field = select.dataset.field;
+            const fieldKey = field === 'step_test_heart_rate_1' ? 'hr1' : 
+                            field === 'step_test_heart_rate_2' ? 'hr2' : 'hr3';
+            
+            // Get the actual value from currentData, not from select.value
+            const dataValue = currentData.students[studentId][fieldKey];
+            
+            select.innerHTML = optionsHtml;
+            
+            // Set the value from data
+            if (dataValue !== null && select.querySelector(`option[value="${dataValue}"]`)) {
+                select.value = dataValue;
             } else {
-                const display = displays.find(d => d.dataset.field === input.dataset.field);
-                if (display && display.textContent !== '미측정') {
-                    const originalValue = display.textContent.replace(/[^0-9]/g, '');
-                    input.value = originalValue || '';
-                } else {
-                    input.value = '';
+                select.value = '';
+                // If value is not in range, clear it from data too
+                if (dataValue !== null) {
+                    currentData.students[studentId][fieldKey] = null;
                 }
             }
         });
+    }
+
+    function setupEventListeners() {
+        // Individual palpation toggle changes
+        studentContainer.addEventListener('change', (e) => {
+            if (e.target.classList.contains('student-palpation-toggle')) {
+                const studentId = e.target.closest('[data-student-id]').dataset.studentId;
+                const isPalpation = e.target.checked;
+                
+                // Update data
+                currentData.students[studentId].palpation = isPalpation;
+                
+                // Update that student's dropdowns
+                updateStudentDropdowns(studentId, isPalpation);
+                
+                // Check save button state
+                updateSaveButtonState();
+            }
+            else if (e.target.classList.contains('heart-rate-select')) {
+                const studentId = e.target.closest('[data-student-id]').dataset.studentId;
+                const field = e.target.dataset.field;
+                const value = e.target.value ? parseInt(e.target.value) : null;
+                
+                const fieldKey = field === 'step_test_heart_rate_1' ? 'hr1' : 
+                                field === 'step_test_heart_rate_2' ? 'hr2' : 'hr3';
+                
+                currentData.students[studentId][fieldKey] = value;
+                updateSaveButtonState();
+                updateMeasuredCount();
+            }
+        });
+
+        // Batch save button
+        batchSaveBtn.addEventListener('click', handleBatchSave);
+    }
+
+    function hasChanges() {
+        // Check individual student changes
+        for (const studentId in currentData.students) {
+            const original = originalData.students[studentId];
+            const current = currentData.students[studentId];
+            
+            if (JSON.stringify(original) !== JSON.stringify(current)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    function getChangedStudents() {
+        const changed = [];
+        
+        for (const studentId in currentData.students) {
+            const original = originalData.students[studentId];
+            const current = currentData.students[studentId];
+            
+            if (JSON.stringify(original) !== JSON.stringify(current)) {
+                // Check if this is a palpation-only change
+                const palpationChanged = original.palpation !== current.palpation;
+                
+                // If palpation changed but no heart rates exist, still allow save
+                if (palpationChanged && 
+                    original.hr1 === null && original.hr2 === null && original.hr3 === null &&
+                    current.hr1 === null && current.hr2 === null && current.hr3 === null) {
+                    // Save with empty heart rates but updated palpation
+                    changed.push({
+                        student_id: studentId,
+                        measurement_data: {
+                            is_palpation: current.palpation,
+                            step_test_heart_rate_1: null,
+                            step_test_heart_rate_2: null,
+                            step_test_heart_rate_3: null
+                        }
+                    });
+                } 
+                // If heart rates exist, require all 3 to be filled
+                else if (current.hr1 !== null && current.hr2 !== null && current.hr3 !== null) {
+                    changed.push({
+                        student_id: studentId,
+                        measurement_data: {
+                            is_palpation: current.palpation,
+                            step_test_heart_rate_1: current.hr1,
+                            step_test_heart_rate_2: current.hr2,
+                            step_test_heart_rate_3: current.hr3
+                        }
+                    });
+                }
+            }
+        }
+        
+        return changed;
+    }
+
+    function updateSaveButtonState() {
+        const hasAnyChanges = hasChanges();
+        const changedStudents = getChangedStudents();
+        
+        if (hasAnyChanges && changedStudents.length > 0) {
+            batchSaveBtn.disabled = false;
+            batchSaveBtn.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50';
+        } else {
+            batchSaveBtn.disabled = true;
+            batchSaveBtn.className = 'w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 cursor-not-allowed';
+        }
+    }
+
+    async function handleBatchSave() {
+        const changedStudents = getChangedStudents();
+        
+        if (changedStudents.length === 0) {
+            showToast('저장할 변경사항이 없습니다.', 'info');
+            return;
+        }
+
+        batchSaveBtn.disabled = true;
+        batchSaveBtn.textContent = '저장 중...';
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        // Save each student
+        for (const studentData of changedStudents) {
+            try {
+                const result = await saveStudentRecord(
+                    studentData.student_id,
+                    studentData.measurement_data,
+                    contextData.sessionId,
+                    contextData.activityId,
+                    contextData.csrfToken
+                );
+                
+                if (result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    console.error(`Failed to save student ${studentData.student_id}:`, result.error);
+                }
+            } catch (error) {
+                errorCount++;
+                console.error(`Error saving student ${studentData.student_id}:`, error);
+            }
+        }
+
+        // Update UI and original data after successful saves
+        if (successCount > 0) {
+            // Update original data to current state
+            originalData = JSON.parse(JSON.stringify(currentData));
+            
+            // Update measured count
+            updateMeasuredCount();
+            
+            showToast(`저장 완료: 성공 ${successCount}건${errorCount > 0 ? `, 오류 ${errorCount}건` : ''}`);
+        } else {
+            showToast('저장에 실패했습니다.', 'error');
+        }
+
+        batchSaveBtn.textContent = '전체 저장하기';
+        updateSaveButtonState();
+    }
+
+    function updateMeasuredCount() {
+        let measuredCount = 0;
+        
+        for (const studentId in currentData.students) {
+            const student = currentData.students[studentId];
+            if (student.hr1 !== null && student.hr2 !== null && student.hr3 !== null) {
+                measuredCount++;
+            }
+        }
+        
+        if (measuredCountElement) {
+            measuredCountElement.textContent = `${measuredCount}명`;
+        }
     }
 
 })();
