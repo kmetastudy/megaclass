@@ -56,37 +56,27 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">1차 (cm)</label>
                             <div class="flex items-center space-x-2">
-                                {% if student.record %}
-                                    <span class="text-lg text-indigo-600 font-bold measurement-display" data-field="standing_long_jump_first_attempt">
-                                        {{ student.measurement_data.standing_long_jump_first_attempt|default:"미측정" }}{% if student.measurement_data.standing_long_jump_first_attempt %} cm{% endif %}
-                                    </span>
-                                    <div class="input-container hidden flex-1">
-                                        <div class="input-visualizer" id="first-visualizer-{{ student.id }}">
-                                            <span></span><span class="decimal-point">.</span><span></span>
-                                        </div>
-                                        <input type="text" 
-                                               class="input-actual measurement-input" 
-                                               data-field="standing_long_jump_first_attempt"
-                                               data-visualizer="first-visualizer-{{ student.id }}"
-                                               value="{{ student.measurement_data.standing_long_jump_first_attempt|default:""|floatformat:1|slice:":-2" }}"
-                                               data-min="0" 
-                                               data-max="300.0">
+                                <span class="text-lg text-indigo-600 font-bold measurement-display hidden" data-field="standing_long_jump_first_attempt">
+                                    {% if student.record and student.measurement_data.standing_long_jump_first_attempt %}
+                                        {{ student.measurement_data.standing_long_jump_first_attempt|floatformat:1 }} cm
+                                    {% else %}
+                                        미측정
+                                    {% endif %}
+                                </span>
+                                <div class="input-container flex-1">
+                                    <div class="input-visualizer" id="first-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
                                     </div>
-                                {% else %}
-                                    <span class="text-lg text-gray-500 measurement-display" data-field="standing_long_jump_first_attempt">미측정</span>
-                                    <div class="input-container hidden flex-1">
-                                        <div class="input-visualizer" id="first-visualizer-{{ student.id }}">
-                                            <span></span><span class="decimal-point">.</span><span></span>
-                                        </div>
-                                        <input type="text" 
-                                               class="input-actual measurement-input" 
-                                               data-field="standing_long_jump_first_attempt"
-                                               data-visualizer="first-visualizer-{{ student.id }}"
-                                               value=""
-                                               data-min="0" 
-                                               data-max="300.0">
-                                    </div>
-                                {% endif %}
+                                    <input type="text" 
+                                           class="input-actual measurement-input" 
+                                           data-field="standing_long_jump_first_attempt"
+                                           data-visualizer="first-visualizer-{{ student.id }}"
+                                           data-stored-value="{% if student.record and student.measurement_data.standing_long_jump_first_attempt %}{{ student.measurement_data.standing_long_jump_first_attempt }}{% endif %}"
+                                           data-original-value=""
+                                           value=""
+                                           data-min="0" 
+                                           data-max="300.0">
+                                </div>
                             </div>
                         </div>
                         
@@ -94,50 +84,37 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">2차 (cm)</label>
                             <div class="flex items-center space-x-2">
-                                {% if student.record %}
-                                    <span class="text-lg text-indigo-600 font-bold measurement-display" data-field="standing_long_jump_second_attempt">
-                                        {{ student.measurement_data.standing_long_jump_second_attempt|default:"미측정" }}{% if student.measurement_data.standing_long_jump_second_attempt %} cm{% endif %}
-                                    </span>
-                                    <div class="input-container hidden flex-1">
-                                        <div class="input-visualizer" id="second-visualizer-{{ student.id }}">
-                                            <span></span><span class="decimal-point">.</span><span></span>
-                                        </div>
-                                        <input type="text" 
-                                               class="input-actual measurement-input" 
-                                               data-field="standing_long_jump_second_attempt"
-                                               data-visualizer="second-visualizer-{{ student.id }}"
-                                               value="{{ student.measurement_data.standing_long_jump_second_attempt|default:""|floatformat:1|slice:":-2" }}"
-                                               data-min="0" 
-                                               data-max="300.0">
+                                <span class="text-lg text-indigo-600 font-bold measurement-display hidden" data-field="standing_long_jump_second_attempt">
+                                    {% if student.record and student.measurement_data.standing_long_jump_second_attempt %}
+                                        {{ student.measurement_data.standing_long_jump_second_attempt|floatformat:1 }} cm
+                                    {% else %}
+                                        미측정
+                                    {% endif %}
+                                </span>
+                                <div class="input-container flex-1">
+                                    <div class="input-visualizer" id="second-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
                                     </div>
-                                {% else %}
-                                    <span class="text-lg text-gray-500 measurement-display" data-field="standing_long_jump_second_attempt">미측정</span>
-                                    <div class="input-container hidden flex-1">
-                                        <div class="input-visualizer" id="second-visualizer-{{ student.id }}">
-                                            <span></span><span class="decimal-point">.</span><span></span>
-                                        </div>
-                                        <input type="text" 
-                                               class="input-actual measurement-input" 
-                                               data-field="standing_long_jump_second_attempt"
-                                               data-visualizer="second-visualizer-{{ student.id }}"
-                                               value=""
-                                               data-min="0" 
-                                               data-max="300.0">
-                                    </div>
-                                {% endif %}
+                                    <input type="text" 
+                                           class="input-actual measurement-input" 
+                                           data-field="standing_long_jump_second_attempt"
+                                           data-visualizer="second-visualizer-{{ student.id }}"
+                                           data-stored-value="{% if student.record and student.measurement_data.standing_long_jump_second_attempt %}{{ student.measurement_data.standing_long_jump_second_attempt }}{% endif %}"
+                                           data-original-value=""
+                                           value=""
+                                           data-min="0" 
+                                           data-max="300.0">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- 관리 버튼 -->
                     <div class="text-center measurement-buttons">
-                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
-                            {% if student.record %}수정{% else %}입력{% endif %}
-                        </button>
-                        <button class="save-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                        <button class="save-btn bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2" disabled>
                             저장
                         </button>
-                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded transition text-sm" disabled>
                             취소
                         </button>
                     </div>
@@ -210,7 +187,7 @@
 
 {% load static %}
 <script type="module">
-import { showToast, saveStudentRecord, toggleEditMode, validateInput, updateMeasuredCount, setupCommonEventHandlers } from '{% static "js/physical_education/measure/common.js" %}';
+import { showToast, saveStudentRecord, validateInput, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
 import { calculateMax, formatDecimal } from '{% static "js/physical_education/measure/calculations.js" %}';
 
 (function() {
@@ -238,17 +215,52 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
     function init() {
         setupEventListeners();
         setupInputVisualizers();
+        initializeExistingData();
+    }
+
+    function initializeExistingData() {
+        // 기존 데이터가 있는 경우 visualizer 초기화
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(studentElement => {
+            const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+            const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
+            
+            // 저장된 값을 visualizer 형식으로 변환
+            if (firstInput) {
+                const storedValue = firstInput.dataset.storedValue;
+                if (storedValue) {
+                    const visualizerValue = convertToVisualizerFormat(storedValue);
+                    firstInput.value = visualizerValue;
+                    firstInput.dataset.originalValue = visualizerValue;
+                    updateVisualizer(firstInput);
+                }
+            }
+            
+            if (secondInput) {
+                const storedValue = secondInput.dataset.storedValue;
+                if (storedValue) {
+                    const visualizerValue = convertToVisualizerFormat(storedValue);
+                    secondInput.value = visualizerValue;
+                    secondInput.dataset.originalValue = visualizerValue;
+                    updateVisualizer(secondInput);
+                }
+            }
+            
+            if (firstInput || secondInput) {
+                updateMaxValue(firstInput || secondInput);
+            }
+        });
     }
 
     function setupEventListeners() {
-        // 공통 이벤트 핸들러 설정
-        setupCommonEventHandlers(studentContainer, handleSaveStudent);
+        // 커스텀 이벤트 핸들러 설정 (edit 모드 없이)
+        studentContainer.addEventListener('click', handleButtonClick);
+        studentContainer.addEventListener('input', handleInputChange);
     }
 
     function setupInputVisualizers() {
         const inputs = document.querySelectorAll('.input-actual');
         inputs.forEach(input => {
-            input.addEventListener('input', handleInputChange);
             input.addEventListener('keydown', handleKeyDown);
             // 초기값이 있는 경우 visualizer 업데이트
             if (input.value) {
@@ -258,9 +270,12 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
     }
 
     function handleInputChange(e) {
+        if (!e.target.classList.contains('input-actual')) return;
+        
         const input = e.target;
         updateVisualizer(input);
         updateMaxValue(input);
+        updateButtonStates(input.closest('[data-student-id]'));
     }
 
     function handleKeyDown(e) {
@@ -280,6 +295,84 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
         }
         
         e.preventDefault();
+    }
+
+    async function handleButtonClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                updateMeasuredCount();
+                // 버튼 비활성화
+                disableButtons(studentElement);
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            disableButtons(studentElement);
+        }
+    }
+
+    function updateButtonStates(studentElement) {
+        const hasChanges = checkForChanges(studentElement);
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+        
+        if (hasChanges) {
+            saveBtn.disabled = false;
+            cancelBtn.disabled = false;
+            saveBtn.classList.remove('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+            cancelBtn.classList.remove('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+        } else {
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            saveBtn.classList.add('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+            cancelBtn.classList.add('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+        }
+    }
+
+    function disableButtons(studentElement) {
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+        
+        saveBtn.disabled = true;
+        cancelBtn.disabled = true;
+        saveBtn.classList.add('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+        cancelBtn.classList.add('disabled:bg-gray-300', 'disabled:cursor-not-allowed');
+    }
+
+    function checkForChanges(studentElement) {
+        const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+        const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
+        
+        const firstOriginal = firstInput.dataset.originalValue || '';
+        const secondOriginal = secondInput.dataset.originalValue || '';
+        
+        return firstInput.value !== firstOriginal || secondInput.value !== secondOriginal;
+    }
+
+    function restoreOriginalValues(studentElement) {
+        const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+        const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
+        
+        if (firstInput) {
+            firstInput.value = firstInput.dataset.originalValue || '';
+            updateVisualizer(firstInput);
+        }
+        
+        if (secondInput) {
+            secondInput.value = secondInput.dataset.originalValue || '';
+            updateVisualizer(secondInput);
+        }
+        
+        // 최고값 업데이트
+        if (firstInput || secondInput) {
+            updateMaxValue(firstInput || secondInput);
+        }
     }
 
     function updateVisualizer(input) {
@@ -328,10 +421,16 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
         return numericValue;
     }
 
+    function convertToVisualizerFormat(floatValue) {
+        if (!floatValue || floatValue === '') return '';
+        // Convert 38.1 to "381", 123.4 to "1234"
+        return Math.round(parseFloat(floatValue) * 10).toString();
+    }
+
     function updateMaxValue(changedInput) {
         const studentElement = changedInput.closest('[data-student-id]');
-        const firstInput = studentElement.querySelector('[data-field="standing_long_jump_first_attempt"]');
-        const secondInput = studentElement.querySelector('[data-field="standing_long_jump_second_attempt"]');
+        const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+        const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
         const finalRecordDisplay = studentElement.querySelector('.final-record');
 
         const first = getNumericValue(firstInput);
@@ -353,8 +452,8 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
 
     // 개별 학생 기록 저장
     async function handleSaveStudent(studentElement, studentId) {
-        const firstInput = studentElement.querySelector('[data-field="standing_long_jump_first_attempt"]');
-        const secondInput = studentElement.querySelector('[data-field="standing_long_jump_second_attempt"]');
+        const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+        const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
 
         const first = getNumericValue(firstInput);
         const second = getNumericValue(secondInput);
@@ -406,67 +505,28 @@ import { calculateMax, formatDecimal } from '{% static "js/physical_education/me
     }
 
     function updateStudentUI(studentElement, first, second) {
-        // 1차 표시 업데이트
-        const firstDisplay = studentElement.querySelector('.measurement-display[data-field="standing_long_jump_first_attempt"]');
-        firstDisplay.textContent = `${formatDecimal(first, 1)} cm`;
-        firstDisplay.classList.remove('text-gray-500');
-        firstDisplay.classList.add('text-indigo-600', 'font-bold');
-
-        // 2차 표시 업데이트
-        const secondDisplay = studentElement.querySelector('.measurement-display[data-field="standing_long_jump_second_attempt"]');
-        secondDisplay.textContent = `${formatDecimal(second, 1)} cm`;
-        secondDisplay.classList.remove('text-gray-500');
-        secondDisplay.classList.add('text-indigo-600', 'font-bold');
-
         // 최고값 업데이트
         const maxValue = calculateMax(first, second);
         const finalRecordDisplay = studentElement.querySelector('.final-record');
-        finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} cm`;
-        finalRecordDisplay.classList.remove('text-gray-500');
-        finalRecordDisplay.classList.add('text-indigo-600');
+        if (finalRecordDisplay) {
+            finalRecordDisplay.textContent = `${formatDecimal(maxValue, 1)} cm`;
+            finalRecordDisplay.classList.remove('text-gray-500');
+            finalRecordDisplay.classList.add('text-indigo-600');
+        }
 
-        // 버튼 텍스트 및 스타일 변경
-        const editBtn = studentElement.querySelector('.edit-btn');
-        editBtn.textContent = '수정';
-        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+        // 원본 값 업데이트 (다음 비교를 위해)
+        const firstInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_first_attempt"]');
+        const secondInput = studentElement.querySelector('.input-actual[data-field="standing_long_jump_second_attempt"]');
+        
+        if (firstInput) {
+            firstInput.dataset.originalValue = convertToVisualizerFormat(first);
+        }
+        if (secondInput) {
+            secondInput.dataset.originalValue = convertToVisualizerFormat(second);
+        }
     }
 
-    // 편집 모드 전환 (오버라이드)
-    window.toggleLongJumpEditMode = function(studentElement, isEditing) {
-        const displays = studentElement.querySelectorAll('.measurement-display');
-        const containers = studentElement.querySelectorAll('.input-container');
-        const editBtn = studentElement.querySelector('.edit-btn');
-        const saveBtn = studentElement.querySelector('.save-btn');
-        const cancelBtn = studentElement.querySelector('.cancel-btn');
-
-        if (isEditing) {
-            displays.forEach(display => display.classList.add('hidden'));
-            containers.forEach(container => container.classList.remove('hidden'));
-            
-            const firstInput = containers[0]?.querySelector('.input-actual');
-            if (firstInput) {
-                firstInput.focus();
-                updateVisualizer(firstInput);
-            }
-            
-            editBtn.classList.add('hidden');
-            saveBtn.classList.remove('hidden');
-            cancelBtn.classList.remove('hidden');
-        } else {
-            displays.forEach(display => display.classList.remove('hidden'));
-            containers.forEach(container => container.classList.add('hidden'));
-            
-            editBtn.classList.remove('hidden');
-            saveBtn.classList.add('hidden');
-            cancelBtn.classList.add('hidden');
-        }
-    };
-
-    // 공통 함수 오버라이드
-    const originalToggleEditMode = toggleEditMode;
-    window.toggleEditMode = function(studentElement, isEditing) {
-        window.toggleLongJumpEditMode(studentElement, isEditing);
-    };
+    // 편집 모드 관련 코드 제거됨 - 입력이 항상 표시됨
 
 })();
 </script>
