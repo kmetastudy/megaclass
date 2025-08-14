@@ -820,6 +820,8 @@ def learning_course_view_0608(request, course_id):
 
 
 
+@login_required
+@student_required
 def slide_view(request, slide_id):
     """슬라이드 학습 페이지"""
     try:
@@ -1065,6 +1067,209 @@ def slide_view(request, slide_id):
         messages.error(request, f'오류가 발생했습니다: {str(e)}')
         return redirect('student:course_list')
 
+
+@login_required
+@student_required
+def slide_view_0703(request, slide_id):
+    """슬라이드 학습 페이지"""
+    try:
+        student = request.user.student
+        
+        # 슬라이드 조회
+        slide = get_object_or_404(
+            ChasiSlide.objects.select_related(
+                'chasi__sub_chapter__chapter__subject',
+                'content',
+                'content_type'
+            ),
+            id=slide_id
+        )
+        
+        # 코스 가져오기
+        course = slide.chasi.sub_chapter.chapter.subject
+        
+        # 권한 확인
+        has_access = CourseAssignment.objects.filter(
+            course=course
+        ).filter(
+            Q(assigned_class=student.school_class) | Q(assigned_student=student)
+        ).exists()
+        
+        if not has_access:
+            messages.error(request, '해당 슬라이드에 접근 권한이 없습니다.')
+            return redirect('student:course_list')
+        
+        # 진도 체크 및 생성
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            slide=slide,
+            defaults={'view_count': 0}
+        )
+        
+        # 처음 시작하는 경우
+        if not progress.started_at:
+            progress.started_at = timezone.now()
+        
+        # 조회수 증가
+        progress.view_count = getattr(progress, 'view_count', 0) + 1
+        progress.save()
+        
+        # 기존 답안 확인 - 가장 최근 답안
+        existing_answer = StudentAnswer.objects.filter(
+            student=student,
+            slide=slide
+        ).order_by('-submitted_at').first()
+
+        # 이미 정답을 맞혔는지 여부를 확인
+        is_already_correct = False
+        if existing_answer and existing_answer.is_correct:
+            is_already_correct = True
+        
+        # 노트 가져오기
+        note = StudentNote.objects.filter(
+            student=student,
+            slide=slide
+        ).first()
+
+        # POST 요청 처리 - 문제가 없는 콘텐츠의 '완료' 버튼 처리
+        if request.method == 'POST':
+            action = request.POST.get('action')
+            
+            if action == 'complete':
+                # 문제가 없는 슬라이드의 진도 완료 처리
+                if not progress.is_completed:
+                    progress.is_completed = True
+                    progress.completed_at = timezone.now()
+                    progress.save()
+                    messages.success(request, '학습을 완료했습니다.')
+                    
+                # 다음 슬라이드로 이동
+                next_slide = ChasiSlide.objects.filter(
+                    chasi=slide.chasi,
+                    slide_number__gt=slide.slide_number
+                ).order_by('slide_number').first()
+                
+                if next_slide:
+                    return redirect('student:slide_view', slide_id=next_slide.id)
+                else:
+                    return redirect('student:learning_course', course_id=course.id)
+      
+        # 이전/다음 슬라이드
+        prev_slide = ChasiSlide.objects.filter(
+            chasi=slide.chasi,
+            slide_number__lt=slide.slide_number
+        ).order_by('-slide_number').first()
+        
+        next_slide = ChasiSlide.objects.filter(
+            chasi=slide.chasi,
+            slide_number__gt=slide.slide_number
+        ).order_by('slide_number').first()
+        
+        # 현재 슬라이드 위치
+        total_slides_in_chasi = slide.chasi.teacher_slides.count()
+        
+        # 객관식 옵션 처리 - content의 meta_data 필드 확인
+        options = []
+        if slide.content_type.type_name == 'multiple-choice':
+            if hasattr(slide.content, 'meta_data') and isinstance(slide.content.meta_data, dict):
+                options = slide.content.meta_data.get('options', [])
+        
+        physical_result = None
+        if slide.content_type.type_name == 'physical_record' and existing_answer:
+            try:
+                physical_result = StudentPhysicalResult.objects.filter(
+                    student=student,
+                    slide=slide
+                ).first()
+            except:
+                pass
+
+        # OX 퀴즈용 추가 데이터 처리
+        ox_quiz_data = None
+        if slide.content_type.type_name == 'ox-quiz':
+            try:
+                answer_data = json.loads(slide.content.answer)
+                ox_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                ox_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+
+        # Choice 퀴즈용 추가 데이터 처리
+        choice_quiz_data = None
+        if slide.content_type.type_name == 'choice':
+            try:
+                answer_data = json.loads(slide.content.answer)
+                choice_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                choice_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+        
+        # drag 타입 특별 처리 - choice형과 동일한 구조
+        drag_quiz_data = None
+        if slide.content_type.type_name == 'drag':
+            try:
+                correct_answer_data = json.loads(slide.content.correct_answer)
+                solution = correct_answer_data.get('solution', '')
+                drag_quiz_data = {
+                    'has_solution': bool(solution),
+                    'solution': solution
+                }
+            except:
+                drag_quiz_data = {'has_solution': False, 'solution': ''}
+        line_quiz_data = None
+        if slide.content_type.type_name == 'line_matching':
+            try:
+                correct_answer_data = json.loads(slide.content.answer)
+                solution = correct_answer_data.get('solution', '')
+                line_quiz_data = {
+                    'has_solution': bool(solution),
+                    'solution': solution
+                }
+            except:
+                line_quiz_data = {'has_solution': False, 'solution': ''}
+
+        context = {
+            'slide': slide,
+            'progress': progress,
+            'existing_answer': existing_answer,
+            'note': note,
+            'prev_slide': prev_slide,
+            'next_slide': next_slide,
+            'total_slides_in_chasi': total_slides_in_chasi,
+            'options': options,
+            'course': course,
+            'is_already_correct': is_already_correct,
+            'physical_result': physical_result,
+            'ox_quiz_data': ox_quiz_data,
+            'choice_quiz_data': choice_quiz_data,
+            'drag_quiz_data': drag_quiz_data,
+            'line_quiz_data': line_quiz_data,  # 이 줄 추가
+        }
+        
+        return render(request, 'student/slide_view.html', context)
+        
+    except Exception as e:
+        import traceback
+        print(f"Error in slide_view: {str(e)}")
+        print(traceback.format_exc())
+        messages.error(request, f'오류가 발생했습니다: {str(e)}')
+        return redirect('student:course_list')
+
+
 @login_required
 @student_required
 def slide_view_0703(request, slide_id):
@@ -1151,59 +1356,7 @@ def slide_view_0703(request, slide_id):
                     return redirect('student:slide_view', slide_id=next_slide.id)
                 else:
                     return redirect('student:learning_course', course_id=course.id)
-        
-        
-        # # 답안 제출 처리
-        # if request.method == 'POST':
-        #     action = request.POST.get('action')
-            
-        #     if action == 'submit_answer' and slide.content.answer:
-        #         answer = request.POST.get('answer', '').strip()
-                
-        #         if answer:
-        #             # 새로운 답안 생성 (여러 번 제출 가능)
-        #             student_answer = StudentAnswer.objects.create(
-        #                 student=student,
-        #                 slide=slide,
-        #                 answer=answer
-        #             )
-                    
-        #             # 자동 채점 (단답형/객관식)
-        #             correct_answer = slide.content.answer.strip()
-                    
-        #             if slide.content_type.type_name in ['단답형', '객관식']:
-        #                 is_correct = answer == correct_answer
-        #                 student_answer.is_correct = is_correct
-        #                 student_answer.score = 100.0 if is_correct else 0.0
-        #                 student_answer.save()
-                        
-        #                 if is_correct:
-        #                     messages.success(request, '정답입니다! 잘했어요!')
-        #                 else:
-        #                     messages.error(request, f'오답입니다. 정답은 "{correct_answer}"입니다.')
-        #             else:
-        #                 # 서술형은 수동 채점 필요
-        #                 messages.success(request, '답안이 제출되었습니다. 선생님이 확인 후 점수를 매길 예정입니다.')
-                    
-        #             # 문제가 있는 슬라이드를 완료 처리
-        #             if not progress.is_completed:
-        #                 progress.is_completed = True
-        #                 progress.completed_at = timezone.now()
-        #                 progress.save()
-                    
-        #             # 답안 제출 후 existing_answer 업데이트
-        #             existing_answer = student_answer
-        #         else:
-        #             messages.error(request, '답안을 입력해주세요.')
-            
-        #     elif action == 'complete':
-        #         # 진도 완료 처리 (문제가 없는 슬라이드)
-        #         if not progress.is_completed:
-        #             progress.is_completed = True
-        #             progress.completed_at = timezone.now()
-        #             progress.save()
-        #             messages.success(request, '학습을 완료했습니다.')
-        
+      
         # 이전/다음 슬라이드
         prev_slide = ChasiSlide.objects.filter(
             chasi=slide.chasi,
@@ -1236,6 +1389,55 @@ def slide_view_0703(request, slide_id):
             except:
                 pass
 
+        # OX 퀴즈용 추가 데이터 처리
+        ox_quiz_data = None
+        if slide.content_type.type_name == 'ox-quiz':
+            try:
+                # 정답 데이터 파싱
+                answer_data = json.loads(slide.content.answer)
+                ox_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                ox_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+
+        # Choice 퀴즈용 추가 데이터 처리
+        choice_quiz_data = None
+        if slide.content_type.type_name == 'choice':
+            try:
+                # 정답 데이터 파싱
+                answer_data = json.loads(slide.content.answer)
+                choice_quiz_data = {
+                    'correct_answer': answer_data.get('answer', ''),
+                    'solution': answer_data.get('solution', ''),
+                    'has_solution': bool(answer_data.get('solution', '').strip())
+                }
+            except (json.JSONDecodeError, AttributeError):
+                choice_quiz_data = {
+                    'correct_answer': slide.content.answer,
+                    'solution': '',
+                    'has_solution': False
+                }
+        # drag 타입 특별 처리 - choice형과 동일한 구조
+        drag_quiz_data = None
+        if slide.content_type.type_name == 'drag':
+            try:
+                correct_answer_data = json.loads(slide.content.correct_answer)
+                solution = correct_answer_data.get('solution', '')
+                drag_quiz_data = {
+                    'has_solution': bool(solution),
+                    'solution': solution
+                }
+            except:
+                drag_quiz_data = {'has_solution': False, 'solution': ''}
+
+
         
         context = {
             'slide': slide,
@@ -1249,6 +1451,9 @@ def slide_view_0703(request, slide_id):
             'course': course,
             'is_already_correct': is_already_correct, # ★★★ 컨텍스트에 추가 ★★★
             'physical_result': physical_result,  # ★★★ 추가 ★★★
+            'ox_quiz_data': ox_quiz_data,  # ★★★ OX 퀴즈 데이터 추가 ★★★
+            'choice_quiz_data': choice_quiz_data,  # ★★★ Choice 퀴즈 데이터 추가 ★★★
+            'drag_quiz_data': drag_quiz_data,
         }
         
         return render(request, 'student/slide_view.html', context)
@@ -1467,13 +1672,1139 @@ def progress_view_0608(request):
     return render(request, 'student/progress.html', context)
 
 
-
-
-####################### 과거 0608==========================
+##################### 신버전 0703 ########################
 @login_required
 @student_required
 @require_POST
 def check_answer(request):
+    """
+    학생 답안을 채점하고 저장하는 AJAX 뷰.
+    drag 타입 처리 개선
+    """
+    try:
+        # 1. 공통 데이터 가져오기
+        content_id = request.POST.get('content_id')
+        slide_id = request.POST.get('slide_id')
+
+        if not all([content_id, slide_id]):
+            return JsonResponse({
+                'status': 'error',
+                'message': '필수 데이터가 누락되었습니다.',
+            }, status=400)
+
+        student = request.user.student
+        slide = get_object_or_404(
+            ChasiSlide.objects.select_related('content', 'content_type'),
+            id=slide_id
+        )
+        content = slide.content
+        content_type = slide.content_type.type_name
+
+        print(f"🎯 채점 시작: {content_type} 타입, 학생: {student.id}, 슬라이드: {slide_id}")
+
+        # StudentProgress 처리
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            slide=slide,
+            defaults={'started_at': timezone.now()}
+        )
+
+        # 2. drag 타입 처리
+        if content_type == 'drag':
+            return handle_drag_answer(request, student, slide, content, progress)
+        
+        # 3. 다른 타입들 처리 (기존 코드)
+        elif content_type == 'ox-quiz':
+            return handle_ox_quiz_answer(request, student, slide, content, progress)
+        
+        elif content_type == 'selection':
+            return handle_selection_answer(request, student, slide, content, progress)
+        
+        elif content_type == 'choice':
+            return handle_choice_answer(request, student, slide, content, progress)
+        
+        elif content_type in ['multiple-choice', 'short-answer']:
+            return handle_simple_answer(request, student, slide, content, progress)
+        
+        elif content_type == 'line_matching':
+            # return handle_line_matching_answer_improved(request, student, slide, content, progress)
+            return handle_line_matching_answer(request, student, slide, content, progress)
+        
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': f"지원하지 않는 문제 유형입니다: {content_type}"
+            }, status=400)
+
+    except Exception as e:
+        import traceback
+        print(f"❌ check_answer 오류: {str(e)}")
+        print(f"🔍 트레이스백: {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'서버 오류가 발생했습니다: {str(e)}',
+        }, status=500)
+
+
+def handle_drag_answer(request, student, slide, content, progress):
+    """드래그 타입 답안 처리 (개선된 버전)"""
+    try:
+        # 1. 학생 답안 파싱
+        student_answer_json = request.POST.get('student_answer', '').strip()
+        if not student_answer_json:
+            return JsonResponse({
+                'status': 'error',
+                'message': '답안이 선택되지 않았습니다.'
+            }, status=400)
+
+        try:
+            student_state = json.loads(student_answer_json)
+            print(f"📝 학생 답안: {student_state}")
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': '답안 형식이 올바르지 않습니다.'
+            }, status=400)
+
+        # 2. 정답 데이터 파싱
+        try:
+            correct_answer_data = json.loads(content.answer)
+            correct_answer = correct_answer_data.get('answer', {})
+            solution = correct_answer_data.get('solution', '')
+            print(f"🎯 정답: {correct_answer}")
+            print(f"💡 해설: {solution}")
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"❌ 정답 파싱 오류: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': '정답 데이터를 읽을 수 없습니다.'
+            }, status=500)
+
+        # 3. 채점 수행
+        is_correct = grade_drag_answer(student_state, correct_answer)
+        score = 100.0 if is_correct else 0.0
+        
+        print(f"📊 채점 결과: {'정답' if is_correct else '오답'} (점수: {score})")
+
+        # 4. 답안 저장
+        answer_data = {
+            'selected_answer': student_state,
+            'correct_answer': correct_answer,
+            'solution': solution,
+            'question_type': 'drag',
+            'submitted_at': timezone.now().isoformat()
+        }
+
+        student_answer_obj, created = StudentAnswer.objects.update_or_create(
+            student=student,
+            slide=slide,
+            defaults={
+                'answer': answer_data,
+                'is_correct': is_correct,
+                'score': score,
+                'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+            }
+        )
+
+        print(f"💾 답안 {'생성' if created else '업데이트'}: ID {student_answer_obj.id}")
+
+        # 5. 정답인 경우 진도 완료 처리
+        if is_correct and not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
+            print(f"✅ 진도 완료 처리")
+
+        # 6. 응답 데이터 구성
+        response_data = {
+            'status': 'success',
+            'is_correct': is_correct,
+            'correct_answer': correct_answer,
+            'student_answer': student_state,
+            'score': score,
+            'solution': solution,
+            'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+            'feedback': student_answer_obj.feedback,
+            'answer_details': {
+                'total_zones': len(correct_answer) if isinstance(correct_answer, dict) else 1,
+                'correct_zones': sum(1 for k, v in correct_answer.items() 
+                                   if k in student_state and str(student_state[k]) == str(v)) 
+                                if isinstance(correct_answer, dict) else (1 if is_correct else 0)
+            }
+        }
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        import traceback
+        print(f"❌ handle_drag_answer 오류: {str(e)}")
+        print(f"🔍 트레이스백: {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'드래그 답안 처리 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+def grade_drag_answer(student_state, correct_answer):
+    """
+    드래그 답안 채점 함수 (개선된 버전)
+    
+    Args:
+        student_state (dict): 학생이 제출한 답안 상태 {"zone1": "1", "zone2": "3"}
+        correct_answer (dict): 정답 데이터 {"zone1": "1", "zone2": "3"}
+    
+    Returns:
+        bool: 정답 여부
+    """
+    try:
+        print(f"🔍 채점 시작:")
+        print(f"   학생 답안: {student_state}")
+        print(f"   정답: {correct_answer}")
+        
+        # 1. 기본 유효성 검사
+        if not isinstance(student_state, dict) or not isinstance(correct_answer, dict):
+            print(f"❌ 답안 형식 오류: 학생({type(student_state)}), 정답({type(correct_answer)})")
+            return False
+        
+        # 2. 존(zone) 개수 확인
+        if len(student_state) != len(correct_answer):
+            print(f"❌ 답안 개수 불일치: 학생({len(student_state)}), 정답({len(correct_answer)})")
+            return False
+        
+        # 3. 각 존별 정답 확인
+        for zone_id, correct_value in correct_answer.items():
+            if zone_id not in student_state:
+                print(f"❌ 누락된 존: {zone_id}")
+                return False
+            
+            student_value = str(student_state[zone_id]).strip()
+            correct_value_str = str(correct_value).strip()
+            
+            if student_value != correct_value_str:
+                print(f"❌ {zone_id}: '{student_value}' != '{correct_value_str}'")
+                return False
+            else:
+                print(f"✅ {zone_id}: '{student_value}' == '{correct_value_str}'")
+        
+        print(f"🎉 전체 정답!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 채점 중 오류: {e}")
+        return False
+
+
+def handle_ox_quiz_answer(request, student, slide, content, progress):
+    """OX 퀴즈 답안 처리"""
+    student_answer_str = request.POST.get('student_answer', '').strip()
+    if not student_answer_str:
+        return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+    try:
+        correct_answer_data = json.loads(content.answer)
+        correct_answer = correct_answer_data.get('answer', '').strip()
+        solution = correct_answer_data.get('solution', '')
+    except (json.JSONDecodeError, AttributeError):
+        correct_answer = content.answer.strip()
+        solution = '자동 채점 완료'
+
+    is_correct = (student_answer_str == correct_answer)
+    score = 100.0 if is_correct else 0.0
+    
+    answer_data = {
+        'selected_answer': student_answer_str,
+        'correct_answer': correct_answer,
+        'solution': solution,
+        'question_type': 'ox-quiz'
+    }
+
+    student_answer_obj, created = StudentAnswer.objects.update_or_create(
+        student=student,
+        slide=slide,
+        defaults={
+            'answer': answer_data,
+            'is_correct': is_correct,
+            'score': score,
+            'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+        }
+    )
+
+    if is_correct and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'is_correct': is_correct,
+        'correct_answer': correct_answer,
+        'student_answer': student_answer_str,
+        'score': score,
+        'solution': solution,
+        'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+        'feedback': student_answer_obj.feedback,
+    })
+
+
+def handle_selection_answer(request, student, slide, content, progress):
+    """선택형 퀴즈 답안 처리"""
+    student_answer_str = request.POST.get('student_answer', '').strip()
+    if not student_answer_str:
+        return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+    try:
+        correct_answer_data = json.loads(content.answer)
+        correct_answer = correct_answer_data.get('answer', '').strip()
+        solution = correct_answer_data.get('solution', '')
+    except (json.JSONDecodeError, AttributeError):
+        correct_answer = content.answer.strip()
+        solution = '자동 채점 완료'
+
+    is_correct = (student_answer_str == correct_answer)
+    score = 100.0 if is_correct else 0.0
+    
+    answer_data = {
+        'selected_answer': student_answer_str,
+        'correct_answer': correct_answer,
+        'solution': solution,
+        'question_type': 'selection'
+    }
+
+    student_answer_obj, created = StudentAnswer.objects.update_or_create(
+        student=student,
+        slide=slide,
+        defaults={
+            'answer': answer_data,
+            'is_correct': is_correct,
+            'score': score,
+            'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+        }
+    )
+
+    if is_correct and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'is_correct': is_correct,
+        'correct_answer': correct_answer,
+        'student_answer': student_answer_str,
+        'score': score,
+        'solution': solution,
+        'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+        'feedback': student_answer_obj.feedback,
+    })
+
+
+def handle_choice_answer(request, student, slide, content, progress):
+    """일반 선택형 퀴즈 답안 처리"""
+    return handle_selection_answer(request, student, slide, content, progress)
+
+
+def handle_simple_answer(request, student, slide, content, progress):
+    """단순 답안 처리 (multiple-choice, short-answer)"""
+    student_answer_str = request.POST.get('student_answer', '').strip()
+    if not student_answer_str:
+        return JsonResponse({'status': 'error', 'message': '답안이 입력되지 않았습니다.'}, status=400)
+
+    correct_answer = parse_correct_answer(content.answer)
+    is_correct = (student_answer_str == correct_answer)
+    score = 100.0 if is_correct else 0.0
+    
+    answer_data = {
+        'selected_answer': student_answer_str,
+        'correct_answer': correct_answer,
+    }
+
+    student_answer_obj, created = StudentAnswer.objects.update_or_create(
+        student=student,
+        slide=slide,
+        defaults={
+            'answer': answer_data,
+            'is_correct': is_correct,
+            'score': score,
+            'feedback': '자동 채점 완료',
+        }
+    )
+
+    if is_correct and not progress.is_completed:
+        progress.is_completed = True
+        progress.completed_at = timezone.now()
+        progress.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'is_correct': is_correct,
+        'correct_answer': correct_answer,
+        'student_answer': student_answer_str,
+        'score': score,
+        'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+        'feedback': student_answer_obj.feedback,
+    })
+
+
+def handle_line_matching_answer(request, student, slide, content, progress):
+    """선 매칭(line-matching) 타입 답안 처리 (다양한 채점 이벤트 지원)"""
+    try:
+        # 1. 학생 답안 파싱
+        student_answer_json = request.POST.get('student_answer', '').strip()
+        if not student_answer_json:
+            return JsonResponse({
+                'status': 'error',
+                'message': '연결된 답안이 없습니다.'
+            }, status=400)
+
+        try:
+            student_connections = json.loads(student_answer_json)
+            print(f"📝 학생 연결: {student_connections}")
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': '답안 형식이 올바르지 않습니다.'
+            }, status=400)
+
+        # 2. 정답 데이터 파싱
+        try:
+            correct_answer_data = json.loads(content.answer)
+            correct_connections = correct_answer_data.get('answer', {})
+            solution = correct_answer_data.get('solution', '')
+            print(f"🎯 정답 연결: {correct_connections}")
+            print(f"💡 해설: {solution}")
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"❌ 정답 파싱 오류: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': '정답 데이터를 읽을 수 없습니다.'
+            }, status=500)
+
+        # 3. 다양한 채점 방식 수행
+        grading_result = grade_line_matching_answer(student_connections, correct_connections)
+        
+        # 채점 결과 분석
+        total_connections = len(correct_connections)
+        correct_count = grading_result['correct_count']
+        incorrect_count = grading_result['incorrect_count']
+        missing_count = grading_result['missing_count']
+        extra_count = grading_result['extra_count']
+        
+        # 점수 계산 (부분 점수 지원)
+        if correct_count == total_connections and incorrect_count == 0 and extra_count == 0:
+            # 완전 정답
+            score = 100.0
+            is_correct = True
+            result_type = 'perfect'
+        elif correct_count > 0:
+            # 부분 정답 (정답 연결 비율에 따라 점수 부여)
+            base_score = (correct_count / total_connections) * 80  # 80%까지는 정답 비율로
+            penalty = (incorrect_count + extra_count) * 5  # 잘못된 연결당 5점 감점
+            score = max(base_score - penalty, 0)
+            is_correct = False
+            result_type = 'partial'
+        else:
+            # 전체 오답
+            score = 0.0
+            is_correct = False
+            result_type = 'incorrect'
+        
+        print(f"📊 채점 결과: 정답({correct_count}) 오답({incorrect_count}) 누락({missing_count}) 추가({extra_count})")
+        print(f"📊 최종 점수: {score}점 ({'완전정답' if is_correct else result_type})")
+
+        # 4. 답안 저장 (상세 정보 포함)
+        answer_data = {
+            'selected_answer': student_connections,
+            'correct_answer': correct_connections,
+            'solution': solution,
+            'question_type': 'line-matching',
+            'submitted_at': timezone.now().isoformat(),
+            'grading_details': {
+                'total_connections': total_connections,
+                'correct_count': correct_count,
+                'incorrect_count': incorrect_count,
+                'missing_count': missing_count,
+                'extra_count': extra_count,
+                'result_type': result_type,
+                'individual_results': grading_result['individual_results']
+            }
+        }
+
+        student_answer_obj, created = StudentAnswer.objects.update_or_create(
+            student=student,
+            slide=slide,
+            defaults={
+                'answer': answer_data,
+                'is_correct': is_correct,
+                'score': score,
+                'feedback': generate_line_feedback(grading_result, result_type, solution),
+            }
+        )
+
+        print(f"💾 답안 {'생성' if created else '업데이트'}: ID {student_answer_obj.id}")
+
+        # 5. 진도 완료 처리 (완전 정답이거나 부분 점수가 70점 이상일 때)
+        if (is_correct or score >= 70) and not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
+            print(f"✅ 진도 완료 처리 (점수: {score})")
+
+        # 6. 응답 데이터 구성 (클라이언트에서 활용할 상세 정보 포함)
+        response_data = {
+            'status': 'success',
+            'is_correct': is_correct,
+            'score': score,
+            'result_type': result_type,
+            'correct_answer': correct_connections,
+            'student_answer': student_connections,
+            'solution': solution,
+            'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+            'feedback': student_answer_obj.feedback,
+            'grading_details': {
+                'total_connections': total_connections,
+                'correct_count': correct_count,
+                'incorrect_count': incorrect_count,
+                'missing_count': missing_count,
+                'extra_count': extra_count,
+                'accuracy_rate': round((correct_count / total_connections) * 100, 1) if total_connections > 0 else 0,
+                'individual_results': grading_result['individual_results']
+            },
+            'encouragement': generate_encouragement_message(result_type, correct_count, total_connections)
+        }
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        import traceback
+        print(f"❌ handle_line_matching_answer 오류: {str(e)}")
+        print(f"🔍 트레이스백: {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'선 매칭 답안 처리 중 오류가 발생했습니다: {str(e)}'
+        }, status=500)
+
+
+def grade_line_matching_answer(student_connections, correct_connections):
+    """
+    선 매칭 답안 채점 함수 (상세한 분석 정보 제공)
+    
+    Args:
+        student_connections (dict): 학생이 연결한 답안 {"left1": "right2", "left2": "right1"}
+        correct_connections (dict): 정답 연결 {"left1": "right1", "left2": "right2"}
+    
+    Returns:
+        dict: 상세한 채점 결과
+    """
+    try:
+        print(f"🔍 선 매칭 채점 시작:")
+        print(f"   학생 연결: {student_connections}")
+        print(f"   정답 연결: {correct_connections}")
+        
+        # 채점 결과 초기화
+        result = {
+            'correct_count': 0,
+            'incorrect_count': 0,
+            'missing_count': 0,
+            'extra_count': 0,
+            'individual_results': {}
+        }
+        
+        # 1. 정답 연결 검사
+        for left_id, correct_right_id in correct_connections.items():
+            if left_id in student_connections:
+                student_right_id = student_connections[left_id]
+                if student_right_id == correct_right_id:
+                    # 정답 연결
+                    result['correct_count'] += 1
+                    result['individual_results'][left_id] = {
+                        'status': 'correct',
+                        'student_answer': student_right_id,
+                        'correct_answer': correct_right_id
+                    }
+                    print(f"   ✅ {left_id} → {student_right_id} (정답)")
+                else:
+                    # 잘못된 연결
+                    result['incorrect_count'] += 1
+                    result['individual_results'][left_id] = {
+                        'status': 'incorrect',
+                        'student_answer': student_right_id,
+                        'correct_answer': correct_right_id
+                    }
+                    print(f"   ❌ {left_id} → {student_right_id} (오답, 정답: {correct_right_id})")
+            else:
+                # 연결하지 않은 항목
+                result['missing_count'] += 1
+                result['individual_results'][left_id] = {
+                    'status': 'missing',
+                    'student_answer': None,
+                    'correct_answer': correct_right_id
+                }
+                print(f"   ⭕ {left_id} (연결 안함, 정답: {correct_right_id})")
+        
+        # 2. 추가 연결 검사 (정답에 없는 연결)
+        for left_id, student_right_id in student_connections.items():
+            if left_id not in correct_connections:
+                result['extra_count'] += 1
+                result['individual_results'][left_id] = {
+                    'status': 'extra',
+                    'student_answer': student_right_id,
+                    'correct_answer': None
+                }
+                print(f"   ➕ {left_id} → {student_right_id} (불필요한 연결)")
+        
+        print(f"📊 채점 완료: 정답({result['correct_count']}) 오답({result['incorrect_count']}) "
+              f"누락({result['missing_count']}) 추가({result['extra_count']})")
+        
+        return result
+        
+    except Exception as e:
+        print(f"❌ 선 매칭 채점 중 오류: {e}")
+        return {
+            'correct_count': 0,
+            'incorrect_count': 0,
+            'missing_count': 0,
+            'extra_count': 0,
+            'individual_results': {}
+        }
+
+
+def generate_line_feedback(grading_result, result_type, solution):
+    """선 매칭 결과에 따른 피드백 생성"""
+    correct_count = grading_result['correct_count']
+    incorrect_count = grading_result['incorrect_count']
+    missing_count = grading_result['missing_count']
+    
+    if result_type == 'perfect':
+        feedback = "🎉 완벽합니다! 모든 연결이 정확해요!"
+    elif result_type == 'partial':
+        if correct_count > incorrect_count:
+            feedback = f"👍 잘했어요! {correct_count}개 정답, {incorrect_count}개 오답입니다."
+        else:
+            feedback = f"💪 조금 더 힘내세요! {correct_count}개 정답, {incorrect_count}개 오답입니다."
+            
+        if missing_count > 0:
+            feedback += f" {missing_count}개 항목이 연결되지 않았습니다."
+    else:
+        feedback = "🤔 다시 한번 생각해보세요! 올바른 연결을 찾아보세요."
+    
+    # 해설이 있으면 추가
+    if solution:
+        feedback += f"\n\n💡 해설: {solution}"
+    
+    return feedback
+
+
+def generate_encouragement_message(result_type, correct_count, total_count):
+    """결과에 따른 격려 메시지 생성"""
+    if result_type == 'perfect':
+        messages = [
+            "🌟 완벽한 연결 실력이에요!",
+            "🎯 매칭 마스터가 되셨네요!",
+            "🏆 최고의 연결 감각입니다!",
+            "✨ 완벽한 논리적 사고력이에요!"
+        ]
+    elif result_type == 'partial':
+        if correct_count >= total_count * 0.7:  # 70% 이상
+            messages = [
+                "👏 훌륭한 시작이에요! 조금만 더!",
+                "🌟 좋은 감각이 있어요!",
+                "💪 실력이 늘고 있어요!",
+                "🎯 거의 다 왔어요!"
+            ]
+        else:
+            messages = [
+                "💪 포기하지 마세요! 다시 도전!",
+                "🌟 연습하면 더 잘할 수 있어요!",
+                "🎯 차근차근 생각해보세요!",
+                "✨ 다음엔 더 잘할 거예요!"
+            ]
+    else:
+        messages = [
+            "🤔 천천히 다시 생각해보세요!",
+            "💪 포기하지 말고 다시 도전!",
+            "🌟 연습이 실력을 만들어요!",
+            "🎯 힌트를 활용해보세요!"
+        ]
+    
+    import random
+    return random.choice(messages)
+
+###################### 신버전 0702 ########################
+@login_required
+@student_required
+@require_POST
+def check_answer_0703(request):
+    """
+    학생 답안을 채점하고 저장하는 AJAX 뷰.
+    'ox-quiz' 유형 추가 지원
+    """
+    try:
+        # 1. 공통 데이터 가져오기 및 객체 조회
+        content_id = request.POST.get('content_id')
+        slide_id = request.POST.get('slide_id')
+
+        if not all([content_id, slide_id]):
+            return JsonResponse({
+                'status': 'error',
+                'message': '필수 데이터(content_id, slide_id)가 누락되었습니다.',
+            }, status=400)
+
+        student = request.user.student
+        slide = get_object_or_404(
+            ChasiSlide.objects.select_related('content', 'content_type'),
+            id=slide_id
+        )
+        content = slide.content
+        content_type = slide.content_type.type_name
+
+        # 슬라이드와 콘텐츠 ID 일치 여부 확인
+        if str(content.id) != content_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': '슬라이드와 콘텐츠 정보가 일치하지 않습니다.',
+            }, status=400)
+        
+        # StudentProgress 가져오기 또는 생성
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            slide=slide,
+            defaults={'started_at': timezone.now()}
+        )
+
+        # 2. 콘텐츠 유형에 따른 분기 처리
+        
+        # ----------------------------------------------------------------------
+        #  ★★★★★  새로운 'ox-quiz' 유형 처리 (OX 퀴즈)  ★★★★★
+        # ----------------------------------------------------------------------
+        if content_type == 'ox-quiz':
+            student_answer_str = request.POST.get('student_answer', '').strip()
+            if not student_answer_str:
+                return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+            # 정답 파싱 (JSON 형태로 저장된 정답)
+            try:
+                correct_answer_data = json.loads(content.answer)
+                correct_answer = correct_answer_data.get('answer', '').strip()
+                solution = correct_answer_data.get('solution', '')
+            except (json.JSONDecodeError, AttributeError):
+                # JSON이 아닌 경우 문자열로 처리
+                correct_answer = parse_correct_answer(content.answer)
+                solution = '자동 채점 완료'
+
+            is_correct = (student_answer_str == correct_answer)
+            score = 100.0 if is_correct else 0.0
+            
+            # DB에 저장할 데이터 구조 (선택한 답안과 정답 모두 포함)
+            answer_data = {
+                'selected_answer': student_answer_str,
+                'correct_answer': correct_answer,
+                'solution': solution,
+                'question_type': 'ox-quiz',
+                'answer_text': {
+                    'selected': 'O (맞다)' if student_answer_str == '1' else 'X (틀리다)',
+                    'correct': 'O (맞다)' if correct_answer == '1' else 'X (틀리다)'
+                }
+            }
+
+            # DB에 저장
+            student_answer_obj, created = StudentAnswer.objects.update_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'answer': answer_data,
+                    'is_correct': is_correct,
+                    'score': score,
+                    'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+                }
+            )
+
+            # 정답인 경우 StudentProgress 완료 처리
+            if is_correct and not progress.is_completed:
+                progress.is_completed = True
+                progress.completed_at = timezone.now()
+                progress.save()
+
+            # 클라이언트에 상세한 응답 데이터 전송
+            response_data = {
+                'status': 'success',
+                'is_correct': is_correct,
+                'correct_answer': correct_answer,
+                'student_answer': student_answer_str,
+                'score': score,
+                'solution': solution,
+                'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'feedback': student_answer_obj.feedback,
+                'answer_details': {
+                    'selected_text': 'O (맞다)' if student_answer_str == '1' else 'X (틀리다)',
+                    'correct_text': 'O (맞다)' if correct_answer == '1' else 'X (틀리다)',
+                    'both_same': student_answer_str == correct_answer
+                }
+            }
+            return JsonResponse(response_data)
+        
+# ----------------------------------------------------------------------
+#  ★★★★★  새로운 'selection' 유형 처리 (선택형 퀴즈)  ★★★★★
+# ----------------------------------------------------------------------
+        elif content_type == 'selection':
+            student_answer_str = request.POST.get('student_answer', '').strip()
+            if not student_answer_str:
+                return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+            # 정답 파싱 (JSON 형태로 저장된 정답)
+            try:
+                correct_answer_data = json.loads(content.answer)
+                correct_answer = correct_answer_data.get('answer', '').strip()
+                solution = correct_answer_data.get('solution', '')
+            except (json.JSONDecodeError, AttributeError):
+                # JSON이 아닌 경우 문자열로 처리
+                correct_answer = parse_correct_answer(content.answer)
+                solution = '자동 채점 완료'
+
+            is_correct = (student_answer_str == correct_answer)
+            score = 100.0 if is_correct else 0.0
+            
+            # DB에 저장할 데이터 구조 (선택한 답안과 정답 모두 포함)
+            answer_data = {
+                'selected_answer': student_answer_str,
+                'correct_answer': correct_answer,
+                'solution': solution,
+                'question_type': 'selection',
+                'answer_text': {
+                    'selected': f"{student_answer_str}번 선택지",
+                    'correct': f"{correct_answer}번 선택지"
+                }
+            }
+
+            # DB에 저장
+            student_answer_obj, created = StudentAnswer.objects.update_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'answer': answer_data,
+                    'is_correct': is_correct,
+                    'score': score,
+                    'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+                }
+            )
+
+            # 정답인 경우 StudentProgress 완료 처리
+            if is_correct and not progress.is_completed:
+                progress.is_completed = True
+                progress.completed_at = timezone.now()
+                progress.save()
+
+            # 클라이언트에 상세한 응답 데이터 전송
+            response_data = {
+                'status': 'success',
+                'is_correct': is_correct,
+                'correct_answer': correct_answer,
+                'student_answer': student_answer_str,
+                'score': score,
+                'solution': solution,
+                'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'feedback': student_answer_obj.feedback,
+                'answer_details': {
+                    'selected_text': f"{student_answer_str}번 선택지",
+                    'correct_text': f"{correct_answer}번 선택지",
+                    'both_same': student_answer_str == correct_answer
+                }
+            }
+            return JsonResponse(response_data)
+        # views.py의 check_answer 함수에 추가
+        elif content_type == 'choice':
+            student_answer_str = request.POST.get('student_answer', '').strip()
+            if not student_answer_str:
+                return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+            # 정답 파싱 (JSON 형태로 저장된 정답)
+            try:
+                correct_answer_data = json.loads(content.answer)
+                correct_answer = correct_answer_data.get('answer', '').strip()
+                solution = correct_answer_data.get('solution', '')
+            except (json.JSONDecodeError, AttributeError):
+                # JSON이 아닌 경우 문자열로 처리
+                correct_answer = parse_correct_answer(content.answer)
+                solution = '자동 채점 완료'
+
+            is_correct = (student_answer_str == correct_answer)
+            score = 100.0 if is_correct else 0.0
+            
+            # DB에 저장할 데이터 구조 (선택한 답안과 정답 모두 포함)
+            answer_data = {
+                'selected_answer': student_answer_str,
+                'correct_answer': correct_answer,
+                'solution': solution,
+                'question_type': 'choice',
+                'answer_text': {
+                    'selected': f"{student_answer_str}번 선택지",
+                    'correct': f"{correct_answer}번 선택지"
+                }
+            }
+
+            # DB에 저장
+            student_answer_obj, created = StudentAnswer.objects.update_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'answer': answer_data,
+                    'is_correct': is_correct,
+                    'score': score,
+                    'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+                }
+            )
+
+            # 정답인 경우 StudentProgress 완료 처리
+            if is_correct and not progress.is_completed:
+                progress.is_completed = True
+                progress.completed_at = timezone.now()
+                progress.save()
+
+            # 클라이언트에 상세한 응답 데이터 전송
+            response_data = {
+                'status': 'success',
+                'is_correct': is_correct,
+                'correct_answer': correct_answer,
+                'student_answer': student_answer_str,
+                'score': score,
+                'solution': solution,
+                'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'feedback': student_answer_obj.feedback,
+                'answer_details': {
+                    'selected_text': f"{student_answer_str}번 선택지",
+                    'correct_text': f"{correct_answer}번 선택지",
+                    'both_same': student_answer_str == correct_answer
+                }
+            }
+            return JsonResponse(response_data)
+        
+        # drag 타입 처리 - choice형과 동일한 패턴
+        elif content_type == 'drag':
+            student_answer = request.POST.get('student_answer', '').strip()
+            if not student_answer:
+                return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+            # JSON 파싱
+            if isinstance(student_answer, str):
+                drag_state = json.loads(student_answer)
+            else:
+                drag_state = student_answer
+            
+            # 정답 데이터 파싱 (choice형과 동일한 구조)
+            correct_answer_data = json.loads(slide.content.answer)
+            correct_answer = correct_answer_data.get('answer', {})
+            solution = correct_answer_data.get('solution', '')
+            
+            # 채점
+            is_correct = check_drag_answer_logic(drag_state, correct_answer)
+            
+            # 답안 저장 (choice형과 동일한 구조)
+            answer_data = {
+                'selected_answer': drag_state,
+                'correct_answer': correct_answer,
+                'solution': solution
+            }
+            
+            student_answer_obj, created = StudentAnswer.objects.update_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'answer': answer_data,
+                    'is_correct': is_correct,
+                    'score': 100 if is_correct else 0
+                }
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'is_correct': is_correct,
+                'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M'),
+                'score': student_answer_obj.score,
+                'solution': solution
+            })
+                
+        # 기존 다른 유형들 처리...
+        # (multiple-choice, multi-choice, short-answer, multi-input 등)
+        
+    except Exception as e:
+        import traceback
+        print(f"ERROR: check_answer 뷰에서 예외 발생: {str(e)}")
+        print(f"트레이스백: {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'서버 오류가 발생했습니다: {str(e)}',
+        }, status=500)
+
+
+def check_drag_answer_logic(user_answer, correct_answer):
+    """드래그 답안 채점 로직 - choice형과 동일한 구조"""
+    try:
+        # 빈칸채우기/매칭 타입
+        if isinstance(correct_answer, dict):
+            for zone_id, correct_value in correct_answer.items():
+                if zone_id not in user_answer or str(user_answer[zone_id]) != str(correct_value):
+                    return False
+            return True
+        # 단일 답안 타입
+        else:
+            return str(user_answer) == str(correct_answer)
+    except:
+        return False
+
+# def check_drag_answer(user_state, correct_data, quiz_type):
+#     """드래그 답안 채점 함수"""
+#     try:
+#         if quiz_type == 'fill-blank':
+#             # 빈칸 채우기: 특정 존에 정답 아이템이 있는지 확인
+#             for zone_id, correct_value in correct_data.items():
+#                 if zone_id not in user_state or user_state[zone_id] != correct_value:
+#                     return False
+#             return True
+            
+#         elif quiz_type == 'sort':
+#             # 정렬: 순서가 맞는지 확인
+#             for order, correct_value in correct_data.items():
+#                 if order not in user_state or user_state[order] != correct_value:
+#                     return False
+#             return True
+            
+#         elif quiz_type == 'match':
+#             # 매칭: 매칭이 정확한지 확인
+#             for left_id, correct_right_id in correct_data.items():
+#                 if left_id not in user_state or user_state[left_id] != correct_right_id:
+#                     return False
+#             return True
+            
+#         return False
+        
+#     except Exception as e:
+#         print(f"채점 오류: {e}")
+#         return False
+
+@login_required
+@student_required
+@require_POST
+def check_answer_070220(request):
+    """
+    학생 답안을 채점하고 저장하는 AJAX 뷰.
+    'ox-quiz' 유형 추가 지원
+    """
+    try:
+        # 1. 공통 데이터 가져오기 및 객체 조회
+        content_id = request.POST.get('content_id')
+        slide_id = request.POST.get('slide_id')
+
+        if not all([content_id, slide_id]):
+            return JsonResponse({
+                'status': 'error',
+                'message': '필수 데이터(content_id, slide_id)가 누락되었습니다.',
+            }, status=400)
+
+        student = request.user.student
+        slide = get_object_or_404(
+            ChasiSlide.objects.select_related('content', 'content_type'),
+            id=slide_id
+        )
+        content = slide.content
+        content_type = slide.content_type.type_name
+
+        # 슬라이드와 콘텐츠 ID 일치 여부 확인
+        if str(content.id) != content_id:
+            return JsonResponse({
+                'status': 'error',
+                'message': '슬라이드와 콘텐츠 정보가 일치하지 않습니다.',
+            }, status=400)
+        
+        # StudentProgress 가져오기 또는 생성
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            slide=slide,
+            defaults={'started_at': timezone.now()}
+        )
+
+        # 2. 콘텐츠 유형에 따른 분기 처리
+        
+        # ----------------------------------------------------------------------
+        #  ★★★★★  새로운 'ox-quiz' 유형 처리 (OX 퀴즈)  ★★★★★
+        # ----------------------------------------------------------------------
+        if content_type == 'ox-quiz':
+            student_answer_str = request.POST.get('student_answer', '').strip()
+            if not student_answer_str:
+                return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+            # 정답 파싱 (JSON 형태로 저장된 정답)
+            try:
+                correct_answer_data = json.loads(content.answer)
+                correct_answer = correct_answer_data.get('answer', '').strip()
+                solution = correct_answer_data.get('solution', '')
+            except (json.JSONDecodeError, AttributeError):
+                # JSON이 아닌 경우 문자열로 처리
+                correct_answer = parse_correct_answer(content.answer)
+                solution = '자동 채점 완료'
+
+            is_correct = (student_answer_str == correct_answer)
+            score = 100.0 if is_correct else 0.0
+            
+            # DB에 저장할 데이터 구조
+            answer_data = {
+                'selected_answer': student_answer_str,
+                'correct_answer': correct_answer,
+                'solution': solution,
+                'question_type': 'ox-quiz'
+            }
+
+            # DB에 저장
+            student_answer_obj, created = StudentAnswer.objects.update_or_create(
+                student=student,
+                slide=slide,
+                defaults={
+                    'answer': answer_data,
+                    'is_correct': is_correct,
+                    'score': score,
+                    'feedback': solution if solution else ('정답입니다!' if is_correct else '오답입니다.'),
+                }
+            )
+
+            # 정답인 경우 StudentProgress 완료 처리
+            if is_correct and not progress.is_completed:
+                progress.is_completed = True
+                progress.completed_at = timezone.now()
+                progress.save()
+
+            response_data = {
+                'status': 'success',
+                'is_correct': is_correct,
+                'correct_answer': correct_answer,
+                'student_answer': student_answer_str,
+                'score': score,
+                'solution': solution,
+                'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'feedback': student_answer_obj.feedback,
+            }
+            return JsonResponse(response_data)
+        
+        # 기존 다른 유형들 처리...
+        # (multiple-choice, multi-choice, short-answer, multi-input 등)
+        
+    except Exception as e:
+        import traceback
+        print(f"ERROR: check_answer 뷰에서 예외 발생: {str(e)}")
+        print(f"트레이스백: {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'서버 오류가 발생했습니다: {str(e)}',
+        }, status=500)
+
+
+####################### 과거 0608==========================
+
+
+
+
+
+
+@login_required
+@student_required
+@require_POST
+def check_answer_0702(request):
     """
     학생 답안을 채점하고 저장하는 AJAX 뷰.
     'multiple-choice', 'multi-choice', 'short-answer', 'multi-input' 유형을 모두 처리합니다.
@@ -2005,23 +3336,12 @@ def submit_physical_record(request):
             defaults={'started_at': timezone.now()}
         )
 
-        # 2. 시간(SS.ms)을 밀리초(float)로 변환
+        # 2. 시간(MM:SS.ms)을 밀리초(float)로 변환
         def convert_time_to_ms(time_str):
             try:
-                parts = time_str.split('.')
-                if len(parts) == 2:
-                    # 새로운 형식: "SS.ms" (예: "24.15")
-                    seconds = int(parts[0])
-                    hundredths = int(parts[1])
-                    return float(seconds * 1000 + hundredths * 10)
-                else:
-                    # 기존 형식도 지원 (MM:SS.ms)
-                    parts = time_str.replace('.', ':').split(':')
-                    if len(parts) == 3:
-                        return float((int(parts[0]) * 60 + int(parts[1])) * 1000 + int(parts[2]) * 10)
-            except (ValueError, IndexError): 
-                pass
-            return None
+                parts = time_str.replace('.', ':').split(':')
+                return float((int(parts[0]) * 60 + int(parts[1])) * 1000 + int(parts[2]) * 10)
+            except (ValueError, IndexError): return None
 
         attempt1_ms = convert_time_to_ms(attempt1_val)
         attempt2_ms = convert_time_to_ms(attempt2_val)
