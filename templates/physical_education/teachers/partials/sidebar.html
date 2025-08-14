@@ -1,5 +1,5 @@
 <!-- PAPS 관리 사이드바 -->
-<div id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white shadow-xl border-r-2 border-gray-100 transform transition-transform duration-300 z-40 lg:translate-x-0 -translate-x-full">
+<div id="sidebar" class="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white shadow-xl border-r-2 border-gray-100 transform transition-transform duration-300 z-50 lg:translate-x-0 -translate-x-full">
     <div class="flex flex-col h-full">
         <!-- 사이드바 헤더 -->
         <div class="flex items-center justify-between p-4 border-b border-gray-200">
@@ -271,25 +271,14 @@
 </div>
 
 <!-- 사이드바 오버레이 (모바일용) -->
-<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden" aria-hidden="true"></div>
-
-<!-- 모바일 사이드바 토글 버튼 -->
-<div class="lg:hidden p-4">
-    <button id="mobile-sidebar-toggle" 
-            class="inline-flex items-center justify-center p-3 rounded-md bg-green-100 text-green-600 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500 transition-colors"
-            aria-expanded="false"
-            aria-controls="sidebar"
-            aria-label="메뉴 열기">
-        <i class="fas fa-bars text-lg" aria-hidden="true"></i>
-    </button>
-</div>
+<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden" aria-hidden="true"></div>
 
 <script>
 // 사이드바 토글 기능
 document.addEventListener('DOMContentLoaded', function() {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
-    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+    const mobileSidebarToggle = document.getElementById('page-mobile-sidebar-toggle');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     
     // 사이드바 닫기

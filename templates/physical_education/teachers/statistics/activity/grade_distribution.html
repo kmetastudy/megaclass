@@ -3,7 +3,7 @@
 {% block title %}등급 분포 현황 - PAPS 통계{% endblock %}
 
 {% block content %}
-<div class="flex min-h-screen mobile-nav-padding pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
+<div class="flex min-h-screen pb-16 sm:pb-20 lg:pb-0 scroll-smooth">
     <!-- 공통 사이드바 -->
     {% include "physical_education/teachers/partials/sidebar.html" %}
     
@@ -12,8 +12,22 @@
         <div class="p-3 sm:p-4 lg:p-6">
             <!-- 페이지 헤더 -->
             <div class="mb-6 sm:mb-8">
-                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">등급 분포 현황</h1>
-                <p class="text-sm sm:text-base text-gray-600">종목별 학년별 등급 분포를 확인하세요</p>
+                <div class="flex items-start gap-3">
+                    <!-- 햄버거 메뉴 버튼 (모바일/태블릿) -->
+                    <button id="page-mobile-sidebar-toggle" 
+                            class="lg:hidden p-2 rounded-md bg-green-100 text-green-600 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+                            aria-expanded="false"
+                            aria-controls="sidebar"
+                            aria-label="메뉴 열기">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                    
+                    <!-- 페이지 제목 -->
+                    <div class="flex-1">
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">등급 분포 현황</h1>
+                        <p class="text-sm sm:text-base text-gray-600">종목별 학년별 등급 분포를 확인하세요</p>
+                    </div>
+                </div>
             </div>
             
             <!-- 필터 영역 -->
@@ -152,7 +166,6 @@
 </div>
 
 <!-- 모바일 하단 네비게이션 -->
-{% include "physical_education/teachers/partials/mobile_nav.html" %}
 {% endblock %}
 
 {% block extra_js %}
