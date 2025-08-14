@@ -1,0 +1,676 @@
+<!-- 50m 달리기 측정 화면 -->
+<div id="app-container" class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+
+    <!-- 1. 메인 화면 -->
+    <div id="main-screen">
+        <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+            <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+            <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+        </header>
+        
+        <!-- 측정 정보 표시 -->
+        <div class="p-6">
+            <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                        <span class="text-indigo-800 font-medium">학년도:</span>
+                        <span class="text-indigo-900">{{ school_year }}년도</span>
+                    </div>
+                    <div>
+                        <span class="text-indigo-800 font-medium">측정회차:</span>
+                        <span class="text-indigo-900">{{ session.name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-indigo-800 font-medium">전체 학생:</span>
+                        <span class="text-indigo-900">{{ total_students }}명</span>
+                    </div>
+                    <div>
+                        <span class="text-indigo-800 font-medium">측정 완료:</span>
+                        <span id="measured-count" class="text-indigo-900">{{ measured_students }}명</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 그룹 측정 설정 섹션 -->
+            <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div class="space-y-4">
+                    <div>
+                        <label for="participant-count" class="block text-sm font-medium text-gray-700 mb-2">1. 측정 인원 선택</label>
+                        <select id="participant-count" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                            {% for i in "12345678910"|make_list %}
+                                <option value="{{ forloop.counter }}">{{ forloop.counter }}명</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="student-selectors-container" class="space-y-2"></div>
+                    <button id="start-measurement-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md">
+                        측정 시작하기
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 학생별 기록 현황 -->
+            <div>
+                <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">전체 학생 기록 현황</h2>
+                
+                <!-- 목록 헤더 -->
+                <div class="grid grid-cols-3 items-center gap-2 px-3 py-2 bg-gray-100 rounded-t-lg border-b">
+                    <span class="font-semibold text-gray-600">이름</span>
+                    <span class="font-semibold text-gray-600 text-center">기록 (초)</span>
+                    <span class="font-semibold text-gray-600 text-center">관리</span>
+                </div>
+
+                <!-- 학생 목록 -->
+                <div id="student-list-container" class="border border-t-0 rounded-b-lg">
+                    {% for student in students %}
+                    <div class="grid grid-cols-3 items-center gap-2 p-3 {% if forloop.counter0|divisibleby:2 %}bg-white{% else %}bg-gray-50{% endif %}" data-student-id="{{ student.id }}">
+                        <!-- 학생 이름 -->
+                        <span class="font-medium truncate">{{ student.name }}</span>
+                        
+                        <!-- 기록 표시/입력 -->
+                        <div class="text-center">
+                            {% if student.record %}
+                                <span class="text-lg text-indigo-600 font-bold measurement-display" data-field="fifty_meter_run">
+                                    {% if student.measurement_data.fifty_meter_run %}
+                                        {{ student.measurement_data.fifty_meter_run|floatformat:2 }}초
+                                    {% else %}
+                                        미측정
+                                    {% endif %}
+                                </span>
+                                <div class="input-container hidden">
+                                    <div class="input-visualizer" id="time-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
+                                    </div>
+                                    <input type="text" 
+                                           class="input-actual measurement-input" 
+                                           data-field="fifty_meter_run"
+                                           data-visualizer="time-visualizer-{{ student.id }}"
+                                           value="{{ student.measurement_data.fifty_meter_run|default:"" }}"
+                                           data-min="5.0" 
+                                           data-max="30.0">
+                                </div>
+                            {% else %}
+                                <span class="text-lg text-gray-500 measurement-display" data-field="fifty_meter_run">미측정</span>
+                                <div class="input-container hidden">
+                                    <div class="input-visualizer" id="time-visualizer-{{ student.id }}">
+                                        <span></span><span class="decimal-point">.</span><span></span>
+                                    </div>
+                                    <input type="text" 
+                                           class="input-actual measurement-input" 
+                                           data-field="fifty_meter_run"
+                                           data-visualizer="time-visualizer-{{ student.id }}"
+                                           value=""
+                                           data-min="5.0" 
+                                           data-max="30.0">
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 관리 버튼 -->
+                        <div class="text-center">
+                            <button class="edit-btn bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-bold py-2 px-4 rounded-lg">
+                                {% if student.record %}수정{% else %}입력{% endif %}
+                            </button>
+                            <button class="save-btn hidden bg-green-500 hover:bg-green-600 text-white text-sm font-bold py-2 px-4 rounded-lg mr-2">
+                                저장
+                            </button>
+                            <button class="cancel-btn hidden bg-gray-400 hover:bg-gray-500 text-white text-sm font-bold py-2 px-4 rounded-lg">
+                                취소
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 직접 측정 진행 화면 -->
+    <div id="live-measurement-screen" class="hidden">
+        <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+            <h1 class="text-2xl font-bold">PAPS - 50m 달리기 (그룹 측정)</h1>
+            <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+        </header>
+        
+        <div class="p-4 text-center">
+            <p id="stopwatch-display" class="text-7xl font-bold text-indigo-600 font-mono mb-4">00.00</p>
+            <div class="flex justify-center gap-4 mb-6">
+                <button id="start-stop-btn" class="w-24 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg">시작</button>
+                <button id="action-btn" class="w-24 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded-lg" disabled>리셋</button>
+            </div>
+        </div>
+        
+        <div class="p-4">
+            <h3 class="text-md font-semibold text-center text-gray-600 mb-4">기록된 순위 (<span id="lap-count-display">0</span>/<span id="total-participants-display">0</span>)</h3>
+            <ul id="lap-list" class="mt-2 text-center font-mono text-lg space-y-1"></ul>
+        </div>
+        
+        <div class="p-4">
+            <button id="back-to-main-btn" class="w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg">
+                메인으로 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. 기록 배정 화면 -->
+    <div id="assign-records-screen" class="hidden">
+        <header class="bg-indigo-600 text-white p-4 text-center rounded-t-lg">
+            <h1 class="text-2xl font-bold">기록 배정하기</h1>
+            <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+        </header>
+        
+        <div class="p-4">
+            <h2 class="text-xl font-bold mb-4 text-center">기록 배정하기</h2>
+            <div id="assignment-container" class="space-y-3 mb-6"></div>
+            <div class="flex gap-4">
+                <button id="cancel-assignment-btn" class="w-1/2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg">취소</button>
+                <button id="confirm-assignment-btn" class="w-1/2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg">저장</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast 알림 컨테이너 -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<style>
+    .input-container {
+        position: relative;
+        width: 100%;
+    }
+    .input-visualizer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        background-color: #ffffff;
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        min-height: 42px;
+        color: #9ca3af;
+        pointer-events: none;
+    }
+    .input-visualizer.has-value {
+        color: #111827;
+    }
+    .input-visualizer .decimal-point {
+        margin: 0 1px;
+    }
+    .input-actual {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background-color: transparent;
+        color: transparent;
+        caret-color: #111827;
+        border: none;
+        text-align: center;
+        font-size: 1.25rem;
+        padding: 0;
+    }
+    .input-actual:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        --tw-ring-color: #4f46e5;
+        box-shadow: 0 0 0 2px var(--tw-ring-color);
+        border-radius: 0.375rem;
+    }
+    .hidden { display: none; }
+</style>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, toggleEditMode, validateInput, updateMeasuredCount, setupCommonEventHandlers } from '{% static "js/physical_education/measure/common.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS fifty meter run template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // --- 초기 데이터 및 상태 관리 ---
+    const students = [
+        {% for student in students %}
+        { 
+            id: {{ student.id }}, 
+            name: '{{ student.name }}', 
+            record: {% if student.measurement_data.fifty_meter_run %}{{ student.measurement_data.fifty_meter_run }}{% else %}null{% endif %} 
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    const MIN_RECORD = 500; // 5.00초 (centiseconds)
+    const MAX_RECORD = 3000; // 30.00초 (centiseconds)
+
+    let liveState = {
+        participants: [],
+        stopwatch: { interval: null, time: 0, isRunning: false },
+        laps: []
+    };
+    
+    let editingStudentId = null;
+
+    // --- DOM 요소 ---
+    const screens = { 
+        main: document.getElementById('main-screen'), 
+        live: document.getElementById('live-measurement-screen'), 
+        assign: document.getElementById('assign-records-screen') 
+    };
+    const participantCountSelect = document.getElementById('participant-count');
+    const studentSelectorsContainer = document.getElementById('student-selectors-container');
+    const startMeasurementBtn = document.getElementById('start-measurement-btn');
+    
+    const stopwatchDisplay = document.getElementById('stopwatch-display');
+    const startStopBtn = document.getElementById('start-stop-btn');
+    const actionBtn = document.getElementById('action-btn');
+    const lapList = document.getElementById('lap-list');
+    const lapCountDisplay = document.getElementById('lap-count-display');
+    const totalParticipantsDisplay = document.getElementById('total-participants-display');
+    const backToMainBtn = document.getElementById('back-to-main-btn');
+
+    const assignmentContainer = document.getElementById('assignment-container');
+    const confirmAssignmentBtn = document.getElementById('confirm-assignment-btn');
+    const cancelAssignmentBtn = document.getElementById('cancel-assignment-btn');
+
+    // --- 화면 전환 ---
+    function showScreen(screenName) {
+        Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+        screens[screenName].classList.remove('hidden');
+    }
+
+    // --- 시간 포맷팅 ---
+    function formatTime(timeInCs) { // centiseconds
+        if (timeInCs === null || timeInCs === undefined) return '미측정';
+        const seconds = Math.floor(timeInCs / 100);
+        const centiseconds = timeInCs % 100;
+        return `${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+    }
+
+    // --- 학생 선택 렌더링 ---
+    function renderStudentSelectors(count) {
+        studentSelectorsContainer.innerHTML = '';
+        if (count > 0) {
+            const label = document.createElement('label');
+            label.className = 'block text-sm font-medium text-gray-700 mb-2';
+            label.textContent = '2. 측정 학생 선택';
+            studentSelectorsContainer.appendChild(label);
+        }
+        for (let i = 0; i < count; i++) {
+            const select = document.createElement('select');
+            select.className = 'student-selector w-full p-2 border border-gray-300 rounded-md mb-2';
+            select.innerHTML = `<option value="">학생 ${i + 1} 선택</option>`;
+            students.forEach(student => {
+                select.add(new Option(student.name, student.id));
+            });
+            studentSelectorsContainer.appendChild(select);
+        }
+    }
+    
+    // --- 기록 배정 폼 렌더링 ---
+    function renderAssignmentForm() {
+        assignmentContainer.innerHTML = '';
+        liveState.laps.forEach((lapTime, index) => {
+            const div = document.createElement('div');
+            div.className = 'grid grid-cols-2 items-center gap-2';
+            div.innerHTML = `
+                <span class="font-bold text-lg">${index + 1}위: ${formatTime(lapTime)}</span>
+                <select class="assignment-selector w-full p-2 border border-gray-300 rounded-md" data-rank="${index}">
+                    <option value="">학생 선택</option>
+                    ${liveState.participants.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                </select>
+            `;
+            assignmentContainer.appendChild(div);
+        });
+    }
+
+    // --- 스톱워치 로직 ---
+    function startStopwatch() {
+        if (liveState.stopwatch.isRunning) return;
+        liveState.stopwatch.isRunning = true;
+        startStopBtn.textContent = '정지';
+        startStopBtn.className = 'w-24 bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-lg';
+        actionBtn.textContent = '랩';
+        actionBtn.className = 'w-24 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded-lg';
+        actionBtn.disabled = false;
+        liveState.stopwatch.interval = setInterval(() => {
+            liveState.stopwatch.time++;
+            stopwatchDisplay.textContent = formatTime(liveState.stopwatch.time);
+        }, 10);
+    }
+
+    function stopStopwatch() {
+        if (!liveState.stopwatch.isRunning) return;
+        liveState.stopwatch.isRunning = false;
+        startStopBtn.textContent = '시작';
+        startStopBtn.className = 'w-24 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg';
+        actionBtn.textContent = '리셋';
+        actionBtn.className = 'w-24 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded-lg';
+        actionBtn.disabled = false;
+        clearInterval(liveState.stopwatch.interval);
+    }
+
+    function resetStopwatch() {
+        stopStopwatch();
+        liveState.stopwatch.time = 0;
+        liveState.laps = [];
+        stopwatchDisplay.textContent = formatTime(0);
+        lapList.innerHTML = '';
+        lapCountDisplay.textContent = 0;
+        actionBtn.disabled = true;
+    }
+
+    // --- 수기 입력 UI 로직 ---
+    function updateVisualizer(input) {
+        const visualizer = document.getElementById(input.dataset.visualizer);
+        if (!visualizer) return;
+        let rawValue = input.value.replace(/[^0-9]/g, '');
+        visualizer.classList.toggle('has-value', rawValue !== '');
+        let integerPart = '00', decimalPart = '00';
+
+        if (rawValue === '') {
+            integerPart = ''; decimalPart = '';
+            visualizer.querySelector('.decimal-point').style.display = 'none';
+        } else {
+            visualizer.querySelector('.decimal-point').style.display = 'inline';
+            const padded = rawValue.padStart(3, '0');
+            integerPart = padded.slice(0, -2);
+            decimalPart = padded.slice(-2);
+        }
+        const spans = visualizer.querySelectorAll('span');
+        spans[0].textContent = integerPart;
+        spans[2].textContent = decimalPart;
+    }
+    
+    function getNumericValueFromInput(input) {
+        if (!input || input.value === '') return null;
+        let rawValue = parseInt(input.value.replace(/[^0-9]/g, ''), 10);
+        if (isNaN(rawValue)) return null;
+        if (rawValue < MIN_RECORD) rawValue = MIN_RECORD;
+        if (rawValue > MAX_RECORD) rawValue = MAX_RECORD;
+        return rawValue / 100; // Convert centiseconds to seconds
+    }
+
+    // 커스텀 편집 모드 전환 함수 (input-container 구조 대응)
+    function toggleFiftyMeterEditMode(studentElement, isEditing) {
+        const display = studentElement.querySelector('.measurement-display');
+        const inputContainer = studentElement.querySelector('.input-container');
+        const input = studentElement.querySelector('.measurement-input');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        console.log("Is editing:", isEditing);
+        console.log("Student element:", studentElement);
+        console.log("Input element:", input);
+
+        if (isEditing) {
+            // 편집 전 원래 값 저장
+            if (input) {
+                input.dataset.originalValue = input.value;
+            }
+            
+            // 표시 숨기고 입력 컨테이너 보이기
+            if (display) display.classList.add('hidden');
+            if (inputContainer) inputContainer.classList.remove('hidden');
+            
+            // 버튼 상태 변경
+            if (editBtn) editBtn.classList.add('hidden');
+            if (saveBtn) saveBtn.classList.remove('hidden');
+            if (cancelBtn) cancelBtn.classList.remove('hidden');
+            
+            // 비주얼라이저 업데이트 및 포커스
+            if (input) {
+                updateVisualizer(input);
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 50);
+            }
+        } else {
+            // 입력 컨테이너 숨기고 표시 보이기
+            if (inputContainer) inputContainer.classList.add('hidden');
+            if (display) display.classList.remove('hidden');
+            
+            // 버튼 상태 변경
+            if (editBtn) editBtn.classList.remove('hidden');
+            if (saveBtn) saveBtn.classList.add('hidden');
+            if (cancelBtn) cancelBtn.classList.add('hidden');
+        }
+    }
+
+    // --- 개별 입력 이벤트 핸들러 ---
+    function addManualEditListeners() {
+        // Fifty meter run 전용 edit/save/cancel 버튼 핸들러 (capture phase로 먼저 처리)
+        studentContainer.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                e.stopPropagation(); // common.js 핸들러 실행 방지
+                const studentElement = e.target.closest('[data-student-id]');
+                if (studentElement) {
+                    toggleFiftyMeterEditMode(studentElement, true);
+                }
+            }
+            else if (e.target.classList.contains('save-btn')) {
+                e.stopPropagation(); // common.js 핸들러 실행 방지
+                const studentElement = e.target.closest('[data-student-id]');
+                if (studentElement) {
+                    const studentId = studentElement.dataset.studentId;
+                    const success = await handleSaveStudent(studentElement, studentId);
+                    if (success) {
+                        toggleFiftyMeterEditMode(studentElement, false);
+                    }
+                }
+            }
+            else if (e.target.classList.contains('cancel-btn')) {
+                e.stopPropagation(); // common.js 핸들러 실행 방지
+                const studentElement = e.target.closest('[data-student-id]');
+                if (studentElement) {
+                    // 원래 값 복원
+                    const input = studentElement.querySelector('.measurement-input');
+                    if (input) {
+                        const originalValue = input.dataset.originalValue || '';
+                        input.value = originalValue;
+                        updateVisualizer(input);
+                    }
+                    toggleFiftyMeterEditMode(studentElement, false);
+                }
+            }
+        }, true); // true = capture phase
+
+        // 입력 필드 초기화 및 이벤트 핸들러 추가
+        document.querySelectorAll('.measurement-input').forEach(input => {
+            // 입력 제한 및 비주얼라이저 업데이트
+            input.addEventListener('input', e => {
+                let rawValue = e.target.value.replace(/[^0-9]/g, '');
+                if (rawValue.length > 4) rawValue = rawValue.slice(0, 4);
+                e.target.value = rawValue;
+                updateVisualizer(e.target);
+            });
+            
+            // 초기값이 있는 경우 비주얼라이저 업데이트
+            if (input.value) {
+                updateVisualizer(input);
+            }
+        });
+    }
+
+    // --- 그룹 측정 이벤트 핸들러 ---
+    participantCountSelect.addEventListener('change', e => renderStudentSelectors(parseInt(e.target.value)));
+    
+    startMeasurementBtn.addEventListener('click', () => {
+        const selectedIds = Array.from(studentSelectorsContainer.querySelectorAll('.student-selector')).map(s => parseInt(s.value));
+        if (selectedIds.some(id => isNaN(id))) {
+            showToast('모든 학생을 선택해주세요.', 'error'); 
+            return;
+        }
+        if (new Set(selectedIds).size !== selectedIds.length) {
+            showToast('중복된 학생을 선택할 수 없습니다.', 'error'); 
+            return;
+        }
+        liveState.participants = selectedIds.map(id => students.find(s => s.id === id));
+        totalParticipantsDisplay.textContent = liveState.participants.length;
+        resetStopwatch();
+        actionBtn.disabled = true;
+        showScreen('live');
+    });
+
+    startStopBtn.addEventListener('click', () => {
+        liveState.stopwatch.isRunning ? stopStopwatch() : startStopwatch();
+    });
+
+    actionBtn.addEventListener('click', () => {
+        if (actionBtn.textContent === '랩') {
+            if (!liveState.stopwatch.isRunning) return;
+            liveState.laps.push(liveState.stopwatch.time);
+            const li = document.createElement('li');
+            li.textContent = `${liveState.laps.length}위: ${formatTime(liveState.stopwatch.time)}`;
+            lapList.appendChild(li);
+            lapCountDisplay.textContent = liveState.laps.length;
+
+            if (liveState.laps.length === liveState.participants.length) {
+                stopStopwatch();
+                setTimeout(() => {
+                    renderAssignmentForm();
+                    showScreen('assign');
+                }, 500);
+            }
+        } else { // 리셋
+            resetStopwatch();
+            actionBtn.disabled = true;
+        }
+    });
+
+    backToMainBtn.addEventListener('click', () => showScreen('main'));
+
+    confirmAssignmentBtn.addEventListener('click', async () => {
+        const assignments = new Map();
+        const selectors = document.querySelectorAll('.assignment-selector');
+        let allAssigned = true;
+        let isDuplicate = false;
+
+        selectors.forEach(sel => {
+            const rank = parseInt(sel.dataset.rank);
+            const studentId = parseInt(sel.value);
+            if (isNaN(studentId)) allAssigned = false;
+            if (assignments.has(studentId)) isDuplicate = true;
+            assignments.set(studentId, liveState.laps[rank] / 100); // Convert to seconds
+        });
+
+        if (!allAssigned) { 
+            showToast('모든 순위에 학생을 배정해주세요.', 'error'); 
+            return; 
+        }
+        if (isDuplicate) { 
+            showToast('한 학생에게 여러 기록을 배정할 수 없습니다.', 'error'); 
+            return; 
+        }
+
+        // Save all assignments
+        let allSaved = true;
+        for (const [studentId, record] of assignments) {
+            const data = { fifty_meter_run: record };
+            const success = await saveStudentRecord(
+                studentId,
+                data,
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            if (!success) allSaved = false;
+            
+            // Update student record
+            const student = students.find(s => s.id === studentId);
+            if (student) student.record = record;
+        }
+        
+        if (allSaved) {
+            updateMeasuredCount();
+            showToast('모든 기록이 저장되었습니다.', 'success');
+            // Update all displays
+            location.reload(); // Refresh to show updated records
+        } else {
+            showToast('일부 기록 저장에 실패했습니다.', 'error');
+        }
+        
+        showScreen('main');
+    });
+
+    cancelAssignmentBtn.addEventListener('click', () => showScreen('main'));
+
+
+    // 개별 학생 기록 저장 핸들러
+    async function handleSaveStudent(studentElement, studentId) {
+        const input = studentElement.querySelector('.measurement-input');
+        const value = getNumericValueFromInput(input);
+        
+        if (value !== null) {
+            const validation = validateInput(value, 5.0, 30.0);
+            if (!validation.valid) {
+                showToast(`입력 오류: ${validation.error}`, 'error');
+                return false;
+            }
+        }
+
+        const data = { fifty_meter_run: value };
+        const success = await saveStudentRecord(
+            studentId,
+            data,
+            measurementData.sessionId,
+            measurementData.activityId,
+            measurementData.csrfToken
+        );
+        
+        if (success) {
+            // Update student record
+            const student = students.find(s => s.id === studentId);
+            if (student) student.record = value;
+            
+            // Update display
+            const displaySpan = studentElement.querySelector('.measurement-display');
+            if (displaySpan) {
+                displaySpan.textContent = value ? `${value.toFixed(2)}초` : '미측정';
+                displaySpan.className = value ? 'text-lg text-indigo-600 font-bold measurement-display' : 'text-lg text-gray-500 measurement-display';
+            }
+            
+            // Update edit button
+            const editBtn = studentElement.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.textContent = '수정';
+            }
+            
+            updateMeasuredCount();
+            showToast('기록이 저장되었습니다.', 'success');
+            return true;
+        } else {
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    // --- 앱 초기화 ---
+    function initializeApp() {
+        renderStudentSelectors(1);
+        addManualEditListeners();
+        showScreen('main');
+        // 공통 이벤트 핸들러 설정 (save 버튼용)
+        setupCommonEventHandlers(studentContainer, handleSaveStudent);
+    }
+
+    initializeApp();
+})();
+</script>

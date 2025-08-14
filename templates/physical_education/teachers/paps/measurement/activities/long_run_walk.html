@@ -1,0 +1,273 @@
+<!-- 오래달리기/걷기 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-blue-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <!-- 목록 헤더 -->
+            <div class="grid grid-cols-3 items-center gap-2 px-3 py-2 bg-gray-100 rounded-t-lg border-b">
+                <span class="font-semibold text-gray-600">이름</span>
+                <span class="font-semibold text-gray-600 text-center">기록 (분.초)</span>
+                <span class="font-semibold text-gray-600 text-center">관리</span>
+            </div>
+
+            <!-- 학생 목록 -->
+            <div id="student-list-container" class="border border-t-0 rounded-b-lg">
+                {% for student in students %}
+                <div class="grid grid-cols-3 items-center gap-2 p-3 {% if forloop.counter0|divisibleby:2 %}bg-white{% else %}bg-gray-50{% endif %}" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 -->
+                    <span class="font-medium truncate">{{ student.name }}</span>
+                    
+                    <!-- 기록 표시/입력 -->
+                    <div class="text-center">
+                        {% if student.record %}
+                            <span class="text-lg text-blue-600 font-bold measurement-display">
+                                {{ student.measurement_data.long_run_walk|default:"미측정" }}{% if student.measurement_data.long_run_walk %} 분.초{% endif %}
+                            </span>
+                            <div class="flex items-center justify-center space-x-1 hidden measurement-input-container">
+                                <input type="number" class="w-16 p-2 border border-blue-500 rounded-md text-center shadow-sm focus:ring-blue-500 focus:border-blue-500 measurement-input minutes-input" 
+                                       value="{% if student.measurement_data.long_run_walk %}{{ student.measurement_data.long_run_walk|floatformat:0 }}{% endif %}" 
+                                       min="2" max="16" placeholder="분">
+                                <span class="text-gray-500">:</span>
+                                <input type="number" class="w-16 p-2 border border-blue-500 rounded-md text-center shadow-sm focus:ring-blue-500 focus:border-blue-500 measurement-input seconds-input" 
+                                       value="{% if student.measurement_data.long_run_walk %}{{ student.measurement_data.long_run_walk|floatformat:2|slice:"-2:" }}{% endif %}" 
+                                       min="0" max="59" placeholder="초">
+                            </div>
+                        {% else %}
+                            <span class="text-lg text-gray-500 measurement-display">미측정</span>
+                            <div class="flex items-center justify-center space-x-1 hidden measurement-input-container">
+                                <input type="number" class="w-16 p-2 border border-blue-500 rounded-md text-center shadow-sm focus:ring-blue-500 focus:border-blue-500 measurement-input minutes-input" 
+                                       value="" min="2" max="16" placeholder="분">
+                                <span class="text-gray-500">:</span>
+                                <input type="number" class="w-16 p-2 border border-blue-500 rounded-md text-center shadow-sm focus:ring-blue-500 focus:border-blue-500 measurement-input seconds-input" 
+                                       value="" min="0" max="59" placeholder="초">
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition text-sm hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-1 px-2 rounded transition text-xs ml-1 hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, toggleEditMode, validateInput, updateMeasuredCount, setupCommonEventHandlers } from '{% static "js/physical_education/measure/common.js" %}';
+import { formatDecimal } from '{% static "js/physical_education/measure/calculations.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS long run walk template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+    }
+
+    function getTimeValue(studentElement) {
+        const minutesInput = studentElement.querySelector('.minutes-input');
+        const secondsInput = studentElement.querySelector('.seconds-input');
+        
+        const minutes = parseInt(minutesInput.value) || 0;
+        const seconds = parseInt(secondsInput.value) || 0;
+        
+        if (minutes === 0 && seconds === 0) {
+            return null;
+        }
+        
+        // 분.초 형식으로 변환 (예: 5분 30초 = 5.30)
+        return parseFloat(`${minutes}.${seconds.toString().padStart(2, '0')}`);
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const timeValue = getTimeValue(studentElement);
+        
+        if (timeValue === null) {
+            showToast('시간을 입력해주세요.', 'error');
+            return false;
+        }
+
+        const validation = validateInput(timeValue, 2.0, 16.39);
+        if (!validation.valid) {
+            showToast(`시간: ${validation.error}`, 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                {
+                    long_run_walk: timeValue
+                },
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // UI 업데이트
+                const display = studentElement.querySelector('.measurement-display');
+                display.textContent = `${formatDecimal(timeValue, 2)} 분.초`;
+                display.classList.remove('text-gray-500');
+                display.classList.add('text-blue-600', 'font-bold');
+                
+                // 버튼 텍스트 변경
+                const editBtn = studentElement.querySelector('.edit-btn');
+                editBtn.textContent = '수정';
+                editBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                editBtn.classList.add('bg-yellow-400', 'hover:bg-yellow-500');
+                
+                showToast(`${studentElement.querySelector('span').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const display = studentElement.querySelector('.measurement-display');
+        const inputContainer = studentElement.querySelector('.measurement-input-container');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            display.classList.add('hidden');
+            inputContainer.classList.remove('hidden');
+            
+            const firstInput = inputContainer.querySelector('input');
+            if (firstInput) {
+                firstInput.focus();
+                firstInput.select();
+            }
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            display.classList.remove('hidden');
+            inputContainer.classList.add('hidden');
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        const display = studentElement.querySelector('.measurement-display');
+        const minutesInput = studentElement.querySelector('.minutes-input');
+        const secondsInput = studentElement.querySelector('.seconds-input');
+        
+        if (display.textContent !== '미측정') {
+            const timeText = display.textContent.replace(' 분.초', '');
+            const parts = timeText.split('.');
+            minutesInput.value = parts[0] || '';
+            secondsInput.value = parts[1] || '';
+        } else {
+            minutesInput.value = '';
+            secondsInput.value = '';
+        }
+    }
+
+})();
+</script>
