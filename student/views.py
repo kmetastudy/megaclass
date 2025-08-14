@@ -1730,6 +1730,12 @@ def check_answer(request):
             # return handle_line_matching_answer_improved(request, student, slide, content, progress)
             return handle_line_matching_answer(request, student, slide, content, progress)
         
+        elif content_type == 'multi-input':
+            return handle_multi_input(request, student, slide, content, progress)
+        
+        elif content_type == 'multi-choice':
+            return handle_multi_choice(request, student, slide, content, progress)
+        
         else:
             return JsonResponse({
                 'status': 'error',
@@ -2328,6 +2334,134 @@ def generate_encouragement_message(result_type, correct_count, total_count):
     
     import random
     return random.choice(messages)
+
+def handle_multi_input(request, student, slide, content, progress):
+    student_answer_json = request.POST.get('student_answer')
+    if not student_answer_json:
+        return JsonResponse({'status': 'error', 'message': '답안 데이터가 없습니다.'}, status=400)
+
+    try:
+        # 학생 답안과 정답 데이터 파싱
+        student_answers = json.loads(student_answer_json)
+        correct_answers_data = json.loads(content.answer)
+        correct_answers = correct_answers_data.get('answer', {})
+
+        results = {}
+        correct_count = 0
+        total_count = len(correct_answers)
+
+        # 개별 문항 채점
+        for key, correct_val in correct_answers.items():
+            user_val = student_answers.get(key, "").strip()
+            is_item_correct = (user_val == correct_val)
+            if is_item_correct:
+                correct_count += 1
+            results[key] = {'is_correct': is_item_correct, 'user_answer': user_val}
+
+        # 최종 점수 및 상태 계산
+        score = round((correct_count / total_count) * 100) if total_count > 0 else 0
+        is_overall_correct = (score == 100)
+
+        # DB에 저장할 데이터 구조 생성
+        answer_data_to_save = {
+            'submitted_answers': student_answers,
+            'results': results,
+        }
+
+        # DB에 저장 (update_or_create)
+        student_answer_obj, created = StudentAnswer.objects.update_or_create(
+            student=student,
+            slide=slide,
+            defaults={
+                'answer': answer_data_to_save,
+                'is_correct': is_overall_correct,
+                'score': score,
+                'feedback': 'multi-input 자동 채점 완료',
+            }
+        )
+
+        # 정답인 경우 StudentProgress 완료 처리
+        if is_overall_correct and not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
+
+        # 클라이언트에 보낼 응답 데이터 구성
+        response_data = {
+            'status': 'success',
+            'is_correct': is_overall_correct,
+            'score': score,
+            'results': results,
+            'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        return JsonResponse(response_data)
+
+    except (json.JSONDecodeError, KeyError) as e:
+        return JsonResponse({'status': 'error', 'message': f'데이터 처리 중 오류 발생: {e}'}, status=400)
+
+def handle_multi_choice(request, student, slide, content, progress):
+    student_answer_json = request.POST.get('student_answer')
+    if not student_answer_json:
+        return JsonResponse({'status': 'error', 'message': '답안이 선택되지 않았습니다.'}, status=400)
+
+    try:
+        # 학생 답안 파싱 (JSON 문자열 -> 리스트)
+        student_answers = json.loads(student_answer_json)
+        if not isinstance(student_answers, list):
+            return JsonResponse({'status': 'error', 'message': '잘못된 답안 형식입니다.'}, status=400)
+        
+        # 정답 파싱 (정답도 콤마로 구분된 문자열 형태일 수 있음)
+        correct_answer_str = parse_correct_answer(content.answer)
+        # "1,2,3" 형태의 문자열을 리스트로 변환
+        correct_answers = [ans.strip() for ans in correct_answer_str.split(',')]
+        correct_answers.sort()  # 정렬하여 순서 무관하게 비교
+        
+        # 학생 답안도 문자열로 변환하고 정렬
+        student_answers_str = [str(ans) for ans in student_answers]
+        student_answers_str.sort()
+        
+        # 정답 여부 판단
+        is_correct = (student_answers_str == correct_answers)
+        score = 100.0 if is_correct else 0.0
+        
+        # DB에 저장할 데이터 구조
+        answer_data = {
+            'selected_answers': student_answers_str,
+            'correct_answers': correct_answers,
+            'is_multiple': True
+        }
+
+        # DB에 저장
+        student_answer_obj, created = StudentAnswer.objects.update_or_create(
+            student=student,
+            slide=slide,
+            defaults={
+                'answer': answer_data,
+                'is_correct': is_correct,
+                'score': score,
+                'feedback': '다중 선택 문제 자동 채점 완료',
+            }
+        )
+
+        # 정답인 경우 StudentProgress 완료 처리
+        if is_correct and not progress.is_completed:
+            progress.is_completed = True
+            progress.completed_at = timezone.now()
+            progress.save()
+
+        response_data = {
+            'status': 'success',
+            'is_correct': is_correct,
+            'correct_answers': correct_answers,
+            'student_answers': student_answers_str,
+            'score': score,
+            'submitted_at': student_answer_obj.submitted_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'feedback': student_answer_obj.feedback,
+        }
+        return JsonResponse(response_data)
+
+    except (json.JSONDecodeError, ValueError) as e:
+        return JsonResponse({'status': 'error', 'message': f'답안 처리 중 오류 발생: {e}'}, status=400)
 
 ###################### 신버전 0702 ########################
 @login_required
