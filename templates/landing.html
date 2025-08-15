@@ -180,6 +180,27 @@
                 bottom: 20px;
                 right: 20px;
             }
+            
+            /* Mobile navbar styling */
+            #navbar {
+                background: white !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            }
+            #navbar .logo-text {
+                color: #1f2937 !important;
+            }
+            #navbar .logo-subtitle {
+                color: #6b7280 !important;
+            }
+            #navbar .text-white:not(.btn-primary) {
+                color: #1f2937 !important;
+            }
+            #navbar .text-purple-200 {
+                color: #6b7280 !important;
+            }
+            .hamburger-menu-btn {
+                color: #1f2937 !important;
+            }
         }
         
         .problem-item {
@@ -247,7 +268,7 @@
 <body class="bg-white text-gray-800">
     
     <!-- Navigation -->
-    <nav class="fixed w-full z-50 transition-all duration-500 bg-transparent" id="navbar">
+    <nav class="sticky top-0 w-full z-50 transition-all duration-500 bg-white shadow-lg" id="navbar">
         <div class="container mx-auto px-4 py-3">
             <div class="flex items-center justify-between">
                 <!-- Logo -->
@@ -256,8 +277,8 @@
                         <i class="fas fa-running text-white text-lg"></i>
                     </div>
                     <div>
-                        <span class="text-white font-bold text-lg">메가체육</span>
-                        <div class="text-purple-200 text-xs">Smart PE Platform</div>
+                        <span class="text-gray-800 font-bold text-lg logo-text">메가체육</span>
+                        <div class="text-gray-600 text-xs logo-subtitle">Smart PE Platform</div>
                     </div>
                 </div>
                 
@@ -267,10 +288,10 @@
                 </div>
                 
                 <!-- Authentication -->
-                <div class="flex items-center space-x-3">
+                <div class="hidden md:flex items-center space-x-3">
                     {% if user.is_authenticated %}
-                        <div class="bg-white/20 rounded-full px-3 py-1">
-                            <span class="text-white font-medium text-sm">{{ user.get_full_name|default:user.username }}님</span>
+                        <div class="bg-gray-200 rounded-full px-3 py-1">
+                            <span class="text-gray-800 font-medium text-sm">{{ user.get_full_name|default:user.username }}님</span>
                         </div>
                         {% if user.teacher %}
                             <a href="/teacher/" class="btn-primary text-white px-4 py-2 rounded-full font-bold transition-all duration-300 hover:scale-105 text-sm">
@@ -281,9 +302,9 @@
                                 학생 대시보드
                             </a>
                         {% endif %}
-                        <a href="/accounts/logout/" class="text-white hover:text-purple-200 transition-colors font-medium text-sm">로그아웃</a>
+                        <a href="/accounts/logout/" class="text-gray-600 hover:text-gray-800 transition-colors font-medium text-sm">로그아웃</a>
                     {% else %}
-                        <a href="/accounts/login/" class="text-white hover:text-purple-200 transition-colors font-medium text-sm">로그인</a>
+                        <a href="/accounts/login/" class="text-gray-600 hover:text-gray-800 transition-colors font-medium text-sm">로그인</a>
                         <a href="/accounts/register/teacher/" class="btn-primary text-white px-4 py-2 rounded-full font-bold transition-all duration-300 hover:scale-105 text-sm">
                             무료 시작하기
                         </a>
@@ -291,7 +312,7 @@
                 </div>
                 
                 <!-- Mobile Menu Button -->
-                <button class="md:hidden text-white" onclick="toggleMobileMenu()">
+                <button class="md:hidden text-gray-800 hamburger-menu-btn" onclick="toggleMobileMenu()">
                     <i class="fas fa-bars text-xl"></i>
                 </button>
             </div>
@@ -309,6 +330,10 @@
             </div>
             <nav class="space-y-4">
                 {% if user.is_authenticated %}
+                    <div class="mb-4 pb-4 border-b border-white/20">
+                        <div class="text-white/80 text-sm">로그인 중</div>
+                        <div class="text-white font-medium">{{ user.get_full_name|default:user.username }}님</div>
+                    </div>
                     {% if user.teacher %}
                         <a href="/teacher/" class="block text-white text-lg py-2 font-medium">교사 대시보드</a>
                     {% elif user.student %}
@@ -326,7 +351,7 @@
     </div>
 
     <!-- Hero Section -->
-    <section class="gradient-bg text-white section-spacing pt-20">
+    <section class="gradient-bg text-white section-spacing pt-20 md:pt-16">
         <div class="container mx-auto px-4 text-center">
             <h1 class="hero-title text-4xl md:text-5xl font-black mb-4">
                 선생님, 혹시 아직도 PAPS 기록을<br class="hidden sm:block"> 수기로 하시나요?
@@ -1195,37 +1220,8 @@
             });
         }
 
-        // Navbar 스크롤 효과
-        let lastScrollTop = 0;
-        window.addEventListener('scroll', function() {
-            const navbar = document.getElementById('navbar');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            
-            if (scrollTop > 100) {
-                navbar.classList.add('bg-white', 'backdrop-blur-lg', 'shadow-lg');
-                navbar.classList.remove('bg-transparent');
-                
-                // 텍스트 색상 변경
-                navbar.querySelectorAll('a, span').forEach(element => {
-                    if (!element.classList.contains('btn-primary')) {
-                        element.classList.add('text-gray-800');
-                        element.classList.remove('text-white', 'text-purple-200');
-                    }
-                });
-            } else {
-                navbar.classList.remove('bg-white', 'backdrop-blur-lg', 'shadow-lg');
-                navbar.classList.add('bg-transparent');
-                
-                navbar.querySelectorAll('a, span').forEach(element => {
-                    if (!element.classList.contains('btn-primary')) {
-                        element.classList.remove('text-gray-800');
-                        element.classList.add('text-white');
-                    }
-                });
-            }
-            
-            lastScrollTop = scrollTop;
-        });
+        // Navbar 스크롤 효과 (sticky navigation에서는 불필요하므로 제거)
+        // Sticky navigation은 이미 올바른 스타일로 설정되어 있음
 
         // 모바일 메뉴 토글
         function toggleMobileMenu() {
