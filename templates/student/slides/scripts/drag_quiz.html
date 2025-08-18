@@ -1112,6 +1112,14 @@ function detectQuizType() {
         dragIsAnswered = true;
         console.log('📤 답안 제출:', currentState);
         
+        // Preview 모드 체크
+        if (window.IS_PREVIEW_MODE) {
+            console.log('미리보기 모드: 서버 통신 차단');
+            showDragToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+            dragIsAnswered = false;
+            return;
+        }
+        
         const slideId = '{{ slide.id }}';
         const contentId = '{{ slide.content.id }}';
         

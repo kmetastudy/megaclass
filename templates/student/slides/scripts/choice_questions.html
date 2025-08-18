@@ -195,6 +195,13 @@
     
         // 서버에 답안 제출 함수
         function submitAnswerToServer(qid, answer, buttonElement, contentType) {
+            // Preview 모드 체크
+            if (window.IS_PREVIEW_MODE) {
+                showToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+                buttonElement.prop('disabled', false).text('제출하기');
+                return false;
+            }
+            
             var submitData = {
                 'content_id': qid,
                 'slide_id': {{ slide.id }},

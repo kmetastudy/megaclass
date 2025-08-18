@@ -82,6 +82,14 @@
     
             submitBtn.prop('disabled', true).text('확인 중...');
     
+            // Preview 모드 체크
+            if (window.IS_PREVIEW_MODE) {
+                console.log('미리보기 모드: 서버 통신 차단');
+                showToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+                submitBtn.prop('disabled', false).text('제출하기');
+                return;
+            }
+    
             $.ajax({
                 url: '{% url "student:check_ordering" %}',
                 type: 'POST',

@@ -29,6 +29,12 @@
 
     // 답안 제출
     function submitAnswer() {
+        // Preview 모드 체크
+        if (window.IS_PREVIEW_MODE) {
+            showToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+            return false;
+        }
+        
         const contentArea = document.querySelector('.prose');
         const answerInputs = contentArea.querySelectorAll('input[name="student_answer"], textarea[name="student_answer"], select[name="student_answer"]');
         
@@ -61,6 +67,12 @@
 
     // 노트 저장
     function saveNote() {
+        // Preview 모드 체크
+        if (window.IS_PREVIEW_MODE) {
+            showToast('미리보기 모드에서는 노트를 저장할 수 없습니다.', 'warning');
+            return false;
+        }
+        
         const content = document.getElementById('noteContent').value;
         
         fetch('{% url "student:save_note_ajax" slide.id %}', {
