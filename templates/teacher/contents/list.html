@@ -3,6 +3,10 @@
 
 {% block title %}콘텐츠 관리{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.css" />
+{% endblock %}
+
 {% block content %}
 
     <!-- 헤더 -->
@@ -99,32 +103,7 @@
     
     <!-- 페이지네이션 -->
     {% if is_paginated %}
-    <div class="mt-8 flex justify-center">
-        <nav class="flex items-center space-x-2">
-            {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
-               class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                <i class="fas fa-chevron-left"></i>
-            </a>
-            {% endif %}
-            
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <span class="px-3 py-2 bg-purple-600 text-white rounded">{{ num }}</span>
-                {% else %}
-                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
-                   class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">{{ num }}</a>
-                {% endif %}
-            {% endfor %}
-            
-            {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
-               class="px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-                <i class="fas fa-chevron-right"></i>
-            </a>
-            {% endif %}
-        </nav>
-    </div>
+    <div id="pagination" class="tui-pagination"></div>
     {% endif %}
     
     {% else %}
@@ -174,7 +153,98 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
 </style>
+
+<style>
+/* TUI Pagination 커스텀 스타일 */
+#pagination {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.tui-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 28px;
+    margin: 0;
+    line-height: normal;
+}
+
+/* 모든 페이지 버튼 기본 스타일 */
+.tui-pagination .tui-page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    background-color: #e5e7eb; /* gray-200 */
+    color: #374151; /* gray-700 */
+    border-radius: 0.25rem;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    position: relative;
+}
+
+.tui-pagination .tui-page-btn:hover {
+    background-color: #d1d5db; /* gray-300 */
+}
+
+/* 현재 페이지 스타일 */
+.tui-pagination .tui-is-selected {
+    background-color: #9333ea !important; /* purple-600 */
+    color: white !important;
+    font-weight: 600;
+}
+
+.tui-pagination .tui-is-selected:hover {
+    background-color: #7e22ce !important; /* purple-700 */
+}
+
+/* 비활성화된 버튼 */
+.tui-pagination .tui-is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+.tui-pagination .tui-is-disabled:hover {
+    background-color: #f3f4f6; /* gray-100 */
+}
+
+.tui-pagination .tui-prev-is-ellip,
+.tui-pagination .tui-next-is-ellip {
+    line-height: normal;
+}
+
+.tui-pagination .tui-prev-is-ellip:hover,
+.tui-pagination .tui-next-is-ellip:hover {
+    background-color: #d1d5db; /* gray-300 */
+}
+
+.tui-pagination .tui-ico-ellip {
+    font-style: normal;
+    font-size: 0.875rem;
+    color: #374151; /* gray-700 */
+}
+
+/* 네비게이션 버튼들의 간격 조정 */
+.tui-pagination .tui-first,
+.tui-pagination .tui-prev,
+.tui-pagination .tui-next,
+.tui-pagination .tui-last {
+    padding: 0.5rem;
+    min-width: 2.5rem;
+}
+</style>
+
+<script src="https://uicdn.toast.com/tui.pagination/latest/tui-pagination.min.js"></script>
 
 <script>
 function previewContent(contentId) {
@@ -204,6 +274,51 @@ function closePreview() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closePreview();
+    }
+});
+
+window.paginationData = {
+    currentPage: {{ page_obj.number }},
+    totalItems: {{ page_obj.paginator.count }},
+    itemsPerPage: {{ page_obj.paginator.per_page }},
+    searchQuery: "{{ search_query|default:'' }}",
+    selectedType: "{{ selected_type|default:'' }}"
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 페이지네이션 데이터가 있는 경우에만 실행
+    if (window.paginationData) {
+        const { currentPage, totalItems, itemsPerPage, searchQuery, selectedType } = window.paginationData;
+        
+        // tui.pagination 초기화
+        const pagination = new tui.Pagination('pagination', {
+            totalItems: totalItems,
+            itemsPerPage: itemsPerPage,
+            visiblePages: 7,  // 표시할 페이지 번호 개수 (자동으로 ellipsis 처리)
+            page: currentPage,
+            centerAlign: true,
+            firstItemClassName: 'tui-first-child',
+            lastItemClassName: 'tui-last-child',
+            
+        });
+        
+        // 페이지 이동 이벤트 처리
+        pagination.on('afterMove', function(eventData) {
+            // URL 파라미터 구성
+            let params = new URLSearchParams();
+            params.set('page', eventData.page);
+            
+            if (searchQuery) {
+                params.set('search', searchQuery);
+            }
+            
+            if (selectedType) {
+                params.set('type', selectedType);
+            }
+            
+            // 페이지 이동
+            window.location.href = '?' + params.toString();
+        });
     }
 });
 </script>
