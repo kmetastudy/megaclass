@@ -269,6 +269,14 @@
             
             console.log('답안 채점 시작:', selectedAnswer);
             
+            // Preview 모드 체크
+            if (window.IS_PREVIEW_MODE) {
+                console.log('미리보기 모드: 서버 통신 차단');
+                showOXToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+                resetOXQuiz();
+                return;
+            }
+            
             // 서버로 답안 전송
             $.ajax({
                 url: '{% url "student:check_answer" %}',

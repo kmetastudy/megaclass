@@ -114,6 +114,7 @@ urlpatterns = [
     path('contents/<int:content_id>/delete/', contents_views.contents_delete, name='contents_delete'),
     path('api/contents/<int:content_id>/preview/', contents_views.contents_preview, name='contents_preview'),
     path('contents/<int:content_id>/duplicate/', contents_views.contents_duplicate, name='contents_duplicate'),
+    path('contents/<int:content_id>/preview-html/', contents_views.contents_preview_html, name='contents_preview_html'),
     # path('contents/<int:content_id>/toggle-active/', views.contents_toggle_active, name='contents_toggle_active'),
 
     # 학생 관리 API (views.py)

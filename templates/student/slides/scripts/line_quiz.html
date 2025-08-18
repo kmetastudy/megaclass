@@ -560,6 +560,14 @@ $(document).ready(function() {
         const slideId = '{{ slide.id }}';
         const contentId = '{{ slide.content.id }}';
         
+        // Preview 모드 체크
+        if (window.IS_PREVIEW_MODE) {
+            console.log('미리보기 모드: 서버 통신 차단');
+            showLineToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+            lineIsAnswered = false;
+            return;
+        }
+        
         try {
             const response = await $.ajax({
                 url: '{% url "student:check_answer" %}',

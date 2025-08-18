@@ -102,6 +102,14 @@
             const submitBtn = $(this);
             submitBtn.prop('disabled', true).text('제출 중...');
     
+            // Preview 모드 체크
+            if (window.IS_PREVIEW_MODE) {
+                console.log('미리보기 모드: 서버 통신 차단');
+                showToast('미리보기 모드에서는 답안을 제출할 수 없습니다.', 'warning');
+                submitBtn.prop('disabled', false).text('제출하기');
+                return;
+            }
+    
             // 서버에 데이터 제출
             $.ajax({
                 url: '{% url "student:submit_physical_record" %}',

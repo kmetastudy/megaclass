@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 import json
 from .decorators import teacher_required
 
@@ -1283,3 +1284,43 @@ def api_content_types_by_category(request, category):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+@login_required
+@teacher_required
+@xframe_options_sameorigin
+def contents_preview_html(request, content_id):
+    """콘텐츠 HTML 미리보기 - 학생 화면과 동일한 렌더링"""
+    from django.http import HttpResponse
+    
+    content = get_object_or_404(Contents, id=content_id)
+    
+    # 권한 체크 - 본인 콘텐츠 또는 공개 콘텐츠만
+    if content.created_by != request.user and not content.is_public:
+        return HttpResponse('접근 권한이 없습니다.', status=403)
+    
+    # 가상의 슬라이드 객체 생성 (학생 템플릿에서 사용하는 slide 객체 구조)
+    fake_slide = type('obj', (object,), {
+        'id': content.id,
+        'content': content,
+        'content_type': content.content_type,
+        'chasi': type('obj', (object,), {
+            'chasi_title': '미리보기',
+            'sub_chapter': type('obj', (object,), {
+                'sub_chapter_title': '미리보기',
+                'chapter': type('obj', (object,), {
+                    'chapter_title': '미리보기',
+                    'subject': type('obj', (object,), {
+                        'subject_name': '미리보기'
+                    })()
+                })()
+            })()
+        })()
+    })()
+    
+    context = {
+        'slide': fake_slide,
+        'is_preview': True,  # 미리보기 모드 플래그
+    }
+    
+    return render(request, 'teacher/contents/preview_slide.html', context)
