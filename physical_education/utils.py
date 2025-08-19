@@ -15,6 +15,15 @@ if TYPE_CHECKING:
     from .models import PAPSActivity
 
 
+# ==================== 상수 정의 ====================
+
+# BMI에서 체지방률평가로 복사할 필드 매핑
+BMI_TO_BODY_FAT_FIELD_MAP = {
+    'bmi_height': 'body_fat_rate_test_height',
+    'bmi_weight': 'body_fat_rate_test_weight'
+}
+
+
 # ==================== 유틸리티 함수 ====================
 
 def get_korean_name(user):

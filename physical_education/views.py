@@ -783,6 +783,36 @@ def api_paps_save_measurement(request):
         record.measured_at = timezone.now()
         record.save()
 
+        # BMI 저장 시 체지방률평가로 데이터 동기화
+        if activity.name == 'BMI':
+            from .utils import BMI_TO_BODY_FAT_FIELD_MAP
+            try:
+                # 체지방률평가 Activity 조회
+                body_fat_activity = PAPSActivity.objects.filter(name='BODY_FAT_RATE_TEST').first()
+                if body_fat_activity:
+                    # 동일 session의 체지방률평가 PAPSRecord 조회
+                    body_fat_record = PAPSRecord.objects.filter(
+                        session_id=session.id,
+                        student_id=student_id,
+                        activity_id=body_fat_activity.id
+                    ).first()
+                    
+                    if body_fat_record:
+                        # BMI 데이터를 체지방률평가로 복사
+                        updated = False
+                        for bmi_field, body_fat_field in BMI_TO_BODY_FAT_FIELD_MAP.items():
+                            bmi_value = processed_data.get(bmi_field)
+                            if bmi_value is not None:
+                                body_fat_record.measurement_data[body_fat_field] = bmi_value
+                                updated = True
+                        
+                        if updated:
+                            body_fat_record.save()
+                            
+            except Exception as sync_error:
+                # 동기화 실패는 로그만 남기고 메인 처리는 성공으로 처리
+                print(f"BMI 동기화 실패: {sync_error}")
+
         return JsonResponse(
             {"success": True, "record_id": str(record.id), "updated": True}
         )

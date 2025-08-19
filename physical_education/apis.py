@@ -357,6 +357,47 @@ def api_save_session_activities(request):
                             record_result = create_default_paps_records(new_session_activity, request.user.teacher.id)
                             if record_result['success']:
                                 print(f"PAPSRecord 자동 생성: {record_result['created_count']}개 생성, {record_result['skipped_count']}개 건너뛰기")
+                                
+                                # 체지방률평가 생성 시 BMI 데이터 동기화
+                                if selection['activity'].name == 'BODY_FAT_RATE_TEST':
+                                    from .utils import BMI_TO_BODY_FAT_FIELD_MAP
+                                    try:
+                                        # BMI Activity 조회
+                                        bmi_activity = PAPSActivity.objects.filter(name='BMI').first()
+                                        if bmi_activity:
+                                            # 동일 session의 모든 학생에 대해 BMI 데이터 복사
+                                            bmi_records = PAPSRecord.objects.filter(
+                                                session_id=session.id,
+                                                activity_id=bmi_activity.id
+                                            )
+                                            
+                                            synced_count = 0
+                                            for bmi_record in bmi_records:
+                                                # 해당 학생의 체지방률평가 record 조회
+                                                body_fat_record = PAPSRecord.objects.filter(
+                                                    session_id=session.id,
+                                                    student_id=bmi_record.student_id,
+                                                    activity_id=selection['activity'].id
+                                                ).first()
+                                                
+                                                if body_fat_record:
+                                                    # BMI 데이터를 체지방률평가로 복사
+                                                    updated = False
+                                                    for bmi_field, body_fat_field in BMI_TO_BODY_FAT_FIELD_MAP.items():
+                                                        bmi_value = bmi_record.measurement_data.get(bmi_field)
+                                                        if bmi_value is not None:
+                                                            body_fat_record.measurement_data[body_fat_field] = bmi_value
+                                                            updated = True
+                                                    
+                                                    if updated:
+                                                        body_fat_record.save()
+                                                        synced_count += 1
+                                            
+                                            print(f"BMI → 체지방률평가 동기화: {synced_count}명")
+                                            
+                                    except Exception as sync_error:
+                                        print(f"BMI 동기화 실패: {sync_error}")
+                                        
                             else:
                                 print(f"PAPSRecord 생성 실패: {record_result['error']}")
                             
