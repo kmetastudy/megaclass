@@ -855,8 +855,11 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         minWidth: 80,
                         hozAlign: "center",
                         resizable: true,
-                        editor: "number",
-                        validator: ["numeric", {type: "min", parameters: 0}]
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
                     },
                     {
                         title: "지방량(%)",
@@ -865,8 +868,11 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         minWidth: 80,
                         hozAlign: "center",
                         resizable: true,
-                        editor: "number",
-                        validator: ["numeric", {type: "min", parameters: 0}]
+                        cssClass: "calculated-field",
+                        formatter: function(cell) {
+                            const value = cell.getValue();
+                            return value ? value.toFixed(1) : '-';
+                        }
                     }
                 ]
             }
