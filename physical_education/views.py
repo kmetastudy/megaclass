@@ -814,7 +814,13 @@ def api_paps_save_measurement(request):
                 print(f"BMI 동기화 실패: {sync_error}")
 
         return JsonResponse(
-            {"success": True, "record_id": str(record.id), "updated": True}
+            {
+                "success": True, 
+                "record_id": str(record.id), 
+                "updated": True,
+                "measurement_data": record.measurement_data,  # DB에 저장된 실제 측정 데이터
+                "evaluation_grade": record.evaluation_grade   # 계산된 등급 (1-5 또는 None)
+            }
         )
 
     except json.JSONDecodeError:
