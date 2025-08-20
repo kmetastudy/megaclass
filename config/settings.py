@@ -252,4 +252,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_TIMEOUT = 30  # 30초 타임아웃
 EMAIL_CONNECTION_USE_TLS = True
 
+# User의 get_full_name 메서드를 한국 이름으로 설정
+USE_KOREAN_NAME_FORMAT = True
 
