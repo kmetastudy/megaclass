@@ -629,11 +629,11 @@
         "title": "근육량(%)",
         "type": "decimal",
         "label": "근육량",
-        "required": true,
+        "required": false,
         "min": 0.0,
         "decimal_places": 1,
         "unit": "%",
-        "readonly": false
+        "readonly": true
       },
       {
         "name": "지방량(%)",
@@ -641,11 +641,11 @@
         "title": "지방량(%)",
         "type": "decimal",
         "label": "지방량",
-        "required": true,
+        "required": false,
         "min": 0.0,
         "decimal_places": 1,
         "unit": "%",
-        "readonly": false
+        "readonly": true
       }
     ]
   },

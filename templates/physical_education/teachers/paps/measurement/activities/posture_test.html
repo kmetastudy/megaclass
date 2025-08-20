@@ -1,0 +1,525 @@
+<!-- 자세평가 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-purple-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                    </div>
+
+                    <!-- 측정값 입력 영역 -->
+                    <div class="measurement-inputs">
+                        <!-- 자세 평가 항목들 (1-3점 척도) -->
+                        <div class="mb-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">자세 평가 (1점: 양호, 2점: 보통, 3점: 주의)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- 어깨 기울기 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">어깨 기울기</label>
+                                    <div class="measurement-display" data-field="shoulder_tilt">
+                                        {% if student.record and student.measurement_data.shoulder_tilt %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.shoulder_tilt }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="shoulder_tilt_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="shoulder_tilt"
+                                                       {% if student.record and student.measurement_data.shoulder_tilt == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="shoulder_tilt_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="shoulder_tilt"
+                                                       {% if student.record and student.measurement_data.shoulder_tilt == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="shoulder_tilt_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="shoulder_tilt"
+                                                       {% if student.record and student.measurement_data.shoulder_tilt == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 골반 기울기 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">골반 기울기</label>
+                                    <div class="measurement-display" data-field="pelvis_tilt">
+                                        {% if student.record and student.measurement_data.pelvis_tilt %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.pelvis_tilt }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_tilt_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="pelvis_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_tilt == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_tilt_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="pelvis_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_tilt == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_tilt_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="pelvis_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_tilt == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 다리 굴곡 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">다리 굴곡</label>
+                                    <div class="measurement-display" data-field="leg_flexion">
+                                        {% if student.record and student.measurement_data.leg_flexion %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.leg_flexion }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="leg_flexion_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="leg_flexion"
+                                                       {% if student.record and student.measurement_data.leg_flexion == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="leg_flexion_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="leg_flexion"
+                                                       {% if student.record and student.measurement_data.leg_flexion == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="leg_flexion_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="leg_flexion"
+                                                       {% if student.record and student.measurement_data.leg_flexion == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 목뼈 기울기 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">목뼈 기울기</label>
+                                    <div class="measurement-display" data-field="neck_tilt">
+                                        {% if student.record and student.measurement_data.neck_tilt %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.neck_tilt }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="neck_tilt_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="neck_tilt"
+                                                       {% if student.record and student.measurement_data.neck_tilt == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="neck_tilt_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="neck_tilt"
+                                                       {% if student.record and student.measurement_data.neck_tilt == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="neck_tilt_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="neck_tilt"
+                                                       {% if student.record and student.measurement_data.neck_tilt == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 상체 기울기 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">상체 기울기</label>
+                                    <div class="measurement-display" data-field="upper_body_tilt">
+                                        {% if student.record and student.measurement_data.upper_body_tilt %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.upper_body_tilt }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="upper_body_tilt_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="upper_body_tilt"
+                                                       {% if student.record and student.measurement_data.upper_body_tilt == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="upper_body_tilt_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="upper_body_tilt"
+                                                       {% if student.record and student.measurement_data.upper_body_tilt == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="upper_body_tilt_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="upper_body_tilt"
+                                                       {% if student.record and student.measurement_data.upper_body_tilt == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 골반전후 기울기 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">골반전후 기울기</label>
+                                    <div class="measurement-display" data-field="pelvis_sagittal_tilt">
+                                        {% if student.record and student.measurement_data.pelvis_sagittal_tilt %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.pelvis_sagittal_tilt }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_sagittal_tilt_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="pelvis_sagittal_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_sagittal_tilt == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_sagittal_tilt_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="pelvis_sagittal_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_sagittal_tilt == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="pelvis_sagittal_tilt_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="pelvis_sagittal_tilt"
+                                                       {% if student.record and student.measurement_data.pelvis_sagittal_tilt == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 척추 휨정도 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">척추 휨정도</label>
+                                    <div class="measurement-display" data-field="spine_curvature">
+                                        {% if student.record and student.measurement_data.spine_curvature %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.spine_curvature }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="spine_curvature_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="spine_curvature"
+                                                       {% if student.record and student.measurement_data.spine_curvature == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="spine_curvature_{{ student.id }}" value="2" class="measurement-input mr-2" data-field="spine_curvature"
+                                                       {% if student.record and student.measurement_data.spine_curvature == 2 %}checked{% endif %}>
+                                                <span class="text-sm">2점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="spine_curvature_{{ student.id }}" value="3" class="measurement-input mr-2" data-field="spine_curvature"
+                                                       {% if student.record and student.measurement_data.spine_curvature == 3 %}checked{% endif %}>
+                                                <span class="text-sm">3점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 문진 항목들 (0-1점) -->
+                        <div class="mb-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">문진 항목 (0점: 아니오, 1점: 예)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- 문진1 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">문진1</label>
+                                    <div class="measurement-display" data-field="posture_test_questionnaire_1">
+                                        {% if student.record and student.measurement_data.posture_test_questionnaire_1 is not None %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.posture_test_questionnaire_1 }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="posture_test_questionnaire_1_{{ student.id }}" value="0" class="measurement-input mr-2" data-field="posture_test_questionnaire_1"
+                                                       {% if student.record and student.measurement_data.posture_test_questionnaire_1 == 0 %}checked{% endif %}>
+                                                <span class="text-sm">0점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="posture_test_questionnaire_1_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="posture_test_questionnaire_1"
+                                                       {% if student.record and student.measurement_data.posture_test_questionnaire_1 == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 문진2 -->
+                                <div class="p-3 border rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">문진2</label>
+                                    <div class="measurement-display" data-field="posture_test_questionnaire_2">
+                                        {% if student.record and student.measurement_data.posture_test_questionnaire_2 is not None %}
+                                            <span class="text-lg text-purple-600 font-bold">{{ student.measurement_data.posture_test_questionnaire_2 }}점</span>
+                                        {% else %}
+                                            <span class="text-lg text-gray-500">미측정</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="measurement-input-container hidden">
+                                        <div class="flex space-x-2 mt-2">
+                                            <label class="flex items-center">
+                                                <input type="radio" name="posture_test_questionnaire_2_{{ student.id }}" value="0" class="measurement-input mr-2" data-field="posture_test_questionnaire_2"
+                                                       {% if student.record and student.measurement_data.posture_test_questionnaire_2 == 0 %}checked{% endif %}>
+                                                <span class="text-sm">0점</span>
+                                            </label>
+                                            <label class="flex items-center">
+                                                <input type="radio" name="posture_test_questionnaire_2_{{ student.id }}" value="1" class="measurement-input mr-2" data-field="posture_test_questionnaire_2"
+                                                       {% if student.record and student.measurement_data.posture_test_questionnaire_2 == 1 %}checked{% endif %}>
+                                                <span class="text-sm">1점</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS posture test template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        // 초기화 시 편집 불가 상태로 설정
+        const allInputs = document.querySelectorAll('.measurement-input');
+        allInputs.forEach(input => input.disabled = true);
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('change', handleRadioChange);
+    }
+
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+    }
+
+    function handleRadioChange(e) {
+        // 라디오 버튼 변경 시 필요한 처리가 있다면 여기에 추가
+    }
+
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const radioInputs = studentElement.querySelectorAll('.measurement-input');
+        const measurementPayload = {};
+        
+        // 각 필드별로 선택된 값 수집
+        const fields = ['shoulder_tilt', 'pelvis_tilt', 'leg_flexion', 'neck_tilt', 
+                       'upper_body_tilt', 'pelvis_sagittal_tilt', 'spine_curvature', 
+                       'posture_test_questionnaire_1', 'posture_test_questionnaire_2'];
+        
+        let hasValues = false;
+        fields.forEach(field => {
+            const checkedInput = studentElement.querySelector(`.measurement-input[data-field="${field}"]:checked`);
+            if (checkedInput) {
+                measurementPayload[field] = parseInt(checkedInput.value);
+                hasValues = true;
+            }
+        });
+
+        if (!hasValues) {
+            showToast('적어도 하나 이상의 항목을 평가해주세요.', 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                measurementPayload,
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // 서버에서 계산된 값들로 UI 업데이트
+                updateStudentUIAfterSave(studentElement, result.measurement_data || measurementPayload);
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUIAfterSave(studentElement, processedData) {
+        // 각 필드의 표시값 업데이트
+        Object.keys(processedData).forEach(field => {
+            const display = studentElement.querySelector(`[data-field="${field}"]`);
+            if (display && display.classList.contains('measurement-display')) {
+                const value = processedData[field];
+                if (value !== null && value !== undefined) {
+                    display.innerHTML = `<span class="text-lg text-purple-600 font-bold">${value}점</span>`;
+                }
+            }
+        });
+
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const displays = studentElement.querySelectorAll('.measurement-display');
+        const inputContainers = studentElement.querySelectorAll('.measurement-input-container');
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            displays.forEach(display => display.classList.add('hidden'));
+            inputContainers.forEach(container => container.classList.remove('hidden'));
+            inputs.forEach(input => input.disabled = false);
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            displays.forEach(display => display.classList.remove('hidden'));
+            inputContainers.forEach(container => container.classList.add('hidden'));
+            inputs.forEach(input => input.disabled = true);
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        // 라디오 버튼들을 원래 상태로 복원
+        const radioInputs = studentElement.querySelectorAll('.measurement-input[type="radio"]');
+        radioInputs.forEach(input => {
+            // Django에서 전달된 초기 checked 상태를 확인하고 복원
+            const initialChecked = input.hasAttribute('checked');
+            input.checked = initialChecked;
+        });
+    }
+
+})();
+</script>

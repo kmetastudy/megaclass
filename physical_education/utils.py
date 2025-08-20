@@ -15,6 +15,15 @@ if TYPE_CHECKING:
     from .models import PAPSActivity
 
 
+# ==================== 상수 정의 ====================
+
+# BMI에서 체지방률평가로 복사할 필드 매핑
+BMI_TO_BODY_FAT_FIELD_MAP = {
+    'bmi_height': 'body_fat_rate_test_height',
+    'bmi_weight': 'body_fat_rate_test_weight'
+}
+
+
 # ==================== 유틸리티 함수 ====================
 
 def get_korean_name(user):
@@ -522,6 +531,28 @@ def process_measurement_data(
         elif 'body_fat_rate_test_bmi' in processed_data:
             # 필수 입력값이 없는데 기존 계산값이 있으면 제거
             del processed_data['body_fat_rate_test_bmi']
+        
+        # 근육량(%) 및 지방량(%) 계산
+        body_fat_rate = measurement_data.get('body_fat_rate')
+        if height and weight and body_fat_rate:
+            weight_decimal = safe_decimal(weight)
+            body_fat_rate_decimal = safe_decimal(body_fat_rate)
+            
+            # 근육량(%) = 0.85 × 체중 - (체중 × 체지방률) / 100 (소수점 첫째 자리에서 올림)
+            muscle_mass = Decimal('0.85') * weight_decimal - (weight_decimal * body_fat_rate_decimal) / Decimal('100')
+            muscle_mass_rounded = (muscle_mass * Decimal('10')).quantize(Decimal('1'), rounding=ROUND_UP) / Decimal('10')
+            processed_data['body_fat_rate_muscle_mass'] = float(muscle_mass_rounded)
+            
+            # 지방량(%) = 체중 × 체지방률(%) (소수점 첫째 자리에서 올림)
+            fat_mass = weight_decimal * body_fat_rate_decimal / Decimal('100')
+            fat_mass_rounded = (fat_mass * Decimal('10')).quantize(Decimal('1'), rounding=ROUND_UP) / Decimal('10')
+            processed_data['body_fat_rate_fat_mass'] = float(fat_mass_rounded)
+        else:
+            # 필수 입력값이 없는데 기존 계산값이 있으면 제거
+            if 'body_fat_rate_muscle_mass' in processed_data:
+                del processed_data['body_fat_rate_muscle_mass']
+            if 'body_fat_rate_fat_mass' in processed_data:
+                del processed_data['body_fat_rate_fat_mass']
     
     return processed_data
 

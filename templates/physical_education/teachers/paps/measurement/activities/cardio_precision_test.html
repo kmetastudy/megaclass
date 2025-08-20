@@ -1,0 +1,501 @@
+<!-- 심폐지구력정밀평가 측정 화면 -->
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-red-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                        <div class="flex items-center space-x-4">
+                            <!-- 평균 운동강도 표시 -->
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">평균 운동강도</div>
+                                <div class="text-lg font-bold avg-intensity-display text-gray-500">
+                                    {% if student.record and student.measurement_data.cardio_precision_avg_intensity %}
+                                        {{ student.measurement_data.cardio_precision_avg_intensity }}%
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <!-- PEI 표시 -->
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">PEI</div>
+                                <div class="text-lg font-bold pei-display text-gray-500">
+                                    {% if student.record and student.measurement_data.cardio_precision_pei %}
+                                        {{ student.measurement_data.cardio_precision_pei|floatformat:1 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 측정값 입력 영역 -->
+                    <div class="measurement-inputs">
+                        <!-- 기본 심박수 정보 -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">평균 심박수 (회/분)</label>
+                                <div class="measurement-display" data-field="cardio_precision_avg_heart_rate">
+                                    {% if student.record and student.measurement_data.cardio_precision_avg_heart_rate %}
+                                        <span class="text-lg text-red-600 font-bold">{{ student.measurement_data.cardio_precision_avg_heart_rate }}</span>
+                                    {% else %}
+                                        <span class="text-lg text-gray-500">미측정</span>
+                                    {% endif %}
+                                </div>
+                                <input type="number" class="measurement-input hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                       data-field="cardio_precision_avg_heart_rate"
+                                       value="{{ student.measurement_data.cardio_precision_avg_heart_rate|default:"" }}"
+                                       min="20" max="250" placeholder="예: 120">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">최고 심박수</label>
+                                <div class="measurement-display" data-field="cardio_precision_max_heart_rate">
+                                    {% if student.record and student.measurement_data.cardio_precision_max_heart_rate %}
+                                        <span class="text-lg text-red-600 font-bold">{{ student.measurement_data.cardio_precision_max_heart_rate }}</span>
+                                    {% else %}
+                                        <span class="text-lg text-gray-500">미측정</span>
+                                    {% endif %}
+                                </div>
+                                <input type="number" class="measurement-input hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                       data-field="cardio_precision_max_heart_rate"
+                                       value="{{ student.measurement_data.cardio_precision_max_heart_rate|default:"" }}"
+                                       min="20" max="250" placeholder="예: 180">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">총 소비열량</label>
+                                <div class="measurement-display" data-field="cardio_precision_total_calories">
+                                    {% if student.record and student.measurement_data.cardio_precision_total_calories %}
+                                        <span class="text-lg text-red-600 font-bold">{{ student.measurement_data.cardio_precision_total_calories }}</span>
+                                    {% else %}
+                                        <span class="text-lg text-gray-500">미측정</span>
+                                    {% endif %}
+                                </div>
+                                <input type="number" class="measurement-input hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                                       data-field="cardio_precision_total_calories"
+                                       value="{{ student.measurement_data.cardio_precision_total_calories|default:"" }}"
+                                       min="0" max="9999" placeholder="예: 250">
+                            </div>
+                        </div>
+
+                        <!-- 구간별 시간 -->
+                        <div class="mb-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">구간별 시간 (초)</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">1구간</label>
+                                    <div class="measurement-display" data-field="cardio_precision_section_1_time">
+                                        {% if student.record and student.measurement_data.cardio_precision_section_1_time %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_section_1_time }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_section_1_time"
+                                           value="{{ student.measurement_data.cardio_precision_section_1_time|default:"" }}"
+                                           min="0" max="9999" placeholder="초">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">2구간</label>
+                                    <div class="measurement-display" data-field="cardio_precision_section_2_time">
+                                        {% if student.record and student.measurement_data.cardio_precision_section_2_time %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_section_2_time }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_section_2_time"
+                                           value="{{ student.measurement_data.cardio_precision_section_2_time|default:"" }}"
+                                           min="0" max="9999" placeholder="초">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">3구간</label>
+                                    <div class="measurement-display" data-field="cardio_precision_section_3_time">
+                                        {% if student.record and student.measurement_data.cardio_precision_section_3_time %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_section_3_time }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_section_3_time"
+                                           value="{{ student.measurement_data.cardio_precision_section_3_time|default:"" }}"
+                                           min="0" max="9999" placeholder="초">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">4구간</label>
+                                    <div class="measurement-display" data-field="cardio_precision_section_4_time">
+                                        {% if student.record and student.measurement_data.cardio_precision_section_4_time %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_section_4_time }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_section_4_time"
+                                           value="{{ student.measurement_data.cardio_precision_section_4_time|default:"" }}"
+                                           min="0" max="9999" placeholder="초">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">5구간</label>
+                                    <div class="measurement-display" data-field="cardio_precision_section_5_time">
+                                        {% if student.record and student.measurement_data.cardio_precision_section_5_time %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_section_5_time }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_section_5_time"
+                                           value="{{ student.measurement_data.cardio_precision_section_5_time|default:"" }}"
+                                           min="0" max="9999" placeholder="초">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 휴식 심박수 -->
+                        <div class="mb-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">휴식 심박수 (회/분)</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">휴식1</label>
+                                    <div class="measurement-display" data-field="cardio_precision_rest_heart_rate_1">
+                                        {% if student.record and student.measurement_data.cardio_precision_rest_heart_rate_1 %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_rest_heart_rate_1 }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_rest_heart_rate_1"
+                                           value="{{ student.measurement_data.cardio_precision_rest_heart_rate_1|default:"" }}"
+                                           min="20" max="250" placeholder="예: 70">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">휴식2</label>
+                                    <div class="measurement-display" data-field="cardio_precision_rest_heart_rate_2">
+                                        {% if student.record and student.measurement_data.cardio_precision_rest_heart_rate_2 %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_rest_heart_rate_2 }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_rest_heart_rate_2"
+                                           value="{{ student.measurement_data.cardio_precision_rest_heart_rate_2|default:"" }}"
+                                           min="20" max="250" placeholder="예: 70">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-600 mb-2">휴식3</label>
+                                    <div class="measurement-display" data-field="cardio_precision_rest_heart_rate_3">
+                                        {% if student.record and student.measurement_data.cardio_precision_rest_heart_rate_3 %}
+                                            <span class="text-sm text-red-600 font-bold">{{ student.measurement_data.cardio_precision_rest_heart_rate_3 }}</span>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">—</span>
+                                        {% endif %}
+                                    </div>
+                                    <input type="number" class="measurement-input hidden w-full px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-red-500 text-sm"
+                                           data-field="cardio_precision_rest_heart_rate_3"
+                                           value="{{ student.measurement_data.cardio_precision_rest_heart_rate_3|default:"" }}"
+                                           min="20" max="250" placeholder="예: 70">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, toggleEditMode, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS cardio precision test template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        // 초기화 시 편집 불가 상태로 설정
+        const allInputs = document.querySelectorAll('.measurement-input');
+        allInputs.forEach(input => input.disabled = true);
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('input', handleInputChange);
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+    }
+
+    function handleInputChange(e) {
+        if (e.target.classList.contains('measurement-input')) {
+            // 실시간 계산 제거 - 저장 시점에만 서버에서 계산
+        }
+    }
+
+    // 자동 계산 필드 업데이트 (평균 운동강도, PEI) - 사용 안함 (서버에서 계산)
+    /*
+    function updateCalculatedFields(studentElement) {
+        const avgHeartRateInput = studentElement.querySelector('input[data-field="cardio_precision_avg_heart_rate"]');
+        const avgIntensityDisplay = studentElement.querySelector('.avg-intensity-display');
+        const peiDisplay = studentElement.querySelector('.pei-display');
+
+        // 평균 운동강도 계산 (간단히 추정 나이 15세 기준)
+        if (avgHeartRateInput && avgHeartRateInput.value) {
+            const avgHeartRate = parseInt(avgHeartRateInput.value);
+            if (!isNaN(avgHeartRate) && avgHeartRate > 0) {
+                const estimatedAge = 15; // 기본 나이
+                const maxHeartRate = 220 - estimatedAge;
+                const intensity = Math.round((avgHeartRate / maxHeartRate) * 100);
+                
+                avgIntensityDisplay.textContent = intensity + '%';
+                avgIntensityDisplay.classList.remove('text-gray-500');
+                avgIntensityDisplay.classList.add('text-red-600');
+            }
+        }
+
+        // PEI 계산은 복잡하므로 서버에서 처리하도록 함
+        // 여기서는 입력값이 있으면 임시로 표시만
+        const hasValues = Array.from(studentElement.querySelectorAll('.measurement-input'))
+                               .some(input => input.value && input.value.trim() !== '');
+        if (hasValues) {
+            peiDisplay.textContent = '계산중...';
+            peiDisplay.classList.remove('text-gray-500');
+            peiDisplay.classList.add('text-red-600');
+        }
+    }
+    */
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        const measurementPayload = {};
+        
+        // 입력값 수집 및 검증
+        let hasRequiredValues = false;
+        inputs.forEach(input => {
+            const field = input.dataset.field;
+            const value = input.value.trim();
+            
+            if (value !== '') {
+                const numValue = parseInt(value);
+                if (!isNaN(numValue)) {
+                    measurementPayload[field] = numValue;
+                    hasRequiredValues = true;
+                }
+            }
+        });
+
+        if (!hasRequiredValues) {
+            showToast('적어도 하나 이상의 값을 입력해주세요.', 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                measurementPayload,
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                console.log('Save successful:', result);
+                console.log(result.measurement_data.cardio_precision_avg_intensity);
+                // 서버에서 계산된 값들로 UI 업데이트
+                updateStudentUIAfterSave(studentElement, result.measurement_data || measurementPayload);
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUIAfterSave(studentElement, processedData) {
+        // 각 필드의 표시값 업데이트
+        Object.keys(processedData).forEach(field => {
+            const display = studentElement.querySelector(`[data-field="${field}"]`);
+            if (display && display.classList.contains('measurement-display')) {
+                const value = processedData[field];
+                if (value !== null && value !== undefined) {
+                    display.innerHTML = `<span class="text-lg text-red-600 font-bold">${value}</span>`;
+                }
+            }
+        });
+
+        // 자동 계산된 필드 업데이트
+        if (processedData.cardio_precision_avg_intensity) {
+            const avgIntensityDisplay = studentElement.querySelector('.avg-intensity-display');
+            avgIntensityDisplay.textContent = processedData.cardio_precision_avg_intensity + '%';
+            avgIntensityDisplay.classList.remove('text-gray-500');
+            avgIntensityDisplay.classList.add('text-red-600');
+        }
+
+        if (processedData.cardio_precision_pei) {
+            const peiDisplay = studentElement.querySelector('.pei-display');
+            peiDisplay.textContent = parseFloat(processedData.cardio_precision_pei).toFixed(1);
+            peiDisplay.classList.remove('text-gray-500');
+            peiDisplay.classList.add('text-red-600');
+        }
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const displays = studentElement.querySelectorAll('.measurement-display');
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            displays.forEach(display => display.classList.add('hidden'));
+            inputs.forEach(input => {
+                input.classList.remove('hidden');
+                input.disabled = false;
+            });
+            // 첫 번째 입력 필드에 포커스
+            const firstInput = inputs[0];
+            if (firstInput) {
+                firstInput.focus();
+                firstInput.select();
+            }
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            displays.forEach(display => display.classList.remove('hidden'));
+            inputs.forEach(input => {
+                input.classList.add('hidden');
+                input.disabled = true;
+            });
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        // 입력값들을 원래 상태로 복원
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        inputs.forEach(input => {
+            // Django에서 전달된 초기값으로 복원하거나 빈값으로 설정
+            const originalValue = input.getAttribute('value') || '';
+            input.value = originalValue;
+        });
+        
+        // 계산된 필드들은 서버에서 처리하므로 클라이언트에서 초기화하지 않음
+    }
+
+})();
+</script>

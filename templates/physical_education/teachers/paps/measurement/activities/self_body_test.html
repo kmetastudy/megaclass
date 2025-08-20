@@ -1,0 +1,1060 @@
+{% load student_filters %}
+<!-- 자기신체평가 측정 화면 -->
+<div class="max-w-6xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
+    <header class="bg-teal-600 text-white p-4 text-center rounded-t-lg">
+        <h1 class="text-2xl font-bold">PAPS - {{ activity.get_name_display }}</h1>
+        <p class="text-sm mt-1">{{ class_info.grade }}학년 {{ class_info.class_number }}반</p>
+    </header>
+
+    <div class="p-6">
+        <!-- 측정 정보 표시 -->
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                    <span class="text-blue-800 font-medium">학년도:</span>
+                    <span class="text-blue-900">{{ school_year }}년도</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정회차:</span>
+                    <span class="text-blue-900">{{ session.name }}</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">전체 학생:</span>
+                    <span class="text-blue-900">{{ total_students }}명</span>
+                </div>
+                <div>
+                    <span class="text-blue-800 font-medium">측정 완료:</span>
+                    <span id="measured-count" class="text-blue-900">{{ measured_students }}명</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 평가 척도 안내 -->
+        <div class="mb-6 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+            <h3 class="text-lg font-semibold text-teal-800 mb-2">자기신체평가 척도 안내</h3>
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-2 text-sm">
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">1점</div>
+                    <div class="text-xs text-gray-600">전혀 그렇지 않다</div>
+                </div>
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">2점</div>
+                    <div class="text-xs text-gray-600">그렇지 않다</div>
+                </div>
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">3점</div>
+                    <div class="text-xs text-gray-600">약간 그렇지 않다</div>
+                </div>
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">4점</div>
+                    <div class="text-xs text-gray-600">약간 그렇다</div>
+                </div>
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">5점</div>
+                    <div class="text-xs text-gray-600">그렇다</div>
+                </div>
+                <div class="text-center p-2 bg-white rounded border">
+                    <div class="font-bold text-teal-700">6점</div>
+                    <div class="text-xs text-gray-600">매우 그렇다</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 학생별 기록 입력 -->
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold mb-4 text-gray-700 border-b pb-2">학생별 기록 입력</h2>
+            
+            <div id="student-list-container" class="space-y-4">
+                {% for student in students %}
+                <div class="bg-white p-4 rounded-lg border shadow-sm" data-student-id="{{ student.id }}">
+                    <!-- 학생 이름 헤더 -->
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">{{ student.name }}</h3>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-500">총점</div>
+                            <div class="text-xl font-bold total-score-display text-gray-500">
+                                {% if student.record %}
+                                    <span class="calculated-score">0</span>/120
+                                {% else %}
+                                    0/120
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 측정값 입력 영역 -->
+                    <div class="measurement-inputs">
+                        <!-- 20개 문항 간단 표시 -->
+                        <div class="mb-4 p-4 border rounded-lg bg-gray-50">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">자기신체평가 문항 (1-6점 척도)</h4>
+                            <div class="text-sm text-gray-600 mb-4">각 문항에 대해 1점(전혀 그렇지 않다)부터 6점(매우 그렇다)까지 평가해주세요.</div>
+                            
+                            <!-- 20개 문항 요약 표시 -->
+                            <div class="measurement-display">
+                                {% if student.record %}
+                                    <div class="grid grid-cols-4 md:grid-cols-10 gap-2 mb-4">
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">1번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="1">{{ student.measurement_data.self_body_test_question_1|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">2번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="2">{{ student.measurement_data.self_body_test_question_2|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">3번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="3">{{ student.measurement_data.self_body_test_question_3|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">4번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="4">{{ student.measurement_data.self_body_test_question_4|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">5번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="5">{{ student.measurement_data.self_body_test_question_5|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">6번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="6">{{ student.measurement_data.self_body_test_question_6|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">7번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="7">{{ student.measurement_data.self_body_test_question_7|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">8번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="8">{{ student.measurement_data.self_body_test_question_8|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">9번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="9">{{ student.measurement_data.self_body_test_question_9|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">10번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="10">{{ student.measurement_data.self_body_test_question_10|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">11번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="11">{{ student.measurement_data.self_body_test_question_11|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">12번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="12">{{ student.measurement_data.self_body_test_question_12|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">13번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="13">{{ student.measurement_data.self_body_test_question_13|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">14번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="14">{{ student.measurement_data.self_body_test_question_14|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">15번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="15">{{ student.measurement_data.self_body_test_question_15|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">16번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="16">{{ student.measurement_data.self_body_test_question_16|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">17번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="17">{{ student.measurement_data.self_body_test_question_17|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">18번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="18">{{ student.measurement_data.self_body_test_question_18|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">19번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="19">{{ student.measurement_data.self_body_test_question_19|default:"—" }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-xs text-gray-500">20번</div>
+                                            <div class="font-bold text-teal-600" data-display-question="20">{{ student.measurement_data.self_body_test_question_20|default:"—" }}</div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-gray-500 py-4">미응답</div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 입력 영역 -->
+                            <div class="measurement-input-container hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <!-- 1번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">1번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_1_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_1" data-question="1" {% if student.record and student.measurement_data.self_body_test_question_1 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 2번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">2번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_2_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_2" data-question="2" {% if student.record and student.measurement_data.self_body_test_question_2 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 3번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">3번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_3_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_3" data-question="3" {% if student.record and student.measurement_data.self_body_test_question_3 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 4번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">4번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_4_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_4" data-question="4" {% if student.record and student.measurement_data.self_body_test_question_4 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 5번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">5번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_5_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_5" data-question="5" {% if student.record and student.measurement_data.self_body_test_question_5 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 6번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">6번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_6_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_6" data-question="6" {% if student.record and student.measurement_data.self_body_test_question_6 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 7번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">7번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_7_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_7" data-question="7" {% if student.record and student.measurement_data.self_body_test_question_7 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 8번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">8번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_8_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_8" data-question="8" {% if student.record and student.measurement_data.self_body_test_question_8 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 9번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">9번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_9_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_9" data-question="9" {% if student.record and student.measurement_data.self_body_test_question_9 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 10번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">10번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_10_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_10" data-question="10" {% if student.record and student.measurement_data.self_body_test_question_10 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 11번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">11번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_11_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_11" data-question="11" {% if student.record and student.measurement_data.self_body_test_question_11 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 12번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">12번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_12_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_12" data-question="12" {% if student.record and student.measurement_data.self_body_test_question_12 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 13번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">13번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_13_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_13" data-question="13" {% if student.record and student.measurement_data.self_body_test_question_13 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 14번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">14번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_14_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_14" data-question="14" {% if student.record and student.measurement_data.self_body_test_question_14 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 15번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">15번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_15_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_15" data-question="15" {% if student.record and student.measurement_data.self_body_test_question_15 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 16번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">16번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_16_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_16" data-question="16" {% if student.record and student.measurement_data.self_body_test_question_16 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 17번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">17번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_17_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_17" data-question="17" {% if student.record and student.measurement_data.self_body_test_question_17 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 18번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">18번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_18_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_18" data-question="18" {% if student.record and student.measurement_data.self_body_test_question_18 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 19번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">19번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_19_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_19" data-question="19" {% if student.record and student.measurement_data.self_body_test_question_19 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- 20번 문항 -->
+                                    <div class="p-2 border rounded">
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">20번</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="1" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 1 %}checked{% endif %}>
+                                                <span>1</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="2" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 2 %}checked{% endif %}>
+                                                <span>2</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="3" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 3 %}checked{% endif %}>
+                                                <span>3</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="4" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 4 %}checked{% endif %}>
+                                                <span>4</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="5" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 5 %}checked{% endif %}>
+                                                <span>5</span>
+                                            </label>
+                                            <label class="flex items-center text-xs">
+                                                <input type="radio" name="self_body_test_question_20_{{ student.id }}" value="6" class="measurement-input mr-1" data-field="self_body_test_question_20" data-question="20" {% if student.record and student.measurement_data.self_body_test_question_20 == 6 %}checked{% endif %}>
+                                                <span>6</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 관리 버튼 -->
+                    <div class="text-center">
+                        <button class="edit-btn bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2">
+                            {% if student.record %}수정{% else %}입력{% endif %}
+                        </button>
+                        <button class="save-btn bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2 hidden">
+                            저장
+                        </button>
+                        <button class="cancel-btn bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded transition text-sm hidden">
+                            취소
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    학생 목록이 없습니다.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 저장 완료 토스트 -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+
+{% load static %}
+<script type="module">
+import { showToast, saveStudentRecord, updateMeasuredCount } from '{% static "js/physical_education/measure/common.js" %}';
+
+(function() {
+    const studentContainer = document.getElementById('student-list-container');
+    
+    // DOM 요소 체크
+    if (!studentContainer) {
+        console.error('PAPS self body test template not properly loaded');
+        return;
+    }
+
+    // 측정 데이터 (Django 컨텍스트에서 전달)
+    const measurementData = {
+        sessionId: '{{ session_id }}',
+        activityId: '{{ activity_id }}',
+        schoolYear: {{ school_year }},
+        grade: {{ grade }},
+        classId: {{ class_id }},
+        csrfToken: '{{ csrf_token }}'
+    };
+
+    // 초기화
+    init();
+
+    function init() {
+        setupEventListeners();
+        updateAllTotalScores();
+        // 초기화 시 편집 불가 상태로 설정
+        const allInputs = document.querySelectorAll('.measurement-input');
+        allInputs.forEach(input => input.disabled = true);
+    }
+
+    function setupEventListeners() {
+        studentContainer.addEventListener('click', handleClick);
+        studentContainer.addEventListener('change', handleRadioChange);
+    }
+
+    function updateAllTotalScores() {
+        const students = document.querySelectorAll('[data-student-id]');
+        students.forEach(updateTotalScore);
+    }
+
+    async function handleClick(e) {
+        const studentElement = e.target.closest('[data-student-id]');
+        if (!studentElement) return;
+
+        const studentId = studentElement.dataset.studentId;
+
+        if (e.target.classList.contains('edit-btn')) {
+            toggleEditMode(studentElement, true);
+        } 
+        else if (e.target.classList.contains('save-btn')) {
+            const success = await handleSaveStudent(studentElement, studentId);
+            if (success) {
+                toggleEditMode(studentElement, false);
+                updateMeasuredCount();
+            }
+        }
+        else if (e.target.classList.contains('cancel-btn')) {
+            restoreOriginalValues(studentElement);
+            toggleEditMode(studentElement, false);
+        }
+    }
+
+    function handleRadioChange(e) {
+        if (e.target.classList.contains('measurement-input')) {
+            const studentElement = e.target.closest('[data-student-id]');
+            updateTotalScore(studentElement);
+            
+            // 해당 문항의 표시값도 업데이트
+            const questionNum = e.target.dataset.question;
+            const selectedValue = e.target.value;
+            const questionDisplay = studentElement.querySelector(`[data-question="${questionNum}"]`);
+            if (questionDisplay) {
+                questionDisplay.innerHTML = `<span class="text-teal-600">${selectedValue}점</span>`;
+            }
+        }
+    }
+
+    function updateTotalScore(studentElement) {
+        const checkedInputs = studentElement.querySelectorAll('.measurement-input:checked');
+        let totalScore = 0;
+        
+        checkedInputs.forEach(input => {
+            totalScore += parseInt(input.value);
+        });
+        
+        const totalScoreDisplay = studentElement.querySelector('.total-score-display');
+        const calculatedScore = totalScoreDisplay.querySelector('.calculated-score');
+        
+        if (calculatedScore) {
+            calculatedScore.textContent = totalScore;
+        } else {
+            totalScoreDisplay.innerHTML = `<span class="calculated-score">${totalScore}</span>/120`;
+        }
+        
+        if (totalScore > 0) {
+            totalScoreDisplay.classList.remove('text-gray-500');
+            totalScoreDisplay.classList.add('text-teal-600');
+        } else {
+            totalScoreDisplay.classList.add('text-gray-500');
+            totalScoreDisplay.classList.remove('text-teal-600');
+        }
+    }
+
+    // 개별 학생 기록 저장
+    async function handleSaveStudent(studentElement, studentId) {
+        const radioInputs = studentElement.querySelectorAll('.measurement-input');
+        const measurementPayload = {};
+        
+        // 20개 문항 모두 체크
+        let answeredCount = 0;
+        for (let i = 1; i <= 20; i++) {
+            const checkedInput = studentElement.querySelector(`.measurement-input[data-field="self_body_test_question_${i}"]:checked`);
+            if (checkedInput) {
+                measurementPayload[`self_body_test_question_${i}`] = parseInt(checkedInput.value);
+                answeredCount++;
+            }
+        }
+
+        if (answeredCount < 20) {
+            showToast(`모든 문항에 응답해주세요. (현재 ${answeredCount}/20개 응답)`, 'error');
+            return false;
+        }
+
+        try {
+            const result = await saveStudentRecord(
+                studentId,
+                measurementPayload,
+                measurementData.sessionId,
+                measurementData.activityId,
+                measurementData.csrfToken
+            );
+            
+            if (result.success) {
+                // UI 업데이트
+                updateStudentUIAfterSave(studentElement, result.measurement_data || measurementPayload);
+                showToast(`${studentElement.querySelector('h3').textContent} 학생 기록이 저장되었습니다.`);
+                return true;
+            } else {
+                showToast(result.error || '저장에 실패했습니다.', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            return false;
+        }
+    }
+
+    function updateStudentUIAfterSave(studentElement, updatedMeasurementData) {
+        // 각 문항의 표시값 업데이트
+        for (let i = 1; i <= 20; i++) {
+            const field = `self_body_test_question_${i}`;
+            const value = updatedMeasurementData[field];
+            if (value !== null && value !== undefined) {
+                const questionDisplay = studentElement.querySelector(`[data-display-question="${i}"]`);
+                if (questionDisplay) {
+                    questionDisplay.textContent = value;
+                }
+            }
+        }
+
+        // 총점 업데이트
+        updateTotalScore(studentElement);
+
+        // 버튼 텍스트 및 스타일 변경
+        const editBtn = studentElement.querySelector('.edit-btn');
+        editBtn.textContent = '수정';
+        editBtn.className = 'edit-btn bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-6 rounded-lg transition text-sm mr-2';
+    }
+
+    function toggleEditMode(studentElement, isEditing) {
+        const displays = studentElement.querySelectorAll('.measurement-display');
+        const inputContainers = studentElement.querySelectorAll('.measurement-input-container');
+        const inputs = studentElement.querySelectorAll('.measurement-input');
+        const editBtn = studentElement.querySelector('.edit-btn');
+        const saveBtn = studentElement.querySelector('.save-btn');
+        const cancelBtn = studentElement.querySelector('.cancel-btn');
+
+        if (isEditing) {
+            displays.forEach(display => display.classList.add('hidden'));
+            inputContainers.forEach(container => container.classList.remove('hidden'));
+            inputs.forEach(input => input.disabled = false);
+            
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+        } else {
+            displays.forEach(display => display.classList.remove('hidden'));
+            inputContainers.forEach(container => container.classList.add('hidden'));
+            inputs.forEach(input => input.disabled = true);
+            
+            editBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden');
+            cancelBtn.classList.add('hidden');
+        }
+    }
+
+    function restoreOriginalValues(studentElement) {
+        // 라디오 버튼들을 원래 상태로 복원
+        const radioInputs = studentElement.querySelectorAll('.measurement-input[type="radio"]');
+        radioInputs.forEach(input => {
+            const initialChecked = input.hasAttribute('checked');
+            input.checked = initialChecked;
+        });
+        
+        // 표시값들도 원래 상태로 복원
+        for (let i = 1; i <= 20; i++) {
+            const checkedInput = studentElement.querySelector(`.measurement-input[data-field="self_body_test_question_${i}"]:checked`);
+            const questionDisplay = studentElement.querySelector(`[data-question="${i}"]`);
+            
+            if (checkedInput && questionDisplay) {
+                questionDisplay.innerHTML = `<span class="text-teal-600">${checkedInput.value}점</span>`;
+            } else if (questionDisplay) {
+                questionDisplay.innerHTML = `<span class="text-gray-500">미응답</span>`;
+            }
+        }
+        
+        updateTotalScore(studentElement);
+    }
+
+})();
+</script>
