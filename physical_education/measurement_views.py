@@ -136,6 +136,12 @@ def paps_measure_activity_view(request, activity_id):
         total_students = len(students_data)
         measured_students = len([s for s in students_data if s['record_id']])
         
+        # JavaScript용 JSON 데이터 준비 (record 객체 제외)
+        students_data_for_json = []
+        for student_data in students_data:
+            json_safe_data = {k: v for k, v in student_data.items() if k != 'record'}
+            students_data_for_json.append(json_safe_data)
+        
         # 8. 컨텍스트 구성
         context = {
             # 기본 정보
@@ -158,6 +164,10 @@ def paps_measure_activity_view(request, activity_id):
             
             # 측정 스키마 (필요시)
             'measurement_schema': activity.measurement_schema,
+            
+            # JavaScript에서 필요한 JSON 데이터
+            'students_json': json.dumps(students_data_for_json, ensure_ascii=False),
+            'evaluation_criteria_json': json.dumps(activity.evaluation_criteria, ensure_ascii=False) if activity.evaluation_criteria else 'null',
         }
         
         return render(
@@ -167,5 +177,6 @@ def paps_measure_activity_view(request, activity_id):
         )
         
     except Exception as e:
+        print(f"Error in paps_measure_activity_view: {str(e)}")
         messages.error(request, f'측정 화면을 불러오는 중 오류가 발생했습니다: {str(e)}')
         return redirect('physical_education:paps_measure')
