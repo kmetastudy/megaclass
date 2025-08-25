@@ -39,11 +39,11 @@ urlpatterns = [
         views.paps_measure_view,
         name="paps_measure",
     ),
-    # PAPS 측정 화면 동적 로드 (HTMX용)
+    # PAPS 측정 화면 - 종목별 (2단계)
     path(
-        "paps/load-measurement/",
-        measurement_views.paps_load_measurement_view,
-        name="paps_load_measurement",
+        "teachers/paps/measurement/measure/<uuid:activity_id>/",
+        measurement_views.paps_measure_activity_view,
+        name="paps_measure_activity",
     ),
     # PAPS API 엔드포인트
     path(
