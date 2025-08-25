@@ -78,15 +78,20 @@
 <!-- 빠른 통계 섹션 -->
 <div class="mb-6">
     <h3 class="text-lg font-semibold text-gray-800 mb-4">빠른 통계</h3>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid gird-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 반별 통계 -->
         <a href="{% url 'teacher:statistics_by_class' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-                <div>
-                    <div class="p-2 bg-blue-100 rounded-lg inline-block mb-2">
-                        <i class="fas fa-users text-blue-600 text-lg"></i>
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-lg mr-4">
+                    <i class="fas fa-users text-blue-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-semibold text-gray-800">반별 통계</h4>
+                        <div class="text-gray-400 hover:text-blue-600 transition-colors">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </div>
                     </div>
-                    <h4 class="font-semibold text-gray-800">반별 통계</h4>
                     <p class="text-sm text-gray-600 mb-2">학급별 성취도 분석</p>
                     <div class="text-xs text-gray-500">
                         평균 성취도: <span class="font-semibold text-blue-600">{{ stats.avg_class_achievement|default:0 }}%</span>
@@ -97,12 +102,17 @@
 
         <!-- 코스별 통계 -->
         <a href="{% url 'teacher:statistics_by_course' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-                <div>
-                    <div class="p-2 bg-green-100 rounded-lg inline-block mb-2">
-                        <i class="fas fa-book text-green-600 text-lg"></i>
+            <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-lg mr-4">
+                    <i class="fas fa-book text-green-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-semibold text-gray-800">코스별 통계</h4>
+                        <div class="text-gray-400 hover:text-green-600 transition-colors">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </div>
                     </div>
-                    <h4 class="font-semibold text-gray-800">코스별 통계</h4>
                     <p class="text-sm text-gray-600 mb-2">과목별 진도 현황</p>
                     <div class="text-xs text-gray-500">
                         평균 진도율: <span class="font-semibold text-green-600">{{ stats.avg_course_progress|default:0 }}%</span>
@@ -113,12 +123,17 @@
 
         <!-- 제출 분석 -->
         <a href="{% url 'teacher:submission_analysis' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-                <div>
-                    <div class="p-2 bg-yellow-100 rounded-lg inline-block mb-2">
-                        <i class="fas fa-clipboard-check text-yellow-600 text-lg"></i>
+            <div class="flex items-center">
+                <div class="p-3 bg-yellow-100 rounded-lg mr-4">
+                    <i class="fas fa-clipboard-check text-yellow-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-semibold text-gray-800">제출 분석</h4>
+                        <div class="text-gray-400 hover:text-yellow-600 transition-colors">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </div>
                     </div>
-                    <h4 class="font-semibold text-gray-800">제출 분석</h4>
                     <p class="text-sm text-gray-600 mb-2">답안 제출 현황</p>
                     <div class="text-xs text-gray-500">
                         <span class="text-green-600">정답 {{ stats.correct_rate|default:0 }}%</span> |
@@ -131,12 +146,17 @@
 
         <!-- 취약점 분석 -->
         <a href="{% url 'teacher:weakness_analysis' %}" class="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow">
-            <div class="flex items-start justify-between">
-                <div>
-                    <div class="p-2 bg-red-100 rounded-lg inline-block mb-2">
-                        <i class="fas fa-chart-pie text-red-600 text-lg"></i>
+            <div class="flex items-center">
+                <div class="p-3 bg-red-100 rounded-lg mr-4">
+                    <i class="fas fa-chart-pie text-red-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-semibold text-gray-800">취약점 분석</h4>
+                        <div class="text-gray-400 hover:text-red-600 transition-colors">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </div>
                     </div>
-                    <h4 class="font-semibold text-gray-800">취약점 분석</h4>
                     <p class="text-sm text-gray-600 mb-2">학습 개선 포인트</p>
                     <div class="text-xs text-gray-500">
                         40점 미만: <span class="font-semibold text-red-600">{{ stats.weakness_rate|default:0 }}%</span>
@@ -149,15 +169,20 @@
 
 <!-- 빠른 액션 -->
 <div class="mb-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">빠른 액션</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <a href="{% url 'teacher:course_create' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <i class="fas fa-plus-circle text-blue-500 text-2xl mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">새 코스 생성</span>
-        </a>
-        <a href="{% url 'teacher:class_create' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <i class="fas fa-school text-green-500 text-2xl mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">학급 생성</span>
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-800">빠른 액션</h3>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-600">더보기</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="quickActionToggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <a href="{% url 'teacher:statistics_dashboard' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-chart-line text-indigo-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">통계</span>
         </a>
         <a href="{% url 'teacher:student_list' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <i class="fas fa-users text-purple-500 text-2xl mb-2"></i>
@@ -167,22 +192,30 @@
             <i class="fas fa-chart-bar text-yellow-500 text-2xl mb-2"></i>
             <span class="text-sm font-medium text-gray-700">수행관리</span>
         </a>
+        <a href="{% url 'physical_education:teacher_dashboard' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <i class="fas fa-person-running text-teal-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">PAPS</span>
+        </a>
+        <a href="{% url 'teacher:course_create' %}" class="extra-action flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow" style="display: none;">
+            <i class="fas fa-plus-circle text-blue-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">새 코스 생성</span>
+        </a>
+        <a href="{% url 'teacher:class_create' %}" class="extra-action flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow" style="display: none;">
+            <i class="fas fa-school text-green-500 text-2xl mb-2"></i>
+            <span class="text-sm font-medium text-gray-700">학급 생성</span>
+        </a>
         {% comment %} <a href="{% url 'ncs:teacher_dashboard' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <i class="fas fa-brain text-indigo-500 text-2xl mb-2"></i>
             <span class="text-sm font-medium text-gray-700">NCS 관리</span>
         </a> {% endcomment %}
-        <a href="{% url 'super_agent:index' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+        <a href="{% url 'super_agent:index' %}" class="extra-action flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow" style="display: none;">
             <i class="fas fa-robot text-orange-500 text-2xl mb-2"></i>
             <span class="text-sm font-medium text-gray-700">문항 생성 agent</span>
         </a>
         <!-- 새로 추가된 문항 배치저장 버튼 -->
-        <a href="{% url 'super_agent:batch_process' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+        <a href="{% url 'super_agent:batch_process' %}" class="extra-action flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow" style="display: none;">
             <i class="fas fa-upload text-teal-500 text-2xl mb-2"></i>
             <span class="text-sm font-medium text-gray-700">문항 배치저장</span>
-        </a>
-        <a href="{% url 'physical_education:teacher_dashboard' %}" class="flex flex-col items-center justify-center p-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <i class="fas fa-person-running text-teal-500 text-2xl mb-2"></i>
-            <span class="text-sm font-medium text-gray-700">PAPS</span>
         </a>
     </div>
 </div>
@@ -262,6 +295,25 @@
     </div>
 </div>
 
+<script>
+// 빠른 액션 더보기 토글 기능
+document.getElementById('quickActionToggle').addEventListener('change', function() {
+    const extraActions = document.querySelectorAll('.extra-action');
+    
+    if (this.checked) {
+        // 더보기 ON: 모든 추가 액션 보이기
+        extraActions.forEach(action => {
+            action.style.display = 'flex';
+        });
+    } else {
+        // 더보기 OFF: 추가 액션 숨기기
+        extraActions.forEach(action => {
+            action.style.display = 'none';
+        });
+    }
+});
+</script>
+
 <style>
 /* 전체 페이지가 스크롤 없이 보이도록 조정 */
 body {
@@ -270,6 +322,11 @@ body {
 .container {
     max-height: 100vh;
     padding: 1rem;
+}
+
+/* 빠른 액션 전환 효과 */
+.extra-action {
+    transition: all 0.3s ease-in-out;
 }
 </style>
 {% endblock %}
