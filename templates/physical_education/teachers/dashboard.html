@@ -87,41 +87,23 @@
                 </div>
             </div>
 
-            <!-- 담당 학급 현황 -->
+            <!-- 빠른 액션 버튼 -->
             <div class="mb-6 sm:mb-8">
-                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">담당 학급 현황</h2>
-                {% if class_info %}
-                    <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-                        {% for class in class_info %}
-                        <div class="dashboard-card">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-medium text-gray-900">{{ class.class.name }}</h3>
-                                    <p class="text-sm text-gray-500">{{ class.role }}</p>
-                                    <div class="flex items-center mt-2 space-x-4">
-                                        <span class="text-xs sm:text-sm text-gray-600">
-                                            <i class="fas fa-users mr-1"></i>
-                                            {{ class.student_count }}명
-                                        </span>
-                                        <span class="text-xs sm:text-sm text-green-600">
-                                            <i class="fas fa-check-circle mr-1"></i>
-                                            최근 {{ class.recent_records }}건
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="stat-icon bg-indigo-100 text-indigo-600">
-                                    <i class="fas fa-school"></i>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="dashboard-card text-center py-8 text-gray-500">
-                        <i class="fas fa-school text-4xl mb-4"></i>
-                        <p>담당 학급이 없습니다.</p>
-                    </div>
-                {% endif %}
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">빠른 작업</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                    <a href="{% url 'physical_education:paps_measure' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-clipboard-check mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">측정하기</span>
+                    </a>
+                    <a href="{% url 'physical_education:paps_session_list' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-plus-circle mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">새 측정회차</span>
+                    </a>
+                    <a href="{% url 'physical_education:paps_session_activities' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
+                        <i class="fas fa-edit mr-2 sm:mr-3 text-lg sm:text-xl"></i>
+                        <span class="font-medium text-sm sm:text-base">종목 선택</span>
+                    </a>
+                </div>
             </div>
 
             <!-- 차트 섹션 -->
@@ -150,29 +132,6 @@
                     <div class="h-24 sm:h-28 md:h-32">
                         <canvas id="dailyActivityChart"></canvas>
                     </div>
-                </div>
-            </div>
-            
-            <!-- 빠른 액션 버튼 -->
-            <div class="mb-6 sm:mb-8">
-                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">빠른 작업</h2>
-                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                    <a href="{% url 'physical_education:paps_session_list' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
-                        <i class="fas fa-plus-circle mr-2 sm:mr-3 text-lg sm:text-xl"></i>
-                        <span class="font-medium text-sm sm:text-base">새 측정회차</span>
-                    </a>
-                    <a href="{% url 'physical_education:paps_session_activities' %}" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
-                        <i class="fas fa-edit mr-2 sm:mr-3 text-lg sm:text-xl"></i>
-                        <span class="font-medium text-sm sm:text-base">종목 선택</span>
-                    </a>
-                    <a href="#" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
-                        <i class="fas fa-search mr-2 sm:mr-3 text-lg sm:text-xl"></i>
-                        <span class="font-medium text-sm sm:text-base">결과 조회</span>
-                    </a>
-                    <a href="#" class="flex items-center justify-center sm:justify-start p-3 sm:p-4 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors min-h-[3rem] sm:min-h-[3.5rem] touch-target focus-visible">
-                        <i class="fas fa-chart-line mr-2 sm:mr-3 text-lg sm:text-xl"></i>
-                        <span class="font-medium text-sm sm:text-base">통계 분석</span>
-                    </a>
                 </div>
             </div>
             
