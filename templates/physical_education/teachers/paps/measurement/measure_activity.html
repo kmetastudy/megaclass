@@ -1,0 +1,103 @@
+{% extends "teacher/base.html" %}
+{% load static %}
+
+{% block title %}PAPS {{ activity.get_name_display }} 측정{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- 상단 네비게이션 바 -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- 뒤로가기 버튼 -->
+                <button 
+                    onclick="window.history.back()"
+                    class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    선택 화면으로 돌아가기
+                </button>
+                
+                <!-- 측정 정보 -->
+                <div class="flex items-center space-x-6 text-sm text-gray-600">
+                    <div>
+                        <span class="font-medium text-gray-800">학년도:</span>
+                        <span>{{ school_year }}년도</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-800">회차:</span>
+                        <span>{{ session.name }}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-800">학급:</span>
+                        <span>{{ class_info.grade }}학년 {{ class_info.class_number }}반</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-800">종목:</span>
+                        <span>{{ activity.get_name_display }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 종목별 측정 화면 -->
+    <div class="container mx-auto px-4 py-6">
+        {% include activity_template %}
+    </div>
+</div>
+
+<!-- HTMX 로딩 인디케이터 -->
+<div id="loading-indicator" class="htmx-indicator fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 shadow-xl">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+            <span class="text-lg font-medium">페이지를 불러오는 중...</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* HTMX 로딩 인디케이터 스타일 */
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: flex;
+}
+
+/* 부드러운 전환 효과 */
+body {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.htmx-request body {
+    opacity: 0.8;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTMX 라이브러리 -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // HTMX 이벤트 처리
+    document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        console.log('HTMX 페이지 전환 시작');
+    });
+    
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        console.log('HTMX 페이지 전환 완료');
+    });
+    
+    document.body.addEventListener('htmx:responseError', function(evt) {
+        console.error('HTMX 오류 발생:', evt.detail);
+        alert('페이지를 불러오는 중 오류가 발생했습니다.');
+    });
+});
+</script>
+{% endblock %}

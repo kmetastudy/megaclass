@@ -182,6 +182,12 @@
           <div class="mt-8">
             <sl-button 
               id="submit-button"
+              hx-get=""
+              hx-trigger="click"
+              hx-push-url="true"
+              hx-target="body"
+              hx-swap="innerHTML"
+              hx-vals=""
               variant="primary" 
               size="large" 
               class="submit-button"
@@ -191,50 +197,19 @@
           </div>
           
         </div>
-        
-        <!-- Step 2: 측정 화면 -->
-        <div class="max-w-4xl mx-auto">
-          <div class="relative">
-            
-            <!-- Step 2: 측정 화면 -->
-            <div id="step-2" class="step-content hidden">
-                <!-- 측정 화면 컨테이너 - HTMX로 동적 로드 -->
-                <div class="mt-6">
-                    <div id="measurement-container" 
-                        hx-indicator="#loading-indicator">
-                    
-                    <!-- 로딩 인디케이터 -->
-                    <div id="loading-indicator" class="htmx-indicator border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                        <div class="text-gray-500">
-                        <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
-                        <h3 class="text-lg font-medium mb-2">측정 화면 로딩 중...</h3>
-                        </div>
-                    </div>
-                    
-                    <!-- 초기 상태 -->
-                    <div class="initial-content border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                        <div class="text-gray-500">
-                        <i class="fas fa-chart-line text-4xl mb-4"></i>
-                        <h3 class="text-lg font-medium mb-2">측정 화면 준비 중</h3>
-                        <p class="text-sm">선택된 종목에 따른 측정 화면이 여기에 표시됩니다.</p>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-
-                <!-- 2단계 네비게이션 -->
-                <div class="flex justify-start mt-8 pt-6 border-t border-gray-200">
-                  <button id="prev-btn-step2" class="px-6 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                    이전 단계
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
+</div>
+
+<!-- HTMX 로딩 인디케이터 -->
+<div id="loading-indicator" class="htmx-indicator fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 shadow-xl">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
+            <span class="text-lg font-medium">측정 화면을 불러오는 중...</span>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -247,12 +222,31 @@
     display: none;
 }
 
+#loading-indicator {
+    display: none !important;
+    pointer-events: none;
+}
+
 .htmx-request .htmx-indicator {
-    display: block;
+    display: flex !important;
+}
+
+.htmx-request #loading-indicator {
+    display: flex !important;
+    pointer-events: auto;
 }
 
 .htmx-request .initial-content {
     display: none;
+}
+
+/* 페이지 전환 시 부드러운 효과 */
+body {
+    transition: opacity 0.2s ease-in-out;
+}
+
+.htmx-request body {
+    opacity: 0.9;
 }
 
 /* 트랜지션 효과 */
@@ -555,12 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // 하단 시작 버튼 클릭
-            this.elements.submitButton.addEventListener('click', () => {
-                if (!this.elements.submitButton.disabled) {
-                    this.startMeasurement();
-                }
-            });
+            // 하단 시작 버튼 클릭 이벤트 제거 - htmx가 처리
             
             // sl-details 열기/닫기 이벤트
             Object.values(this.elements.sections).forEach(section => {
@@ -568,13 +557,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 section.addEventListener('sl-hide', this.handleSectionClose.bind(this));
             });
             
-            // 이전 단계 버튼 클릭 이벤트
-            const prevButton = document.getElementById('prev-btn-step2');
-            if (prevButton) {
-                prevButton.addEventListener('click', () => {
-                    this.hideStep2();
-                });
-            }
         }
         
         handleSelection(type, value, buttonElement) {
@@ -921,9 +903,30 @@ document.addEventListener('DOMContentLoaded', function() {
         
         updateSubmitButton(selectedCount) {
             if (selectedCount === 5) {
+                // URL과 파라미터 설정
+                const measurementUrl = `/physical_education/teachers/paps/measurement/measure/${this.selections.activity}/`;
+                const params = {
+                    school_year: this.selections.schoolYear,
+                    session_id: this.selections.session,
+                    grade: this.selections.grade,
+                    class_id: this.selections.class
+                };
+                
+                // htmx 속성 설정
+                this.elements.submitButton.setAttribute('hx-get', measurementUrl);
+                this.elements.submitButton.setAttribute('hx-push-url', measurementUrl);
+                this.elements.submitButton.setAttribute('hx-vals', JSON.stringify(params));
+                htmx.process(this.elements.submitButton);
+                
+                // 버튼 상태 변경
                 this.elements.submitButton.textContent = '측정 시작하기';
                 this.elements.submitButton.disabled = false;
             } else {
+                // htmx 속성 초기화
+                this.elements.submitButton.setAttribute('hx-get', '');
+                this.elements.submitButton.setAttribute('hx-vals', '');
+                
+                // 버튼 상태 변경
                 this.elements.submitButton.textContent = `조건 선택 (${selectedCount}/5)`;
                 this.elements.submitButton.disabled = true;
             }
@@ -983,111 +986,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // 필요시 추가 처리
         }
         
-        startMeasurement() {
-            // Step 2 측정 화면으로 이동
-            this.showStep2();
-            
-            // HTMX 요청을 위한 숨김 폼 생성 및 제출
-            this.createAndSubmitHiddenForm();
-        }
-        
-        createAndSubmitHiddenForm() {
-            // 기존 숨김 폼이 있으면 제거
-            const existingForm = document.getElementById('hidden-measurement-form');
-            if (existingForm) {
-                existingForm.remove();
-            }
-            
-            // 새로운 숨김 폼 생성
-            const form = document.createElement('form');
-            form.id = 'hidden-measurement-form';
-            form.style.display = 'none';
-            
-            // 필요한 데이터 추가
-            const formData = this.getFormData();
-            Object.entries(formData).forEach(([key, value]) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value || '';
-                form.appendChild(input);
-            });
-            
-            document.body.appendChild(form);
-            
-            // HTMX 트리거 발생하여 측정 화면 로드
-            setTimeout(() => {
-                document.body.dispatchEvent(new CustomEvent('load-measurement'));
-            }, 100);
-        }
-        
-        showStep2() {
-            // 선택 화면 숨기기
-            const selectionContainer = document.querySelector('.max-w-4xl.mx-auto');
-            if (selectionContainer) {
-                selectionContainer.style.display = 'none';
-            }
-            
-            // Step 2 표시
-            const step2 = document.getElementById('step-2');
-            if (step2) {
-                step2.classList.remove('hidden');
-                step2.style.display = 'block';
-            }
-            
-            // Step 2 정보 업데이트 - 새로운 데이터 형식으로 변환
-            this.updateStep2Info();
-        }
-        
-        updateStep2Info() {
-            // Step 2 정보 표시 요소가 있는지 확인하고 업데이트
-            const targetInfoElement = document.getElementById('selected-target-info-step2');
-            if (targetInfoElement && this.selections.schoolYear && this.selections.session && this.selections.grade) {
-                const selectedSessionData = papsData.sessions.find(s => s.id === this.selections.session);
-                const gradeDisplay = this.getGradeDisplay(parseInt(this.selections.grade));
-                
-                if (selectedSessionData) {
-                    const info = `${this.selections.schoolYear}년도 ${selectedSessionData.session_type_display || selectedSessionData.name} - ${gradeDisplay}`;
-                    targetInfoElement.textContent = info;
-                }
-            }
-            
-            const classInfoElement = document.getElementById('selected-class-info');
-            if (classInfoElement && this.selections.class) {
-                const selectedClassData = papsData.classes.find(cls => cls.id === parseInt(this.selections.class));
-                if (selectedClassData) {
-                    classInfoElement.textContent = selectedClassData.name;
-                }
-            }
-            
-            const activityInfoElement = document.getElementById('selected-activity-info');
-            if (activityInfoElement && this.selections.activity) {
-                const selectedActivityData = papsData.activities.find(act => act.id === this.selections.activity);
-                if (selectedActivityData) {
-                    activityInfoElement.textContent = selectedActivityData.display_name;
-                }
-            }
-        }
         
         getGradeDisplay(grade) {
             if (grade <= 6) return `초${grade}`;
             else if (grade <= 9) return `중${grade - 6}`;
             else return `고${grade - 9}`;
-        }
-        
-        hideStep2() {
-            // Step 2 숨기기
-            const step2 = document.getElementById('step-2');
-            if (step2) {
-                step2.style.display = 'none';
-                step2.classList.add('hidden');
-            }
-            
-            // Step 1 (선택 화면) 다시 표시
-            const selectionContainer = document.querySelector('.max-w-4xl.mx-auto');
-            if (selectionContainer) {
-                selectionContainer.style.display = 'block';
-            }
         }
         
         // 기존 StateManager와 호환성을 위한 데이터 제공
@@ -1100,6 +1003,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 activity_id: this.selections.activity
             };
         }
+
+        reconnectDom() {
+            // DOM 요소 참조 재설정
+            this.elements = {
+                progressCount: document.getElementById('progress-count'),
+                submitButton: document.getElementById('submit-button'),
+                sections: {
+                    year: document.getElementById('year-section'),
+                    session: document.getElementById('session-section'),
+                    grade: document.getElementById('grade-section'),
+                    class: document.getElementById('class-section'),
+                    activity: document.getElementById('activity-section')
+                },
+                optionContainers: {
+                    session: document.getElementById('session-options'),
+                    grade: document.getElementById('grade-options'),
+                    class: document.getElementById('class-options'),
+                    activity: document.getElementById('activity-options')
+                }
+            }
+
+            // 이벤트 리스너 재등록
+            this.setupEventListeners();
+            
+            // 저장된 상태로 UI 복원
+            //this.rebuildUIFromState();
+        }
         
     }
     
@@ -1109,48 +1039,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // 전역 접근을 위한 변수 설정 (기존 코드와의 호환성)
     window.measurementSelector = measurementSelector;
     
-    // 커스텀 이벤트 리스너 추가 (측정 시작)
-    document.body.addEventListener('load-measurement', function() {
-        const formData = measurementSelector.getFormData();
-        
-        // 쿼리 파라미터 구성
-        const queryParams = new URLSearchParams(formData).toString();
-        const url = `/physical_education/paps/load-measurement/?${queryParams}`;
-        
-        // measurement-container의 hx-get URL 업데이트
-        const container = document.getElementById('measurement-container');
-        if (container) {
-            container.setAttribute('hx-get', url);
-        }
-        
-        // HTMX GET 요청 직접 실행
-        htmx.ajax('GET', url, {
-            target: '#measurement-container',
-            swap: 'innerHTML'
-        });
+    // HTMX 이벤트 처리
+    document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        console.log('HTMX 페이지 전환 시작');
     });
     
-    // HTMX 이벤트 처리 유지
     document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.id === 'measurement-container') {
-            console.log('측정 화면 로드 완료');
-        }
+        console.log('HTMX 페이지 전환 완료');
     });
     
     document.body.addEventListener('htmx:responseError', function(evt) {
-        if (evt.detail.target.id === 'measurement-container') {
-            console.error('측정 화면 로드 실패');
-            evt.detail.target.innerHTML = `
-                <div class="border-2 border-red-300 bg-red-50 rounded-lg p-8 text-center">
-                    <div class="text-red-600">
-                        <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                        <h3 class="text-lg font-medium mb-2">로드 실패</h3>
-                        <p class="text-sm">측정 화면을 불러오는데 실패했습니다.</p>
-                    </div>
-                </div>
-            `;
-        }
+        console.error('HTMX 오류 발생:', evt.detail);
+        alert('페이지를 불러오는 중 오류가 발생했습니다.');
     });
+
+    document.body.addEventListener('htmx:historyRestore', function(evt) {
+        if (document.getElementById('year-section')) {
+            if (window.measurementSelector) {
+                window.measurementSelector.reconnectDom();
+            } else {
+                window.measurementSelector = new MeasurementSelector();
+            }
+        }
+    })
 });
 </script>
 {% endblock %}
