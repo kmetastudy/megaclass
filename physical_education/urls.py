@@ -195,4 +195,10 @@ urlpatterns = [
         emails.api_send_inquiry,
         name="api_send_inquiry",
     ),
+    
+    # ==================== PAPS 체험하기 기능 ====================
+    # 체험하기 URL 추가
+    path("demo/", measurement_views.demo_measurement_view, name="demo_measurement"),
+    path("demo/activity/", measurement_views.demo_activity_view, name="demo_activity"),
+    path("demo/api/save-measurement/", measurement_views.demo_save_measurement, name="demo_save_measurement"),
 ]

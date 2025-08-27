@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAPS 체험하기 - 오류</title>
+    <link href="https://cdn.tailwindcss.com/2.2.19" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full mx-4">
+            <div class="bg-white rounded-lg shadow-lg p-6 text-center">
+                <!-- 에러 아이콘 -->
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-triangle text-6xl text-red-500"></i>
+                </div>
+
+                <!-- 에러 제목 -->
+                <h1 class="text-2xl font-bold text-gray-900 mb-4">
+                    오류가 발생했습니다
+                </h1>
+
+                <!-- 에러 메시지 -->
+                <div class="mb-6">
+                    <p class="text-gray-600 mb-2">
+                        {{ error_message|default:"페이지를 불러오는 중 문제가 발생했습니다." }}
+                    </p>
+                    <p class="text-sm text-gray-500">
+                        잠시 후 다시 시도해주세요.
+                    </p>
+                </div>
+
+                <!-- 액션 버튼들 -->
+                <div class="space-y-3">
+                    <button onclick="location.reload()" 
+                            class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-refresh mr-2"></i>페이지 새로고침
+                    </button>
+                    
+                    <a href="{% url 'physical_education:demo_measurement' %}" 
+                       class="block w-full bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>체험하기 홈으로
+                    </a>
+                    
+                    <a href="/" 
+                       class="block w-full border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-home mr-2"></i>메인 페이지로
+                    </a>
+                </div>
+
+                <!-- 추가 정보 -->
+                <div class="mt-6 pt-4 border-t border-gray-200">
+                    <p class="text-xs text-gray-400">
+                        문제가 지속되면 페이지를 새로고침하거나 잠시 후 다시 시도해주세요.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 자동 새로고침 (10초 후)
+        setTimeout(function() {
+            const refreshBtn = document.querySelector('button[onclick="location.reload()"]');
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-refresh fa-spin mr-2"></i>자동 새로고침 중...';
+                refreshBtn.disabled = true;
+                location.reload();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
