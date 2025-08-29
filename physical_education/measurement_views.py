@@ -5,17 +5,25 @@ PAPS 측정 관련 뷰 모듈
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
+from django.db import transaction
+from django.core.cache import cache
 from teacher.decorators import teacher_required
 from .models import (
     PAPSSession,
     PAPSActivity,
     PAPSRecord,
+    PAPSCategory,
 )
 from accounts.models import ClassTeacher, Class, Student
 from .views import get_student_gender, get_student_number_from_id
-from .utils import get_korean_name
+from .utils import get_korean_name, calculate_paps_grade, process_measurement_data
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 종목별 템플릿 매핑
 ACTIVITY_TEMPLATE_MAP = {
@@ -180,3 +188,299 @@ def paps_measure_activity_view(request, activity_id):
         print(f"Error in paps_measure_activity_view: {str(e)}")
         messages.error(request, f'측정 화면을 불러오는 중 오류가 발생했습니다: {str(e)}')
         return redirect('physical_education:paps_measure')
+
+
+# ==================== PAPS 체험하기 기능 ====================
+
+class DemoSessionManager:
+    """Django 세션 기반 체험 데이터 관리 - PAPSRecord 구조와 동일"""
+    
+    SESSION_KEY = 'paps_demo_records'
+    SELECTED_ACTIVITY_KEY = 'paps_demo_selected_activity'
+    
+    @staticmethod
+    def get_demo_students():
+        """가상 학생 데이터 생성 (캐시 적용)"""
+        cache_key = 'paps_demo_students'
+        students = cache.get(cache_key)
+        
+        if students is None:
+            students = [
+                {'id': 1, 'name': '김민수', 'gender': 'M', 'number': 1, 'grade': 4},
+                {'id': 2, 'name': '이지혜', 'gender': 'F', 'number': 2, 'grade': 4},
+                {'id': 3, 'name': '박준호', 'gender': 'M', 'number': 3, 'grade': 4},
+                {'id': 4, 'name': '최서연', 'gender': 'F', 'number': 4, 'grade': 4},
+                {'id': 5, 'name': '정우진', 'gender': 'M', 'number': 5, 'grade': 4},
+                {'id': 6, 'name': '한소영', 'gender': 'F', 'number': 6, 'grade': 4},
+                {'id': 7, 'name': '윤대호', 'gender': 'M', 'number': 7, 'grade': 4},
+                {'id': 8, 'name': '강예린', 'gender': 'F', 'number': 8, 'grade': 4},
+                {'id': 9, 'name': '조현민', 'gender': 'M', 'number': 9, 'grade': 4},
+                {'id': 10, 'name': '송하은', 'gender': 'F', 'number': 10, 'grade': 4}
+            ]
+            cache.set(cache_key, students, 300)  # 5분 캐시
+        return students
+    
+    @classmethod
+    def _get_record_key(cls, student_id, activity_name):
+        """세션 키 생성: student_id_activity_name 형식"""
+        return f"{student_id}_{activity_name}"
+    
+    @classmethod
+    def get_session_records(cls, request):
+        """세션에서 체험 기록 조회 - PAPSRecord 형태"""
+        return request.session.get(cls.SESSION_KEY, {})
+    
+    @classmethod
+    def save_record(cls, request, student_id, activity_name, activity_id, measurement_data, evaluation_grade):
+        """측정 기록을 세션에 저장 - PAPSRecord 구조와 동일"""
+        # 세션 만료 시간 설정 (1시간)
+        request.session.set_expiry(3600)
+        
+        records = cls.get_session_records(request)
+        record_key = cls._get_record_key(student_id, activity_name)
+        
+        # PAPSRecord 모델과 동일한 구조로 저장
+        records[record_key] = {
+            'student_id': student_id,
+            'activity_id': str(activity_id),
+            'activity_name': activity_name,  # 편의를 위해 추가
+            'student_grade': 4,  # 초4 고정
+            'measurement_data': measurement_data,
+            'evaluation_grade': evaluation_grade,
+            'measured_at': timezone.now().isoformat(),
+            'notes': ''
+        }
+        print(f"Saved demo record: {records}")
+        
+        # 세션에 저장 (db 백엔드 사용으로 크기 제한 없음)
+        request.session[cls.SESSION_KEY] = records
+        request.session.modified = True
+    
+    @classmethod
+    def get_student_record(cls, request, student_id, activity_name):
+        """특정 학생의 특정 종목 기록 조회"""
+        records = cls.get_session_records(request)
+        record_key = cls._get_record_key(student_id, activity_name)
+        return records.get(record_key)
+    
+    @classmethod
+    def get_student_all_records(cls, request, student_id):
+        """특정 학생의 모든 기록 조회"""
+        records = cls.get_session_records(request)
+        student_records = {}
+        
+        for _, record in records.items():
+            if record['student_id'] == student_id:
+                activity_name = record['activity_name']
+                student_records[activity_name] = record
+        
+        return student_records
+    
+    @classmethod
+    def reset_all_data(cls, request):
+        """모든 체험 데이터 초기화"""
+        request.session.pop(cls.SESSION_KEY, None)
+        return True
+    
+    @classmethod
+    def save_selected_activity(cls, request, activity_name):
+        """선택한 종목을 세션에 저장"""
+        request.session[cls.SELECTED_ACTIVITY_KEY] = activity_name
+        request.session.modified = True
+    
+    @classmethod
+    def get_selected_activity(cls, request):
+        """세션에서 선택한 종목 조회"""
+        return request.session.get(cls.SELECTED_ACTIVITY_KEY)
+
+def demo_measurement_view(request):
+    """PAPS 측정 체험하기 메인 페이지"""
+    try:
+        # 필수평가 종목 11개만 조회 (캐시 적용)
+        cache_key = 'paps_required_activities'
+        required_activities = cache.get(cache_key)
+        
+        if required_activities is None:
+            required_activities = list(PAPSActivity.objects.filter(
+                category_id__in=PAPSCategory.objects.filter(
+                    evaluation_type=PAPSCategory.REQUIRED
+                ).values_list('id', flat=True)
+            ).order_by('name'))
+            cache.set(cache_key, required_activities, 3600)  # 1시간 캐시
+
+        # 가상 학생 데이터 생성
+        demo_students = DemoSessionManager.get_demo_students()
+
+        # 세션에서 선택된 종목 확인
+        selected_activity_name = DemoSessionManager.get_selected_activity(request)
+        
+        if selected_activity_name and required_activities:
+            # 해당 종목이 실제로 존재하는지 확인
+            default_activity = next(
+                (act for act in required_activities if act.name == selected_activity_name),
+                required_activities[0]
+            )
+        else:
+            default_activity = required_activities[0] if required_activities else None
+
+        context = {
+            'is_demo': True,
+            'activities': required_activities,
+            'students': demo_students,
+            'default_activity': default_activity,
+        }
+
+        return render(request, 'physical_education/paps/demo/measurement/measurement.html', context)
+        
+    except Exception as e:
+        logger.error(f"체험 페이지 로드 실패: {str(e)}")
+        return render(request, 'physical_education/paps/demo/measurement/error.html', {
+            'error_message': '페이지를 불러오는 중 오류가 발생했습니다.'
+        })
+
+def demo_activity_view(request):
+    """종목별 측정 화면 동적 로드 - 기존 템플릿 재사용"""
+    activity_name = request.GET.get('activity', '').strip()
+    
+    if not activity_name:
+        return HttpResponse("종목을 선택해주세요.", status=400)
+
+    try:
+        activity = get_object_or_404(PAPSActivity, name=activity_name)
+        
+        # 선택한 종목을 세션에 저장
+        DemoSessionManager.save_selected_activity(request, activity_name)
+        
+        # 기존 종목별 템플릿 그대로 사용
+        activity_template = f'physical_education/teachers/paps/measurement/activities/{activity_name.lower()}.html'
+        
+        # 가상 학생 데이터
+        demo_students = DemoSessionManager.get_demo_students()
+        
+        # 학생 데이터에 기존 측정 결과 추가 (PAPSRecord 구조 활용)
+        for student in demo_students:
+            student_id = student['id']
+            existing_record = DemoSessionManager.get_student_record(request, student_id, activity_name)
+            
+            if existing_record:
+                student['measurement_data'] = existing_record['measurement_data']
+                student['evaluation_grade'] = existing_record['evaluation_grade']
+                student['record'] = True
+            else:
+                student['measurement_data'] = {}
+                student['evaluation_grade'] = None
+                student['record'] = False
+
+        # JavaScript용 JSON 데이터 준비 (paps_measure_activity_view와 동일하게)
+        students_data_for_json = []
+        for student_data in demo_students:
+            json_safe_data = {k: v for k, v in student_data.items()}
+            students_data_for_json.append(json_safe_data)
+
+        context = {
+            'is_demo': True,  # 체험 모드 플래그
+            'activity': activity,
+            'students': demo_students,
+            'school_year': 2025,
+            'grade': 4,  # 초4 고정
+            'total_students': len(demo_students),
+            'measured_students': sum(1 for s in demo_students if s['record']),
+            'class_info': {'grade': '초4', 'class_number': '체험'},
+            # 체험 모드에서는 세션 관련 정보를 가짜로 제공
+            'session': {'id': 'demo', 'name': '체험 모드'},
+            'session_id': 'demo',
+            'activity_id': str(activity.id),
+            'class_id': 1,  # 숫자로 변경 (JavaScript 에러 방지)
+            'csrf_token': '',  # 빈 문자열이라도 제공
+            # JavaScript에서 필요한 JSON 데이터
+            'students_json': json.dumps(students_data_for_json, ensure_ascii=False),
+            'evaluation_criteria_json': json.dumps(activity.evaluation_criteria, ensure_ascii=False) if activity.evaluation_criteria else 'null',
+        }
+
+        return render(request, activity_template, context)
+
+    except PAPSActivity.DoesNotExist:
+        return HttpResponse("존재하지 않는 종목입니다.", status=404)
+    except Exception as e:
+        logger.error(f"종목 로드 실패 ({activity_name}): {str(e)}")
+        return HttpResponse("종목을 불러오는 중 오류가 발생했습니다.", status=500)
+
+@csrf_exempt  # 체험 모드는 CSRF 제외
+@transaction.atomic  # 동시성 이슈 방지
+def demo_save_measurement(request):
+    """체험 모드 측정 데이터 저장 API - 실제 API와 동일한 구조"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST 요청만 허용됩니다.'})
+    
+    try:
+        data = json.loads(request.body)
+        
+        student_id = data.get('student_id')
+        activity_id = data.get('activity_id')
+        measurement_data = data.get('measurement_data', {})
+        print(f"Received demo save request: student_id={student_id}, activity_id={activity_id}, data={measurement_data}")
+        
+        # 필수 파라미터 검증
+        if not all([student_id, activity_id]):
+            return JsonResponse({
+                'success': False, 
+                'error': '필수 파라미터가 누락되었습니다.'
+            })
+        
+        # 학생 성별 정보 가져오기 (체험 모드는 가상 학생 데이터에서)
+        demo_students = DemoSessionManager.get_demo_students()
+        student = next((s for s in demo_students if s['id'] == int(student_id)), None)
+        student_gender = student['gender'] if student else 'M'  # 기본값 M
+        print(f"Student gender: {student_gender}")
+        
+        # 활동 정보 조회
+        activity = get_object_or_404(PAPSActivity, id=activity_id)
+        
+        # 입력값 검증 및 처리 (기존 utils.py 함수 재사용)
+        processed_data = process_measurement_data(activity.name, measurement_data, 4)  # 초4 고정
+        
+        # 등급 계산 (기존 utils.py 함수 재사용)
+        print(f"processed_data: {processed_data}")
+        grade_result = calculate_paps_grade(activity, processed_data, 4)
+        print(f"Grade result: {grade_result}")
+        
+        # 성별에 따른 등급 추출
+        evaluation_grade = None
+        if grade_result and 'error' not in grade_result:
+            # 학생 성별에 따라 적절한 등급 선택
+            if student_gender == 'F':
+                grade_code = grade_result.get('female_grade_code')
+            else:
+                grade_code = grade_result.get('male_grade_code')
+            
+            # grade_code가 'grade_1', 'grade_2' 등의 형태일 때 숫자만 추출
+            if grade_code and grade_code.startswith('grade_'):
+                try:
+                    evaluation_grade = int(grade_code.split('_')[1])
+                except (IndexError, ValueError):
+                    pass
+                    
+        print(f"Evaluation grade extracted: {evaluation_grade}")
+        # 세션에 저장 (PAPSRecord 구조와 동일)
+        DemoSessionManager.save_record(
+            request, 
+            student_id, 
+            activity.name,
+            activity_id,
+            processed_data,
+            evaluation_grade
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': '측정 데이터가 저장되었습니다.',
+            'evaluation_grade': evaluation_grade,
+            'processed_data': processed_data
+        })
+        
+    except Exception as e:
+        logger.error(f"체험 모드 측정 저장 실패: {str(e)}")
+        return JsonResponse({
+            'success': False, 
+            'error': '측정 데이터 저장 중 오류가 발생했습니다.'
+        })

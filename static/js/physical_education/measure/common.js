@@ -34,11 +34,16 @@ export function showToast(message, type = 'success') {
 // 학생 기록 저장 함수
 export async function saveStudentRecord(studentId, measurementData, sessionId, activityId, csrfToken) {
     try {
-        const response = await fetch('/physical_education/api/paps/save-measurement/', {
+        // API URL을 체험 모드에 따라 조건부 변경
+        const apiUrl = window.IS_DEMO 
+            ? '/physical_education/demo/api/save-measurement/'
+            : '/physical_education/api/paps/save-measurement/';
+            
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
+                ...(window.IS_DEMO ? {} : {'X-CSRFToken': csrfToken})
             },
             body: JSON.stringify({
                 session_id: sessionId,
