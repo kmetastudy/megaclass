@@ -602,7 +602,77 @@ import { showToast, saveStudentRecord, toggleEditMode, validateInput, updateMeas
             updateMeasuredCount();
             showToast('모든 기록이 저장되었습니다.', 'success');
             // Update all displays
-            location.reload(); // Refresh to show updated records
+            // Update UI for all saved records without page reload
+            for (const [studentId, record] of assignments) {
+                // 1. Update local student data structure
+                const student = students.find(s => s.id === studentId);
+                if (student) {
+                    student.record = record;
+                }
+                
+                // 2. Find and update the student's UI element
+                const studentElement = document.querySelector(`[data-student-id="${studentId}"]`);
+                if (studentElement) {
+                    // 2a. Update the display span
+                    const displaySpan = studentElement.querySelector('.measurement-display[data-field="fifty_meter_run"]');
+                    if (displaySpan) {
+                        displaySpan.textContent = `${record.toFixed(2)}초`;
+                        // Remove gray color, add indigo color for measured records
+                        displaySpan.classList.remove('text-gray-500');
+                        displaySpan.classList.add('text-indigo-600', 'font-bold');
+                    }
+                    
+                    // 2b. Update the hidden input field value (for edit mode consistency)
+                    const inputField = studentElement.querySelector('.measurement-input[data-field="fifty_meter_run"]');
+                    if (inputField) {
+                        // Store raw value in centiseconds for the input field
+                        const centiseconds = Math.round(record * 100);
+                        inputField.value = centiseconds.toString();
+                        inputField.dataset.originalValue = centiseconds.toString();
+                        
+                        // Update the visualizer if it exists
+                        const visualizerId = inputField.dataset.visualizer;
+                        if (visualizerId) {
+                            updateVisualizer(inputField);
+                        }
+                    }
+                    
+                    // 2c. Update edit button text from "입력" to "수정"
+                    const editBtn = studentElement.querySelector('.edit-btn');
+                    if (editBtn) {
+                        editBtn.textContent = '수정';
+                    }
+                    
+                    // 2d. Ensure edit mode is not active (defensive programming)
+                    const saveBtn = studentElement.querySelector('.save-btn');
+                    const cancelBtn = studentElement.querySelector('.cancel-btn');
+                    const inputContainer = studentElement.querySelector('.input-container');
+                    
+                    if (inputContainer && inputContainer.classList.contains('hidden') === false) {
+                        inputContainer.classList.add('hidden');
+                    }
+                    if (displaySpan && displaySpan.classList.contains('hidden')) {
+                        displaySpan.classList.remove('hidden');
+                    }
+                    if (editBtn && editBtn.classList.contains('hidden')) {
+                        editBtn.classList.remove('hidden');
+                    }
+                    if (saveBtn && !saveBtn.classList.contains('hidden')) {
+                        saveBtn.classList.add('hidden');
+                    }
+                    if (cancelBtn && !cancelBtn.classList.contains('hidden')) {
+                        cancelBtn.classList.add('hidden');
+                    }
+                }
+            }
+            
+            // 3. Reset live measurement state for next group
+            liveState.participants = [];
+            liveState.laps = [];
+            liveState.stopwatch = { interval: null, time: 0, isRunning: false };
+            
+            // 4. Clear assignment form data
+            assignmentContainer.innerHTML = '';
         } else {
             showToast('일부 기록 저장에 실패했습니다.', 'error');
         }
