@@ -635,6 +635,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // ================ 학년별 종목 제한 체크 ================
+    function isActivityDisabledForGrade(activityName, grade) {
+        // 학년별 종목 제한 규칙
+        // 초4 = grade 4, 초5 = grade 5, 초6 = grade 6, 중1 = grade 7
+        const restrictions = {
+            'LONG_RUN_WALK': 5,     // 오래달리기 걷기: 초5 이상
+            'SIT_REACH': 5,          // 앉아윗몸앞으로굽히기: 초5 이상
+            'PUSH_UP': 7             // 팔굽혀펴기: 중1 이상
+        };
+        return restrictions[activityName] && grade < restrictions[activityName];
+    }
+    
     function renderActivityForm(formData) {
         // 기존과 동일한 렌더링 로직, 하지만 컨테이너가 다름
         let html = renderActivityHTML(formData);
@@ -670,14 +682,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 category.activities.forEach(activity => {
                     const isSelected = gradeInfo.selected_value === activity.id;
+                    const isDisabled = isActivityDisabledForGrade(activity.name, gradeInfo.grade);
+                    const disabledClasses = isDisabled ? 'bg-gray-100 border-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer';
+                    const selectedClasses = isSelected && !isDisabled ? 'bg-blue-50 border-blue-300' : '';
+                    const textClass = isDisabled ? 'text-gray-400' : 'text-gray-700';
+                    
                     html += `
-                        <label class="flex items-center p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 border-blue-300' : ''}">
+                        <label class="flex items-center p-3 border border-gray-200 rounded-md transition-colors ${disabledClasses} ${selectedClasses}">
                             <input type="radio" 
                                    name="${gradeInfo.field_name}"
                                    value="${activity.id}"
                                    class="text-blue-600 focus:ring-blue-500 mr-3 activity-input"
-                                   ${isSelected ? 'checked' : ''}>
-                            <span class="text-sm text-gray-700">${activity.display_name}</span>
+                                   ${isSelected ? 'checked' : ''}
+                                   ${isDisabled ? 'disabled' : ''}>
+                            <span class="text-sm ${textClass}">${activity.display_name}</span>
                         </label>
                     `;
                 });
@@ -716,14 +734,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     category.activities.forEach(activity => {
                         const isSelected = gradeInfo.selected_value === activity.id;
+                        const isDisabled = isActivityDisabledForGrade(activity.name, gradeInfo.grade);
+                        const disabledClasses = isDisabled ? 'bg-gray-100 border-gray-300 cursor-not-allowed' : 'hover:bg-gray-50 cursor-pointer';
+                        const selectedClasses = isSelected && !isDisabled ? 'bg-green-50 border-green-300' : '';
+                        const textClass = isDisabled ? 'text-gray-400' : 'text-gray-700';
+                        
                         html += `
-                            <label class="flex items-center p-3 border border-gray-200 rounded-md hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-green-50 border-green-300' : ''}">
+                            <label class="flex items-center p-3 border border-gray-200 rounded-md transition-colors ${disabledClasses} ${selectedClasses}">
                                 <input type="checkbox" 
                                        name="${gradeInfo.field_name}"
                                        value="${activity.id}"
                                        class="text-green-600 focus:ring-green-500 mr-3 activity-input"
-                                       ${isSelected ? 'checked' : ''}>
-                                <span class="text-sm text-gray-700">${activity.display_name}</span>
+                                       ${isSelected ? 'checked' : ''}
+                                       ${isDisabled ? 'disabled' : ''}>
+                                <span class="text-sm ${textClass}">${activity.display_name}</span>
                             </label>
                         `;
                     });
