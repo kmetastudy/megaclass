@@ -17,9 +17,10 @@ from .models import (
     PAPSRecord,
     PAPSCategory,
 )
+from .excel_utils import create_paps_excel_workbook, prepare_demo_data_for_excel
 from accounts.models import ClassTeacher, Class, Student
 from .views import get_student_gender, get_student_number_from_id
-from .utils import get_korean_name, calculate_paps_grade, process_measurement_data
+from .utils import get_korean_name, calculate_paps_grade, process_measurement_data, DemoSessionManager
 import json
 import logging
 
@@ -191,107 +192,6 @@ def paps_measure_activity_view(request, activity_id):
 
 
 # ==================== PAPS 체험하기 기능 ====================
-
-class DemoSessionManager:
-    """Django 세션 기반 체험 데이터 관리 - PAPSRecord 구조와 동일"""
-    
-    SESSION_KEY = 'paps_demo_records'
-    SELECTED_ACTIVITY_KEY = 'paps_demo_selected_activity'
-    
-    @staticmethod
-    def get_demo_students():
-        """가상 학생 데이터 생성 (캐시 적용)"""
-        cache_key = 'paps_demo_students'
-        students = cache.get(cache_key)
-        
-        if students is None:
-            students = [
-                {'id': 1, 'name': '김민수', 'gender': 'M', 'number': 1, 'grade': 4},
-                {'id': 2, 'name': '이지혜', 'gender': 'F', 'number': 2, 'grade': 4},
-                {'id': 3, 'name': '박준호', 'gender': 'M', 'number': 3, 'grade': 4},
-                {'id': 4, 'name': '최서연', 'gender': 'F', 'number': 4, 'grade': 4},
-                {'id': 5, 'name': '정우진', 'gender': 'M', 'number': 5, 'grade': 4},
-                {'id': 6, 'name': '한소영', 'gender': 'F', 'number': 6, 'grade': 4},
-                {'id': 7, 'name': '윤대호', 'gender': 'M', 'number': 7, 'grade': 4},
-                {'id': 8, 'name': '강예린', 'gender': 'F', 'number': 8, 'grade': 4},
-                {'id': 9, 'name': '조현민', 'gender': 'M', 'number': 9, 'grade': 4},
-                {'id': 10, 'name': '송하은', 'gender': 'F', 'number': 10, 'grade': 4}
-            ]
-            cache.set(cache_key, students, 300)  # 5분 캐시
-        return students
-    
-    @classmethod
-    def _get_record_key(cls, student_id, activity_name):
-        """세션 키 생성: student_id_activity_name 형식"""
-        return f"{student_id}_{activity_name}"
-    
-    @classmethod
-    def get_session_records(cls, request):
-        """세션에서 체험 기록 조회 - PAPSRecord 형태"""
-        return request.session.get(cls.SESSION_KEY, {})
-    
-    @classmethod
-    def save_record(cls, request, student_id, activity_name, activity_id, measurement_data, evaluation_grade):
-        """측정 기록을 세션에 저장 - PAPSRecord 구조와 동일"""
-        # 세션 만료 시간 설정 (1시간)
-        request.session.set_expiry(3600)
-        
-        records = cls.get_session_records(request)
-        record_key = cls._get_record_key(student_id, activity_name)
-        
-        # PAPSRecord 모델과 동일한 구조로 저장
-        records[record_key] = {
-            'student_id': student_id,
-            'activity_id': str(activity_id),
-            'activity_name': activity_name,  # 편의를 위해 추가
-            'student_grade': 4,  # 초4 고정
-            'measurement_data': measurement_data,
-            'evaluation_grade': evaluation_grade,
-            'measured_at': timezone.now().isoformat(),
-            'notes': ''
-        }
-        print(f"Saved demo record: {records}")
-        
-        # 세션에 저장 (db 백엔드 사용으로 크기 제한 없음)
-        request.session[cls.SESSION_KEY] = records
-        request.session.modified = True
-    
-    @classmethod
-    def get_student_record(cls, request, student_id, activity_name):
-        """특정 학생의 특정 종목 기록 조회"""
-        records = cls.get_session_records(request)
-        record_key = cls._get_record_key(student_id, activity_name)
-        return records.get(record_key)
-    
-    @classmethod
-    def get_student_all_records(cls, request, student_id):
-        """특정 학생의 모든 기록 조회"""
-        records = cls.get_session_records(request)
-        student_records = {}
-        
-        for _, record in records.items():
-            if record['student_id'] == student_id:
-                activity_name = record['activity_name']
-                student_records[activity_name] = record
-        
-        return student_records
-    
-    @classmethod
-    def reset_all_data(cls, request):
-        """모든 체험 데이터 초기화"""
-        request.session.pop(cls.SESSION_KEY, None)
-        return True
-    
-    @classmethod
-    def save_selected_activity(cls, request, activity_name):
-        """선택한 종목을 세션에 저장"""
-        request.session[cls.SELECTED_ACTIVITY_KEY] = activity_name
-        request.session.modified = True
-    
-    @classmethod
-    def get_selected_activity(cls, request):
-        """세션에서 선택한 종목 조회"""
-        return request.session.get(cls.SELECTED_ACTIVITY_KEY)
 
 def demo_measurement_view(request):
     """PAPS 측정 체험하기 메인 페이지"""
@@ -483,4 +383,38 @@ def demo_save_measurement(request):
         return JsonResponse({
             'success': False, 
             'error': '측정 데이터 저장 중 오류가 발생했습니다.'
+        })
+
+
+def demo_export_excel(request):
+    """
+    체험판 PAPS 측정 데이터를 Excel 파일로 export
+    GET /demo/api/export-excel/
+    """
+    try:
+        # 체험판 데이터 준비
+        headers, rows = prepare_demo_data_for_excel(request)
+        
+        # 데이터가 없는 경우 처리
+        if not rows:
+            return JsonResponse({
+                'success': False,
+                'error': '체험 데이터가 없습니다. 먼저 측정을 체험해 보세요.'
+            })
+        
+        # 파일명 생성 (현재 날짜 포함)
+        current_date = timezone.now().strftime("%Y%m%d")
+        filename = f"PAPS_체험판_측정데이터_{current_date}.xlsx"
+        
+        # Excel 파일 생성 및 다운로드
+        return create_paps_excel_workbook(headers, rows, filename)
+        
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"체험판 Excel export 실패: {str(e)}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': f'Excel 파일 생성 중 오류가 발생했습니다: {str(e)}'
         })

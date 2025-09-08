@@ -18,7 +18,7 @@ from .models import (
 )
 from accounts.models import Student, Class
 from .forms import PAPSActivitySelectionForm
-from .utils import get_korean_name
+from .utils import get_korean_name, get_grade_display
 
 
 # ================= PAPSSessionActivity 관리 API =================
@@ -573,14 +573,6 @@ def api_get_session_activities(request):
 
 # ================= 헬퍼 함수 =================
 
-def get_grade_display(grade):
-    """학년 숫자를 한글 표시로 변환"""
-    if grade <= 6:
-        return f"초등 {grade}학년"
-    elif grade <= 9:
-        return f"중학 {grade - 6}학년"
-    else:
-        return f"고등 {grade - 9}학년"
 
 
 # ================= 엑셀 Export API =================
