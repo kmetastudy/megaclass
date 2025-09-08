@@ -50,6 +50,16 @@ def get_grade_from_number(grade_number: int) -> str:
     return grade_mapping.get(grade_number, f"학년{grade_number}")
 
 
+def get_grade_display(grade: int) -> str:
+    """학년 숫자를 한글 표시로 변환 (Excel export용)"""
+    if grade <= 6:
+        return f"초등 {grade}학년"
+    elif grade <= 9:
+        return f"중학 {grade - 6}학년"
+    else:
+        return f"고등 {grade - 9}학년"
+
+
 def get_age_from_grade(grade_number: int) -> int:
     """학년에서 나이 계산 (대략적)"""
     return grade_number + 6
@@ -788,3 +798,110 @@ def get_temporary_gender_info() -> Dict[str, str]:
         'gender_status': 'both',
         'message': '성별 정보가 없어 남녀 등급을 모두 표시합니다'
     }
+
+
+# ==================== 체험판 세션 관리 ====================
+
+class DemoSessionManager:
+    """Django 세션 기반 체험 데이터 관리 - PAPSRecord 구조와 동일"""
+    
+    SESSION_KEY = 'paps_demo_records'
+    SELECTED_ACTIVITY_KEY = 'paps_demo_selected_activity'
+    
+    @staticmethod
+    def get_demo_students():
+        """가상 학생 데이터 생성 (캐시 적용)"""
+        from django.core.cache import cache
+        
+        cache_key = 'paps_demo_students'
+        students = cache.get(cache_key)
+        
+        if students is None:
+            students = [
+                {'id': 1, 'name': '김민수', 'gender': 'M', 'number': 1, 'grade': 4},
+                {'id': 2, 'name': '이지혜', 'gender': 'F', 'number': 2, 'grade': 4},
+                {'id': 3, 'name': '박준호', 'gender': 'M', 'number': 3, 'grade': 4},
+                {'id': 4, 'name': '최서연', 'gender': 'F', 'number': 4, 'grade': 4},
+                {'id': 5, 'name': '정우진', 'gender': 'M', 'number': 5, 'grade': 4},
+                {'id': 6, 'name': '한소영', 'gender': 'F', 'number': 6, 'grade': 4},
+                {'id': 7, 'name': '윤대호', 'gender': 'M', 'number': 7, 'grade': 4},
+                {'id': 8, 'name': '강예린', 'gender': 'F', 'number': 8, 'grade': 4},
+                {'id': 9, 'name': '조현민', 'gender': 'M', 'number': 9, 'grade': 4},
+                {'id': 10, 'name': '송하은', 'gender': 'F', 'number': 10, 'grade': 4}
+            ]
+            cache.set(cache_key, students, 300)  # 5분 캐시
+        return students
+    
+    @classmethod
+    def _get_record_key(cls, student_id, activity_name):
+        """세션 키 생성: student_id_activity_name 형식"""
+        return f"{student_id}_{activity_name}"
+    
+    @classmethod
+    def get_session_records(cls, request):
+        """세션에서 체험 기록 조회 - PAPSRecord 형태"""
+        return request.session.get(cls.SESSION_KEY, {})
+    
+    @classmethod
+    def save_record(cls, request, student_id, activity_name, activity_id, measurement_data, evaluation_grade):
+        """측정 기록을 세션에 저장 - PAPSRecord 구조와 동일"""
+        from django.utils import timezone
+        
+        # 세션 만료 시간 설정 (1시간)
+        request.session.set_expiry(3600)
+        
+        records = cls.get_session_records(request)
+        record_key = cls._get_record_key(student_id, activity_name)
+        
+        # PAPSRecord 모델과 동일한 구조로 저장
+        records[record_key] = {
+            'student_id': student_id,
+            'activity_id': str(activity_id),
+            'activity_name': activity_name,  # 편의를 위해 추가
+            'student_grade': 4,  # 초4 고정
+            'measurement_data': measurement_data,
+            'evaluation_grade': evaluation_grade,
+            'measured_at': timezone.now().isoformat(),
+            'notes': ''
+        }
+        
+        # 세션에 저장 (db 백엔드 사용으로 크기 제한 없음)
+        request.session[cls.SESSION_KEY] = records
+        request.session.modified = True
+    
+    @classmethod
+    def get_student_record(cls, request, student_id, activity_name):
+        """특정 학생의 특정 종목 기록 조회"""
+        records = cls.get_session_records(request)
+        record_key = cls._get_record_key(student_id, activity_name)
+        return records.get(record_key)
+    
+    @classmethod
+    def get_student_all_records(cls, request, student_id):
+        """특정 학생의 모든 기록 조회"""
+        records = cls.get_session_records(request)
+        student_records = {}
+        
+        for _, record in records.items():
+            if record['student_id'] == student_id:
+                activity_name = record['activity_name']
+                student_records[activity_name] = record
+        
+        return student_records
+    
+    @classmethod
+    def reset_all_data(cls, request):
+        """모든 체험 데이터 초기화"""
+        request.session.pop(cls.SESSION_KEY, None)
+        return True
+    
+    @classmethod
+    def save_selected_activity(cls, request, activity_name):
+        """선택한 종목을 세션에 저장"""
+        request.session[cls.SELECTED_ACTIVITY_KEY] = activity_name
+        request.session.modified = True
+    
+    @classmethod
+    def get_selected_activity(cls, request):
+        """세션에서 선택한 종목 조회"""
+        return request.session.get(cls.SELECTED_ACTIVITY_KEY)

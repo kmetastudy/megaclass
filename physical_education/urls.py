@@ -201,4 +201,5 @@ urlpatterns = [
     path("demo/", measurement_views.demo_measurement_view, name="demo_measurement"),
     path("demo/activity/", measurement_views.demo_activity_view, name="demo_activity"),
     path("demo/api/save-measurement/", measurement_views.demo_save_measurement, name="demo_save_measurement"),
+    path("demo/api/export-excel/", measurement_views.demo_export_excel, name="demo_export_excel"),
 ]
