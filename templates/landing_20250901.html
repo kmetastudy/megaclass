@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -84,6 +83,11 @@
             line-height: 1.5;
         }
         
+        .stats-number {
+            font-size: 3rem;
+            font-weight: 900;
+            line-height: 1;
+        }
         
         .floating-demo {
             position: fixed;
@@ -165,6 +169,9 @@
                 font-size: 1.5rem;
                 line-height: 1.4;
                 word-break: keep-all;
+            }
+            .stats-number {
+                font-size: 2rem;
             }
             .section-spacing {
                 padding: 2rem 0;
@@ -253,34 +260,9 @@
             100% { transform: rotate(360deg); }
         }
         
-        .btn-hero {
-            background-color: #482be7;
-            border-radius: 100px;
+        .animated-counter {
+            transition: all 0.5s ease;
         }
-        
-        .btn-hero:hover {
-            background-color: #3a23c4;
-        }
-        
-        .text-subtitle {
-            color: rgba(21, 20, 57, 0.4);
-        }
-        
-        .text-hero-title {
-            color: #1e0e62;
-            letter-spacing: -1px;
-        }
-        
-        .hero-section-height {
-            min-height: 80vh; /* Mobile/tablet default */
-        }
-        
-        @media (min-width: 1024px) { /* lg breakpoint */
-            .hero-section-height {
-                min-height: 50vh; /* Desktop */
-            }
-        }
-        
     </style>
 </head>
 <body class="bg-white text-gray-800">
@@ -369,76 +351,42 @@
     </div>
 
     <!-- Hero Section -->
-    {% comment %} <section class="gradient-bg text-white section-spacing pt-20 md:pt-16 relative overflow-hidden">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
+    <section class="gradient-bg text-white section-spacing pt-20 md:pt-16">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="hero-title text-4xl md:text-5xl font-black mb-4">
+                선생님, 혹시 아직도 PAPS 기록을<br class="hidden sm:block"> 수기로 하시나요?
+            </h1>
+            <p class="hero-subtitle text-xl md:text-2xl mb-2 font-bold">
+                PAPS 행정 업무 80% 감소, 수업은 더 즐겁고 유익하게!
+            </p>
+            <p class="text-base md:text-lg mb-8 opacity-90 max-w-4xl mx-auto">
+                PAPS 측정·분석부터 학생들이 먼저 찾는 게임형 수업으로 체육 학습 이론까지 올인원 솔루션.
+            </p>
             
-            <div class="text-center md:text-left md:w-1/2 lg:w-1/2 z-10 mb-8 md:mb-0">
-                <h1 class="hero-title text-3xl md:text-4xl lg:text-4xl font-black mb-4 leading-tight">
-                    PAPS 기록, 아직도 수기로 하시나요?
-                </h1>
-                <p class="hero-subtitle text-xl md:text-2xl lg:text-3xl mb-2 font-bold opacity-95">
-                    PAPS 행정 업무 80% 감소, 수업은 더 즐겁고 유익하게!
-                </p>
-                <p class="text-base md:text-lg mb-8 opacity-80 max-w-lg md:max-w-none mx-auto md:mx-0">
-                    PAPS 측정·분석부터 학생들이 먼저 찾는 게임형 수업으로 체육 학습 이론까지 올인원 솔루션.
-                </p>
-                
-                <div class="mb-8 md:mb-0">
-                    <button class="btn-secondary font-bold py-4 px-8 rounded-full text-lg mb-2 inline-block shadow-lg hover:shadow-xl transition-shadow duration-300" onclick="openDemoModal()">
-                        <i class="fas fa-play-circle mr-2"></i>우리 학교 무료 데모 신청하기
-                    </button>
-                    <p class="text-sm opacity-70 mt-2">지금 신청하면 1학기 무료 도입 혜택까지!</p>
+            <div class="mb-8">
+                <button class="btn-secondary font-bold py-4 px-8 rounded-full text-lg mb-2 inline-block" onclick="openDemoModal()">
+                    <i class="fas fa-play-circle mr-2"></i>우리 학교 무료 데모 신청하기
+                </button>
+                <p class="text-sm opacity-80">지금 신청하면 1학기 무료 도입 혜택까지!</p>
+            </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+                <div class="text-center">
+                    <div class="stats-number mb-2 animated-counter" data-target="150">0</div>
+                    <div class="text-sm opacity-80">참여 학교</div>
+                </div>
+                <div class="text-center">
+                    <div class="stats-number mb-2 animated-counter" data-target="5000">0</div>
+                    <div class="text-sm opacity-80">활용 사용자</div>
+                </div>
+                <div class="text-center">
+                    <div class="stats-number mb-2 animated-counter" data-target="80">0</div>
+                    <div class="text-sm opacity-80">업무 단축률(%)</div>
                 </div>
             </div>
-
-            <div class="md:w-1/2 lg:w-1/2 relative">
-                <img src="{% static 'img/normal/paps_character.png' %}" alt="즐겁게 운동하는 아이들" class="hidden md:block absolute right-10 top-1/2 transform -translate-y-1/2 w-[250px] lg:w-[300px] xl:w-[350px] max-h-[250px] lg:max-h-[300px] opacity-95 drop-shadow-2xl">
-            </div>
-            
         </div>
-    </section> {% endcomment %}
-
-    <!-- Hero Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-16">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center hero-section-height">
-          <!-- Text Content -->
-          <div class="flex flex-col justify-center space-y-6 lg:space-y-8 order-1 lg:order-1 text-center lg:text-left">
-            <!-- Main Headline -->
-            <h1 class="font-bold text-3xl sm:text-4xl lg:text-5xl xl:text-6xl text-hero-title leading-tight">
-              PAPS기록, 아직도 수기로 하시나요?
-            </h1>
-
-            <!-- Subheadline -->
-            <p class="font-medium text-base sm:text-lg lg:text-xl text-subtitle leading-relaxed">
-              PAPS 행정 업무 80% 감소, 수업은 더 즐겁고 유익하게!
-            </p>
-            <p class="font-medium text-base sm:text-lg lg:text-xl text-subtitle leading-relaxed">
-              PAPS 측정·분석부터 학생들이 먼저 찾는 게임형 수업으로 체육 학습 이론까지 올인원 솔루션.
-            </p>
-            
-            <!-- CTA Button -->
-            <div class="flex justify-center lg:justify-start">
-              <button class="btn-hero transition-colors duration-200 px-6 sm:px-8 py-3 sm:py-4 cursor-pointer">
-                <a href="/physical_education/demo/" class="font-medium text-lg sm:text-xl text-white leading-tight">
-                  체험하기
-                </a>
-              </button>
-            </div>
-          </div>
-
-          <!-- Hero Image -->
-          <div class="flex justify-center items-center order-2 lg:order-2">
-            <div class="w-full max-w-lg lg:max-w-none">
-              <img 
-                src="{% static 'img/normal/paps_cropped_rectangle.png' %}"
-                alt="PAPS 아이들 운동 일러스트"
-                class="w-full h-auto object-contain"
-              />
-            </div>
-          </div>
-
-        </div>
-      </div>
+    </section>
 
     <!-- Problem Section -->
     <section class="section-spacing bg-gray-50">
@@ -857,7 +805,38 @@
     </div>
 
     <script>
+        // 숫자 카운터 애니메이션
+        function animateCounters() {
+            const counters = document.querySelectorAll('.animated-counter');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+                
+                const timer = setInterval(() => {
+                    current += step;
+                    if (current >= target) {
+                        counter.textContent = target + (counter.textContent.includes('%') ? '%' : '+');
+                        clearInterval(timer);
+                    } else {
+                        counter.textContent = Math.floor(current) + (counter.textContent.includes('%') ? '%' : '+');
+                    }
+                }, 16);
+            });
+        }
 
+        // 스크롤 시 카운터 애니메이션 실행
+        function handleScroll() {
+            const counters = document.querySelectorAll('.animated-counter');
+            const firstCounter = counters[0];
+            const rect = firstCounter.getBoundingClientRect();
+            
+            if (rect.top < window.innerHeight && rect.bottom > 0) {
+                animateCounters();
+                window.removeEventListener('scroll', handleScroll);
+            }
+        }
 
         // 스크롤 탑 버튼
         function scrollToTop() {
@@ -1255,6 +1234,8 @@
             // 차트 초기화
             initializeCharts();
             
+            // 스크롤 이벤트
+            window.addEventListener('scroll', handleScroll);
             
             // 스크롤 탑 버튼 표시/숨김
             window.addEventListener('scroll', function() {
