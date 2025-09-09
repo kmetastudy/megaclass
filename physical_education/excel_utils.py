@@ -164,6 +164,10 @@ def prepare_demo_data_for_excel(request):
             else:
                 field_value = ''
             
+            # boolean 값을 0/1로 변환
+            if isinstance(field_value, bool):
+                field_value = 1 if field_value else 0
+            
             row.append(field_value)
         
         rows.append(row)
