@@ -15,6 +15,21 @@ if (!window.PAPSTabulator) {
     window.PAPSTabulator = {};
 }
 
+window.PAPSTabulator.checkboxFormatter = function(cell){
+    const value = cell.getValue();
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = value;
+    checkbox.style.cursor = "pointer";
+
+    checkbox.addEventListener("click", function(e) {
+        e.stopPropagation();
+        cell.setValue(!cell.getValue());
+    });
+
+    return checkbox
+}
+
 // 전역 등급 formatter 함수
 window.PAPSTabulator.gradeFormatter = function(cell) {
     const grade = cell.getValue();
@@ -207,7 +222,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                         minWidth: 60,
                         hozAlign: "center",
                         resizable: true,
-                        editor: "tickCross"
+                        formatter: window.PAPSTabulator.checkboxFormatter
                     },
                     {
                         title: "심박수(1)<br>(회/분)",
@@ -319,7 +334,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
@@ -328,7 +343,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
                     },
@@ -343,7 +358,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
@@ -352,7 +367,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
                     },
@@ -367,7 +382,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
@@ -376,7 +391,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
                     },
@@ -391,7 +406,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
@@ -400,7 +415,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                                 minWidth: 50,
                                 hozAlign: "center",
                                 resizable: true,
-                                editor: "tickCross"
+                                formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
                     },
@@ -970,7 +985,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 minWidth: 60,
                 hozAlign: "center",
                 resizable: true,
-                editor: "tickCross"
+                formatter: window.PAPSTabulator.checkboxFormatter
             },
             {
                 title: "문진2",
@@ -979,7 +994,7 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                 minWidth: 60,
                 hozAlign: "center",
                 resizable: true,
-                editor: "tickCross"
+                formatter: window.PAPSTabulator.checkboxFormatter
             }
         ],
 
