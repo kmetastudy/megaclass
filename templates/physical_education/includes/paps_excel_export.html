@@ -153,7 +153,15 @@ const ExcelExporter = {
                     // 측정값 추가
                     if (columns && Array.isArray(columns)) {
                         columns.forEach(col => {
-                            const fieldValue = row[col.field] || '';
+                            let fieldValue = row[col.field];
+                            
+                            // boolean 값을 0/1로 변환
+                            if (typeof fieldValue === 'boolean') {
+                                fieldValue = fieldValue ? 1 : 0;
+                            } else if (fieldValue === null || fieldValue === undefined) {
+                                fieldValue = '';
+                            }
+                            
                             rowData.push(fieldValue);
                         });
                     }
