@@ -51,16 +51,21 @@ window.PAPSTabulator.gradeFormatter = function(cell) {
 
 // PAPS Tabulator configuration
 window.PAPSTabulator.config = {
-    ...window.PETabulator.defaultConfig,
-    layout: "fitColumns", // Scale columns to fit table width
-    responsiveLayout: "collapse",
-    responsiveLayoutCollapseStartOpen: false,
+    //...window.PETabulator.defaultConfig,
+    //layout: "fitColumns", // Scale columns to fit table width
+    layout: "fitDataFill",
+    //responsiveLayout: "collapse",
+    //responsiveLayoutCollapseStartOpen: false,
     pagination: false, // Load all students at once as per requirement
     maxHeight: "70vh",
-    columnCalcs: "table",
+    //columnCalcs: "table",
+    selectableRows: true,
+    selectableRowsRangeMode: "click",
     editTriggerEvent: "click",
     validationMode: "blocking",
     placeholder: "측정 데이터가 없습니다.",
+    autoResize: true,
+    
     
     // Korean localization
     langs: {
@@ -106,10 +111,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         {
             title: "순번",
             field: "_index",
-            widthGrow: 1,
-            minWidth: 50,
+            //widthGrow: 1,
+            //minWidth: 50,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             frozen: true,
             formatter: function(cell) {
                 return cell.getRow().getPosition();
@@ -118,10 +123,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         {
             title: "번호",
             field: "number",
-            widthGrow: 1.5,
-            minWidth: 60,
+            //widthGrow: 1.5,
+            //minWidth: 60,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             frozen: true,
             formatter: function(cell) {
                 const value = cell.getValue();
@@ -131,19 +136,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         {
             title: "성명",
             field: "name",
-            widthGrow: 2,
-            minWidth: 80,
+            //widthGrow: 2,
+            //minWidth: 80,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             frozen: true,
         },
         {
             title: "성별",
             field: "gender",
-            widthGrow: 1,
-            minWidth: 50,
+            //widthGrow: 1,
+            //minWidth: 50,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             frozen: true,
             formatter: function(cell) {
                 const value = cell.getValue();
@@ -157,10 +162,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         {
             title: "점수",
             field: "score",
-            widthGrow: 1.5,
-            minWidth: 60,
+            //widthGrow: 1.5,
+            //minWidth: 60,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             cssClass: "calculated-field",
             formatter: function(cell) {
                 return '-'; // Placeholder
@@ -169,10 +174,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
         {
             title: "등급", 
             field: "evaluation_grade",
-            widthGrow: 1.5,
-            minWidth: 70,
+            //widthGrow: 1.5,
+            //minWidth: 70,
             hozAlign: "center",
-            resizable: true,
+            //resizable: true,
             cssClass: "calculated-field",
             formatter: window.PAPSTabulator.gradeFormatter
         }
@@ -185,10 +190,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "왕복오래달리기(회)",
                 field: "measurement_data.shuttle_run",
-                widthGrow: 2,
-                minWidth: 120,
+                //widthGrow: 2,
+                //minWidth: 120,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 150}]
             },
@@ -200,10 +205,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "오래달리기/걷기(분.초)",
                 field: "measurement_data.long_run_walk",
-                widthGrow: 2,
-                minWidth: 120,
+                //widthGrow: 2,
+                //minWidth: 120,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number"
             },
             ...resultColumns
@@ -218,49 +223,49 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "촉진",
                         field: "measurement_data.is_palpation",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         formatter: window.PAPSTabulator.checkboxFormatter
                     },
                     {
                         title: "심박수(1)<br>(회/분)",
                         field: "measurement_data.step_test_heart_rate_1",
-                        widthGrow: 2,
-                        minWidth: 80,
+                        //widthGrow: 2,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "심박수(2)<br>(회/분)",
                         field: "measurement_data.step_test_heart_rate_2",
-                        widthGrow: 2,
-                        minWidth: 80,
+                        //widthGrow: 2,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "심박수(3)<br>(회/분)",
                         field: "measurement_data.step_test_heart_rate_3",
-                        widthGrow: 2,
-                        minWidth: 80,
+                        //widthGrow: 2,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "PEI",
                         field: "measurement_data.step_test_pei",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -282,30 +287,30 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "1차",
                         field: "measurement_data.sit_reach_first_attempt",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
                     },
                     {
                         title: "2차",
                         field: "measurement_data.sit_reach_second_attempt",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: -40}, {type: "max", parameters: 50}]
                     },
                     {
                         title: "평가값",
                         field: "measurement_data.sit_reach_best_record",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -330,19 +335,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "좌",
                                 field: "measurement_data.flexibility_shoulder_left",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
                                 field: "measurement_data.flexibility_shoulder_right",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
@@ -354,19 +359,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "좌",
                                 field: "measurement_data.flexibility_body_left",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
                                 field: "measurement_data.flexibility_body_right",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
@@ -378,19 +383,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "좌",
                                 field: "measurement_data.flexibility_side_left",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
                                 field: "measurement_data.flexibility_side_right",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
@@ -402,19 +407,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "좌",
                                 field: "measurement_data.flexibility_lower_body_left",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             },
                             {
                                 title: "우",
                                 field: "measurement_data.flexibility_lower_body_right",
-                                widthGrow: 1,
-                                minWidth: 50,
+                                //widthGrow: 1,
+                                //minWidth: 50,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 formatter: window.PAPSTabulator.checkboxFormatter
                             }
                         ]
@@ -422,10 +427,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "평가값",
                         field: "measurement_data.flexibility_total_score",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -443,10 +448,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "(무릎대고)팔굽혀펴기(회)",
                 field: "measurement_data.push_up",
-                widthGrow: 2,
-                minWidth: 140,
+                //widthGrow: 2,
+                //minWidth: 140,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
             },
@@ -458,10 +463,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "윗몸말아올리기(회)",
                 field: "measurement_data.sit_up",
-                widthGrow: 2,
-                minWidth: 120,
+                //widthGrow: 2,
+                //minWidth: 120,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 200}]
             },
@@ -481,20 +486,20 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "오른쪽",
                                 field: "measurement_data.grip_strength_right_hand_1",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
                             },
                             {
                                 title: "왼쪽",
                                 field: "measurement_data.grip_strength_left_hand_1",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
                             }
@@ -507,20 +512,20 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "오른쪽",
                                 field: "measurement_data.grip_strength_right_hand_2",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
                             },
                             {
                                 title: "왼쪽",
                                 field: "measurement_data.grip_strength_left_hand_2",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 100}]
                             }
@@ -529,10 +534,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "악력",
                         field: "measurement_data.grip_strength_best",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -550,10 +555,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "50m 달리기(초)",
                 field: "measurement_data.fifty_meter_run",
-                widthGrow: 2,
-                minWidth: 100,
+                //widthGrow: 2,
+                //minWidth: 100,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 5}, {type: "max", parameters: 30}]
             },
@@ -569,30 +574,30 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "1차",
                         field: "measurement_data.standing_long_jump_first_attempt",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
                     },
                     {
                         title: "2차",
                         field: "measurement_data.standing_long_jump_second_attempt",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 50}, {type: "max", parameters: 400}]
                     },
                     {
                         title: "평가값",
                         field: "measurement_data.standing_long_jump_best_record",
-                        widthGrow: 1.5,
-                        minWidth: 60,
+                        //widthGrow: 1.5,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -610,30 +615,30 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "신장(cm)",
                 field: "measurement_data.bmi_height",
-                widthGrow: 1.5,
-                minWidth: 80,
+                //widthGrow: 1.5,
+                //minWidth: 80,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
             },
             {
                 title: "체중(kg)",
                 field: "measurement_data.bmi_weight",
-                widthGrow: 1.5,
-                minWidth: 80,
+                //widthGrow: 1.5,
+                //minWidth: 80,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 200}]
             },
             {
                 title: "BMI(kg/㎡)",
                 field: "measurement_data.bmi_bmi",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 cssClass: "calculated-field",
                 formatter: function(cell) {
                     const value = cell.getValue();
@@ -657,20 +662,20 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "평균",
                                 field: "measurement_data.cardio_precision_avg_heart_rate",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                             },
                             {
                                 title: "최고",
                                 field: "measurement_data.cardio_precision_max_heart_rate",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                             }
@@ -683,10 +688,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "평균",
                                 field: "measurement_data.cardio_precision_avg_intensity",
-                                widthGrow: 1.5,
-                                minWidth: 70,
+                                //widthGrow: 1.5,
+                                //minWidth: 70,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 cssClass: "calculated-field",
                                 formatter: function(cell) {
                                     const value = cell.getValue();
@@ -698,10 +703,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "총 소비열량<br>(kcal)",
                         field: "measurement_data.cardio_precision_total_calories",
-                        widthGrow: 2,
-                        minWidth: 90,
+                        //widthGrow: 2,
+                        //minWidth: 90,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 0}]
                     },
@@ -712,50 +717,50 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                             {
                                 title: "1구간",
                                 field: "measurement_data.cardio_precision_section_1_time",
-                                widthGrow: 1.2,
-                                minWidth: 60,
+                                //widthGrow: 1.2,
+                                //minWidth: 60,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}]
                             },
                             {
                                 title: "2구간",
                                 field: "measurement_data.cardio_precision_section_2_time",
-                                widthGrow: 1.2,
-                                minWidth: 60,
+                                //widthGrow: 1.2,
+                                //minWidth: 60,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}]
                             },
                             {
                                 title: "3구간",
                                 field: "measurement_data.cardio_precision_section_3_time",
-                                widthGrow: 1.2,
-                                minWidth: 60,
+                                //widthGrow: 1.2,
+                                //minWidth: 60,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}]
                             },
                             {
                                 title: "4구간",
                                 field: "measurement_data.cardio_precision_section_4_time",
-                                widthGrow: 1.2,
-                                minWidth: 60,
+                                //widthGrow: 1.2,
+                                //minWidth: 60,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}]
                             },
                             {
                                 title: "5구간",
                                 field: "measurement_data.cardio_precision_section_5_time",
-                                widthGrow: 1.2,
-                                minWidth: 60,
+                                //widthGrow: 1.2,
+                                //minWidth: 60,
                                 hozAlign: "center",
-                                resizable: true,
+                                //resizable: true,
                                 editor: "number",
                                 validator: ["numeric", {type: "min", parameters: 0}]
                             }
@@ -770,40 +775,40 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "심박수1<br>(회/분)",
                         field: "measurement_data.cardio_precision_rest_heart_rate_1",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "심박수2<br>(회/분)",
                         field: "measurement_data.cardio_precision_rest_heart_rate_2",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "심박수3<br>(회/분)",
                         field: "measurement_data.cardio_precision_rest_heart_rate_3",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 20}, {type: "max", parameters: 250}]
                     },
                     {
                         title: "PEI",
                         field: "measurement_data.cardio_precision_pei",
-                        widthGrow: 1.2,
-                        minWidth: 60,
+                        //widthGrow: 1.2,
+                        //minWidth: 60,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -823,30 +828,30 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "키(cm)",
                         field: "measurement_data.body_fat_rate_test_height",
-                        widthGrow: 1.5,
-                        minWidth: 70,
+                        //widthGrow: 1.5,
+                        //minWidth: 70,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 100}, {type: "max", parameters: 300}]
                     },
                     {
                         title: "몸무게(kg)",
                         field: "measurement_data.body_fat_rate_test_weight",
-                        widthGrow: 1.5,
-                        minWidth: 90,
+                        //widthGrow: 1.5,
+                        //minWidth: 90,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 10}, {type: "max", parameters: 300}]
                     },
                     {
                         title: "BMI(kg/m²)",
                         field: "measurement_data.body_fat_rate_test_bmi",
-                        widthGrow: 1.5,
-                        minWidth: 90,
+                        //widthGrow: 1.5,
+                        //minWidth: 90,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -856,20 +861,20 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "체지방률<br>(%fat)",
                         field: "measurement_data.body_fat_rate",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         editor: "number",
                         validator: ["numeric", {type: "min", parameters: 0}, {type: "max", parameters: 60}]
                     },
                     {
                         title: "근육량(%)",
                         field: "measurement_data.body_fat_rate_muscle_mass",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -879,10 +884,10 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
                     {
                         title: "지방량(%)",
                         field: "measurement_data.body_fat_rate_fat_mass",
-                        widthGrow: 1.5,
-                        minWidth: 80,
+                        //widthGrow: 1.5,
+                        //minWidth: 80,
                         hozAlign: "center",
-                        resizable: true,
+                        //resizable: true,
                         cssClass: "calculated-field",
                         formatter: function(cell) {
                             const value = cell.getValue();
@@ -898,80 +903,80 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "어깨 기울기",
                 field: "measurement_data.shoulder_tilt",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "골반 기울기",
                 field: "measurement_data.pelvis_tilt",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "다리 굴곡",
                 field: "measurement_data.leg_flexion",
-                widthGrow: 1.5,
-                minWidth: 80,
+                //widthGrow: 1.5,
+                //minWidth: 80,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "목뼈 기울기",
                 field: "measurement_data.neck_tilt",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "상체 기울기",
                 field: "measurement_data.upper_body_tilt",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "골반전후<br>기울기",
                 field: "measurement_data.pelvis_sagittal_tilt",
-                widthGrow: 1.5,
-                minWidth: 80,
+                //widthGrow: 1.5,
+                //minWidth: 80,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "척추 휨정도",
                 field: "measurement_data.spine_curvature",
-                widthGrow: 1.5,
-                minWidth: 90,
+                //widthGrow: 1.5,
+                //minWidth: 90,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 3}]
             },
             {
                 title: "평가",
                 field: "measurement_data.posture_test_overall_evaluation",
-                widthGrow: 1.5,
-                minWidth: 70,
+                //widthGrow: 1.5,
+                //minWidth: 70,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 cssClass: "calculated-field",
                 formatter: function(cell) {
                     const value = cell.getValue();
@@ -981,19 +986,19 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "문진1",
                 field: "measurement_data.posture_test_questionnaire_1",
-                widthGrow: 1,
-                minWidth: 60,
+                //widthGrow: 1,
+                //minWidth: 60,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 formatter: window.PAPSTabulator.checkboxFormatter
             },
             {
                 title: "문진2",
                 field: "measurement_data.posture_test_questionnaire_2",
-                widthGrow: 1,
-                minWidth: 60,
+                //widthGrow: 1,
+                //minWidth: 60,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 formatter: window.PAPSTabulator.checkboxFormatter
             }
         ],
@@ -1003,200 +1008,200 @@ window.PAPSTabulator.getCompleteColumnDefinitions = function() {
             {
                 title: "1",
                 field: "measurement_data.self_body_test_question_1",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "2",
                 field: "measurement_data.self_body_test_question_2",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "3",
                 field: "measurement_data.self_body_test_question_3",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "4",
                 field: "measurement_data.self_body_test_question_4",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "5",
                 field: "measurement_data.self_body_test_question_5",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "6",
                 field: "measurement_data.self_body_test_question_6",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "7",
                 field: "measurement_data.self_body_test_question_7",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "8",
                 field: "measurement_data.self_body_test_question_8",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "9",
                 field: "measurement_data.self_body_test_question_9",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "10",
                 field: "measurement_data.self_body_test_question_10",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "11",
                 field: "measurement_data.self_body_test_question_11",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "12",
                 field: "measurement_data.self_body_test_question_12",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "13",
                 field: "measurement_data.self_body_test_question_13",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "14",
                 field: "measurement_data.self_body_test_question_14",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "15",
                 field: "measurement_data.self_body_test_question_15",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "16",
                 field: "measurement_data.self_body_test_question_16",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "17",
                 field: "measurement_data.self_body_test_question_17",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "18",
                 field: "measurement_data.self_body_test_question_18",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "19",
                 field: "measurement_data.self_body_test_question_19",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             },
             {
                 title: "20",
                 field: "measurement_data.self_body_test_question_20",
-                widthGrow: 1,
-                minWidth: 40,
+                //widthGrow: 1,
+                //minWidth: 40,
                 hozAlign: "center",
-                resizable: true,
+                //resizable: true,
                 editor: "number",
                 validator: ["numeric", {type: "min", parameters: 1}, {type: "max", parameters: 6}]
             }
@@ -1286,10 +1291,10 @@ window.PAPSTabulator.buildSingleColumn = function(field, activity) {
     const baseColumn = {
         title: field.title,  // Use schema title directly
         field: `measurement_data.${field.field}`,  // Use schema field name property
-        widthGrow: widthGrow,
-        minWidth: minWidth,
+        //widthGrow: widthGrow,
+        //minWidth: minWidth,
         hozAlign: "center",
-        resizable: true,
+        //resizable: true,
         tooltip: field.title
     };
     
@@ -1709,11 +1714,14 @@ console.log('PAPS Tabulator component loaded successfully');
 /* PAPS Tabulator specific styles - Minimal approach using Bootstrap 5 theme */
 .paps-tabulator-container {
     width: 100%;
+    {% comment %} overflow: auto; {% endcomment %}
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .paps-tabulator-container .tabulator {
     font-size: 12px;
-    width: 100%;
+    {% comment %} width: 100%; {% endcomment %}
 }
 
 /* Essential custom styles only */
@@ -1725,26 +1733,31 @@ console.log('PAPS Tabulator component loaded successfully');
 
 /* Column Group Header Styling */
 .paps-tabulator-container .header-group .tabulator-col-title {
-    background-color: #f8fafc;
+    {% comment %} background-color: #f8fafc; {% endcomment %}
     font-weight: 600;
-    border-bottom: 2px solid #e2e8f0;
+    {% comment %} border-bottom: 2px solid #e2e8f0; {% endcomment %}
     padding: 8px 4px;
 }
 
 .paps-tabulator-container .header-subgroup .tabulator-col-title {
-    background-color: #f1f5f9;
+    {% comment %} background-color: #f1f5f9; {% endcomment %}
     font-weight: 500;
-    border-bottom: 1px solid #cbd5e1;
+    {% comment %} border-bottom: 1px solid #cbd5e1; {% endcomment %}
     padding: 6px 4px;
 }
 
 /* Multi-level header border enhancement */
 .paps-tabulator-container .tabulator-col-group {
-    border-right: 1px solid #d1d5db;
+    {% comment %} border-right: 1px solid #d1d5db; {% endcomment %}
 }
 
 .paps-tabulator-container .tabulator-col-group:last-child {
-    border-right: none;
+    {% comment %} border-right: none; {% endcomment %}
+}
+
+/* Disable tabulator_bootstrap5 default striped */
+.paps-tabulator-container .tabulator .tabulator-row:nth-child(even) {
+    background-color: transparent !important;
 }
 
 /* Grade colors - Custom functionality not in Bootstrap theme */
