@@ -7,7 +7,11 @@ class School(models.Model):
     name = models.CharField(max_length=100, verbose_name="학교명")
     address = models.TextField(verbose_name="주소")
     code = models.CharField(max_length=10, unique=True, default='SC001')  # 추가
+    # 나이스 시도교육청코드
+    education_office_code = models.CharField(max_length=10, blank=True, verbose_name="시도교육청코드", help_text="시도교육청코드를 입력하세요.")
+    # 나이스 행정표준코드
     standard_code = models.CharField(max_length=10, blank=True, verbose_name="행정표준코드", help_text="행정표준코드를 입력하세요.")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
