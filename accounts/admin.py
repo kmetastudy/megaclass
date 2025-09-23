@@ -6,8 +6,8 @@ from .models import School, Teacher, Class, Student,ClassTeacher
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ['name', 'address', 'standard_code', 'created_at']
-    search_fields = ['name', 'address', 'standard_code']
+    list_display = ['name', 'address', 'education_office_code', 'standard_code', 'created_at']
+    search_fields = ['name', 'address', 'education_office_code', 'standard_code']
     list_filter = ['created_at']
 
 class TeacherInline(admin.StackedInline):
