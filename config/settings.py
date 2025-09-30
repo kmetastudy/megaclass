@@ -141,6 +141,7 @@ INSTALLED_APPS = [
     'new_cp','super_agent','ncs',
     'physical_education',
     'nutrition',
+    'common',
     # 'learning_app',  # 학습 관리 앱
 ]
 
