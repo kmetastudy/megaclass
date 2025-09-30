@@ -140,7 +140,7 @@ INSTALLED_APPS = [
     'student','app_home','rolling',
     'new_cp','super_agent','ncs',
     'physical_education',
-   
+    'nutrition',
     # 'learning_app',  # 학습 관리 앱
 ]
 
