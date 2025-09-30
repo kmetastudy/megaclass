@@ -138,6 +138,7 @@ LOCAL_APPS = [
     "physical_education",
     "nutrition",
     "common",
+    "api",
 ]
 
 THIRD_PARTY_APPS = [
@@ -268,5 +269,6 @@ EMAIL_CONNECTION_USE_TLS = True
 USE_KOREAN_NAME_FORMAT = True
 
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "api.exception_handlers.drf_default_with_modifications_exception_handler",
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
 }
