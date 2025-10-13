@@ -37,6 +37,7 @@ urlpatterns = [
     path("ncs/", include("ncs.urls")),
     path("physical_education/", include("physical_education.urls")),
     path("nutrition/", include("nutrition.urls")),
+    # path("points/", include("points.urls")),  # API는 api/points/로 이동, view는 나중에 추가 시 활성화
 ]
 
 if settings.DEBUG:

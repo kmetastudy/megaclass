@@ -137,6 +137,7 @@ LOCAL_APPS = [
     "ncs",
     "physical_education",
     "nutrition",
+    "points",
     "common",
     "api",
 ]
