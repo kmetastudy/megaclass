@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}포인트 관리 시스템{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Basecoat CSS/JS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/basecoat.cdn.min.css"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/all.min.js"
+      defer
+    ></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+      /* 사이드바와 메인 컨텐츠 레이아웃 */
+      .layout-container {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 2rem;
+        background-color: #f9fafb;
+      }
+
+      /* 반응형 처리 */
+      @media (max-width: 768px) {
+        .main-content {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout-container">
+      <!-- Sidebar -->
+      {% include 'points/components/teacher/_sidebar.html' %}
+
+      <!-- Main Content -->
+      <main class="main-content">{% block page_content %} {% endblock %}</main>
+    </div>
+
+    <!-- Lucide Icons 초기화 -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+      });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

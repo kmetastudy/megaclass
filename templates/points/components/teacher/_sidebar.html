@@ -1,0 +1,91 @@
+<!-- 선생님용 포인트 관리 Sidebar -->
+<aside class="sidebar" data-side="left" aria-hidden="false">
+  <nav aria-label="포인트 관리 메뉴">
+    <!-- 헤더 -->
+    <div class="px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">포인트 관리</h2>
+      <p class="text-sm text-gray-500 mt-1">Point Management</p>
+    </div>
+
+    <!-- 메뉴 섹션 -->
+    <section class="scrollbar p-4">
+      <div role="group" aria-labelledby="main-menu-label">
+        <h3 id="main-menu-label" class="sr-only">메인 메뉴</h3>
+        <ul class="space-y-1">
+          <!-- 대시보드 -->
+          <li>
+            <a href="{% url 'points:teacher_dashboard' %}">
+              <i data-lucide="layout-dashboard"></i>
+              <span>대시보드</span>
+            </a>
+          </li>
+
+          <!-- 포인트 관리 (접기/펼치기) -->
+          <li>
+            <details id="points-management-menu" open>
+              <summary>
+                <i data-lucide="coins"></i>
+                <span>포인트 관리</span>
+              </summary>
+              <ul>
+                <li>
+                  <a href="#" data-ignore-current>
+                    <i data-lucide="plus-circle"></i>
+                    <span>포인트 부여/차감</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" data-ignore-current>
+                    <i data-lucide="users"></i>
+                    <span>학생 포인트 현황</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" data-ignore-current>
+                    <i data-lucide="list"></i>
+                    <span>거래 내역</span>
+                  </a>
+                </li>
+              </ul>
+            </details>
+          </li>
+
+          <!-- 정책 관리 -->
+          <li>
+            <a href="#" data-ignore-current>
+              <i data-lucide="file-text"></i>
+              <span>정책 관리</span>
+            </a>
+          </li>
+
+          <!-- 설정 -->
+          <li>
+            <a href="#" data-ignore-current>
+              <i data-lucide="settings"></i>
+              <span>설정</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 하단 유저 정보 (선택적) -->
+    <div class="px-6 py-4 border-t mt-auto">
+      <div class="flex items-center gap-3">
+        <div
+          class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold"
+        >
+          {{
+          request.user.first_name|first|default:request.user.username|first|upper
+          }}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-800 truncate">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </p>
+          <p class="text-xs text-gray-500">선생님</p>
+        </div>
+      </div>
+    </div>
+  </nav>
+</aside>

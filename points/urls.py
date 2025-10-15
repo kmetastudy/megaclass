@@ -14,6 +14,7 @@ from points.apis import (
     StudentPointBalanceListApi,
     StudentPointBalanceDetailApi,
 )
+from points.views import teacher_dashboard
 
 app_name = "points"
 
@@ -57,5 +58,8 @@ api_patterns = [
     path("balances/", include((balance_patterns, "balances"))),
 ]
 
-# View patterns (for future use)
-urlpatterns = []
+# View patterns
+urlpatterns = [
+    # Teacher views
+    path("teacher/", teacher_dashboard, name="teacher_dashboard"),
+]
