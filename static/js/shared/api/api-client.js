@@ -14,10 +14,23 @@ class ApiClient {
 
   /**
    * CSRF 토큰 가져오기
+   * 1. DOM에서 {% csrf_token %} 태그 찾기
+   * 2. 쿠키에서 csrftoken 찾기 (fallback)
    */
   getCsrfToken() {
+    // 1. DOM에서 찾기 ({% csrf_token %} 사용 시)
     const tokenElement = document.querySelector("[name=csrfmiddlewaretoken]");
-    return tokenElement ? tokenElement.value : "";
+    if (tokenElement) {
+      return tokenElement.value;
+    }
+
+    // 2. 쿠키에서 찾기 (fallback)
+    const cookieValue = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("csrftoken="))
+      ?.split("=")[1];
+
+    return cookieValue || "";
   }
 
   /**

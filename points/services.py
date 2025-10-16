@@ -54,9 +54,12 @@ def point_policy_update(*, point_policy: PointPolicy, data: dict) -> PointPolicy
 
 @transaction.atomic
 def point_policy_delete(*, point_policy: PointPolicy) -> None:
-    """포인트 정책 삭제 (비활성화)"""
-    point_policy.is_active = False
-    point_policy.save(update_fields=["is_active", "updated_at"])
+    """포인트 정책 삭제
+
+    실제 데이터를 DB에서 삭제합니다.
+    관련 PointTransaction의 policy 필드는 on_delete=SET_NULL로 인해 NULL이 됩니다.
+    """
+    point_policy.delete()
 
 
 # =============================================================================

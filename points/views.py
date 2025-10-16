@@ -47,3 +47,19 @@ def teacher_dashboard(request):
     print("[teacher_dashboard] context:", context)
 
     return render(request, "points/teacher/dashboard.html", context)
+
+
+@login_required
+def teacher_policy(request):
+    """선생님 포인트 정책 관리 페이지"""
+    teacher = request.user.teacher
+
+    # 현재 선생님이 생성한 정책 목록 조회
+    policies = selectors.teacher_policies_get(teacher=teacher)
+
+    # Context 구성
+    context = {
+        "policies": policies,
+    }
+
+    return render(request, "points/teacher/points_policy.html", context)

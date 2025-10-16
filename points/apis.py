@@ -90,6 +90,14 @@ class PointPolicyCreateApi(APIView):
         description = serializers.CharField(required=False, allow_blank=True)
         is_active = serializers.BooleanField(default=True)
 
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.UUIDField()
+        name = serializers.CharField()
+        default_point_value = serializers.IntegerField()
+        description = serializers.CharField()
+        is_active = serializers.BooleanField()
+        created_at = serializers.DateTimeField()
+
     def post(self, request):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -107,7 +115,11 @@ class PointPolicyCreateApi(APIView):
         )
 
         return Response(
-            {"id": str(policy.id), "message": "포인트 정책이 생성되었습니다."},
+            {
+                "id": str(policy.id),
+                "message": "포인트 정책이 생성되었습니다.",
+                "data": self.OutputSerializer(policy).data,
+            },
             status=status.HTTP_201_CREATED,
         )
 
@@ -122,6 +134,14 @@ class PointPolicyUpdateApi(APIView):
         default_point_value = serializers.IntegerField(required=False)
         description = serializers.CharField(required=False, allow_blank=True)
         is_active = serializers.BooleanField(required=False)
+
+    class OutputSerializer(serializers.Serializer):
+        id = serializers.UUIDField()
+        name = serializers.CharField()
+        default_point_value = serializers.IntegerField()
+        description = serializers.CharField()
+        is_active = serializers.BooleanField()
+        updated_at = serializers.DateTimeField()
 
     def post(self, request, policy_id):
         policy = selectors.point_policy_get(policy_id=policy_id)
@@ -148,9 +168,16 @@ class PointPolicyUpdateApi(APIView):
         serializer = self.InputSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        services.point_policy_update(policy=policy, data=serializer.validated_data)
+        updated_policy = services.point_policy_update(
+            point_policy=policy, data=serializer.validated_data
+        )
 
-        return Response({"message": "포인트 정책이 수정되었습니다."})
+        return Response(
+            {
+                "message": "포인트 정책이 수정되었습니다.",
+                "data": self.OutputSerializer(updated_policy).data,
+            }
+        )
 
 
 class PointPolicyDeleteApi(APIView):
@@ -180,9 +207,9 @@ class PointPolicyDeleteApi(APIView):
                 {"error": "교사 권한이 필요합니다."}, status=status.HTTP_403_FORBIDDEN
             )
 
-        services.point_policy_delete(policy=policy)
+        services.point_policy_delete(point_policy=policy)
 
-        return Response({"message": "포인트 정책이 비활성화되었습니다."})
+        return Response({"message": "포인트 정책이 삭제되었습니다."})
 
 
 # =============================================================================

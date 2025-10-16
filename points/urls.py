@@ -14,7 +14,7 @@ from points.apis import (
     StudentPointBalanceListApi,
     StudentPointBalanceDetailApi,
 )
-from points.views import teacher_dashboard
+from points.views import teacher_dashboard, teacher_policy
 
 app_name = "points"
 
@@ -62,4 +62,5 @@ api_patterns = [
 urlpatterns = [
     # Teacher views
     path("teacher/", teacher_dashboard, name="teacher_dashboard"),
+    path("teacher/policy/", teacher_policy, name="teacher_policy"),
 ]

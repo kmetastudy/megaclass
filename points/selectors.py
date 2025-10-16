@@ -134,11 +134,9 @@ def teacher_dashboard_basic_stats_get(*, teacher) -> dict:
 
     # StudentPointBalance에서 평균 계산
     student_ids = students.values_list("id", flat=True)
-    avg_points = (
-        StudentPointBalance.objects.filter(student_id__in=student_ids).aggregate(
-            avg=Avg("current_balance")
-        )["avg"]
-    )
+    avg_points = StudentPointBalance.objects.filter(
+        student_id__in=student_ids
+    ).aggregate(avg=Avg("current_balance"))["avg"]
 
     return {
         "total_students": total_students,
@@ -271,3 +269,16 @@ def teacher_top_students_get(*, teacher, limit: int = 5) -> list[dict]:
         }
         for idx, balance in enumerate(top_balances)
     ]
+
+
+def teacher_policies_get(*, teacher) -> QuerySet[PointPolicy]:
+    """
+    선생님이 생성한 포인트 정책 목록 조회
+
+    Args:
+        teacher: Teacher 인스턴스
+
+    Returns:
+        PointPolicy QuerySet (생성일 역순 정렬)
+    """
+    return point_policy_list(filters={"created_by": teacher.id})
