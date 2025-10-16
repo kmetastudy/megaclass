@@ -6,17 +6,199 @@
   import { apiClient, ApiError } from "/static/js/shared/api/api-client.js";
 
   /**
+   * 체크박스 선택 관리 클래스
+   * 학생 row 선택 상태를 추적하고 관리
+   */
+  class SelectionManager {
+    /**
+     * @param {string} tableSelector - 테이블 선택자
+     * @param {Function} onSelectionChange - 선택 변경 시 콜백
+     */
+    constructor(tableSelector, onSelectionChange) {
+      this.tableSelector = tableSelector;
+      this.onSelectionChange = onSelectionChange;
+      this.selectedIds = new Set(); // 선택된 학생 ID를 저장
+    }
+
+    /**
+     * 이벤트 위임 방식으로 이벤트 리스너 초기화
+     * datatable.init 이후 호출되어야 함
+     */
+    init() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) {
+        console.error("테이블을 찾을 수 없습니다:", this.tableSelector);
+        return;
+      }
+
+      // 이벤트 위임: 테이블 전체에 click 이벤트 리스너 등록
+      table.addEventListener("click", (event) => {
+        const target = event.target;
+
+        // 헤더 checkbox 클릭
+        if (target.id === "select-all-checkbox") {
+          this.handleHeaderCheckboxChange(event);
+        }
+        // Row checkbox 클릭
+        else if (
+          target.type === "checkbox" &&
+          target.closest("tbody") &&
+          target.value
+        ) {
+          this.handleRowCheckboxChange(event);
+        }
+      });
+
+      // 초기 상태 동기화
+      this.syncCheckboxStates();
+    }
+
+    /**
+     * 현재 페이지의 checkbox 상태를 selectedIds와 동기화
+     */
+    syncCheckboxStates() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 현재 페이지의 모든 row checkbox 찾기
+      const rowCheckboxes = table.querySelectorAll(
+        "tbody input[type='checkbox']"
+      );
+
+      rowCheckboxes.forEach((checkbox) => {
+        const studentId = parseInt(checkbox.value, 10);
+        // selectedIds에 있으면 체크, 없으면 언체크
+        checkbox.checked = this.selectedIds.has(studentId);
+      });
+
+      // 헤더 checkbox 상태 업데이트
+      this.updateHeaderCheckbox();
+    }
+
+    /**
+     * 헤더 checkbox 변경 핸들러 (전체 선택/해제)
+     */
+    handleHeaderCheckboxChange(event) {
+      const isChecked = event.target.checked;
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 현재 페이지의 모든 row checkbox 찾기
+      const rowCheckboxes = table.querySelectorAll(
+        "tbody input[type='checkbox']"
+      );
+
+      rowCheckboxes.forEach((checkbox) => {
+        checkbox.checked = isChecked;
+        const studentId = parseInt(checkbox.value, 10);
+
+        if (isChecked) {
+          this.selectedIds.add(studentId);
+        } else {
+          this.selectedIds.delete(studentId);
+        }
+      });
+
+      this.notifyChange();
+    }
+
+    /**
+     * Row checkbox 변경 핸들러 (개별 선택)
+     */
+    handleRowCheckboxChange(event) {
+      const checkbox = event.target;
+      const studentId = parseInt(checkbox.value, 10);
+
+      if (checkbox.checked) {
+        this.selectedIds.add(studentId);
+      } else {
+        this.selectedIds.delete(studentId);
+      }
+
+      // 헤더 checkbox 상태 업데이트
+      this.updateHeaderCheckbox();
+
+      this.notifyChange();
+    }
+
+    /**
+     * 헤더 checkbox 상태 업데이트
+     * 현재 페이지의 모든 row가 선택되면 체크, 아니면 해제
+     */
+    updateHeaderCheckbox() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      const headerCheckbox = table.querySelector("#select-all-checkbox");
+      if (!headerCheckbox) return;
+
+      // 현재 페이지의 row checkbox들만 확인
+      const rowCheckboxes = Array.from(
+        table.querySelectorAll("tbody input[type='checkbox']")
+      );
+
+      if (rowCheckboxes.length === 0) {
+        headerCheckbox.checked = false;
+        headerCheckbox.indeterminate = false;
+        return;
+      }
+
+      const allChecked = rowCheckboxes.every((cb) => cb.checked);
+      const someChecked = rowCheckboxes.some((cb) => cb.checked);
+
+      headerCheckbox.checked = allChecked;
+      headerCheckbox.indeterminate = someChecked && !allChecked;
+    }
+
+    /**
+     * 선택 변경 알림
+     */
+    notifyChange() {
+      const selectedIds = Array.from(this.selectedIds);
+
+      // 디버깅용 console 출력
+      console.log("선택된 학생 ID:", selectedIds);
+      console.log("선택 개수:", selectedIds.length);
+
+      // 콜백 실행
+      if (this.onSelectionChange) {
+        this.onSelectionChange(selectedIds);
+      }
+    }
+
+    /**
+     * 선택된 ID 배열 반환
+     * @returns {Array<number>}
+     */
+    getSelectedIds() {
+      return Array.from(this.selectedIds);
+    }
+
+    /**
+     * 선택 초기화
+     */
+    clearSelection() {
+      this.selectedIds.clear();
+      this.syncCheckboxStates();
+      this.notifyChange();
+    }
+  }
+
+  /**
    * 포인트 관리 테이블 클래스
    * 학생 목록을 가져와 simple-datatables로 렌더링
    */
   class PointManagementTable {
     /**
      * @param {string} tableSelector - 테이블 선택자 (예: '#students-table')
+     * @param {string} buttonSelector - 버튼 선택자 (예: '#manage-points-btn')
      */
-    constructor(tableSelector) {
+    constructor(tableSelector, buttonSelector) {
       this.tableSelector = tableSelector;
+      this.buttonSelector = buttonSelector;
       this.dataTable = null;
       this.studentsData = [];
+      this.selectionManager = null;
     }
 
     /**
@@ -26,6 +208,22 @@
     async init() {
       await this.fetchStudents();
       this.renderTable();
+    }
+
+    /**
+     * 선택 변경 핸들러
+     * @param {Array<number>} selectedIds - 선택된 학생 ID 배열
+     */
+    handleSelectionChange(selectedIds) {
+      const button = document.querySelector(this.buttonSelector);
+      if (!button) return;
+
+      // 1개 이상 선택 시 버튼 활성화, 0개 선택 시 비활성화
+      if (selectedIds.length > 0) {
+        button.disabled = false;
+      } else {
+        button.disabled = true;
+      }
     }
 
     /**
@@ -89,6 +287,45 @@
           ],
         }
       );
+
+      // datatable 초기화 후 헤더 checkbox 추가 및 SelectionManager 초기화
+      this.dataTable.on("datatable.init", () => {
+        this.addHeaderCheckbox();
+        this.initSelectionManager();
+      });
+
+      // 페이지 변경 이벤트: checkbox 상태 동기화
+      this.dataTable.on("datatable.page", () => {
+        if (this.selectionManager) {
+          this.selectionManager.syncCheckboxStates();
+        }
+      });
+    }
+
+    /**
+     * 헤더에 전체 선택 checkbox 추가
+     * TODO: 헤더 checkbox 버그 수정 후 hidden 클래스 제거
+     */
+    addHeaderCheckbox() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 첫 번째 th 요소 찾기 (선택 컬럼)
+      const firstTh = table.querySelector("thead tr th:first-child");
+      if (firstTh) {
+        firstTh.innerHTML = '<input type="checkbox" id="select-all-checkbox" class="hidden">';
+      }
+    }
+
+    /**
+     * SelectionManager 초기화
+     */
+    initSelectionManager() {
+      this.selectionManager = new SelectionManager(
+        this.tableSelector,
+        this.handleSelectionChange.bind(this)
+      );
+      this.selectionManager.init();
     }
   }
 
@@ -98,7 +335,10 @@
 
   document.addEventListener("DOMContentLoaded", async () => {
     try {
-      const table = new PointManagementTable("#students-table");
+      const table = new PointManagementTable(
+        "#students-table",
+        "#manage-points-btn"
+      );
       await table.init();
     } catch (error) {
       console.error("테이블 초기화 실패:", error);
