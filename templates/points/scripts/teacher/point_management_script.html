@@ -1,0 +1,107 @@
+<script type="module">
+  /**
+   * 포인트 관리 페이지 - 학생 목록 테이블
+   */
+
+  import { apiClient, ApiError } from "/static/js/shared/api/api-client.js";
+
+  /**
+   * 포인트 관리 테이블 클래스
+   * 학생 목록을 가져와 simple-datatables로 렌더링
+   */
+  class PointManagementTable {
+    /**
+     * @param {string} tableSelector - 테이블 선택자 (예: '#students-table')
+     */
+    constructor(tableSelector) {
+      this.tableSelector = tableSelector;
+      this.dataTable = null;
+      this.studentsData = [];
+    }
+
+    /**
+     * 테이블 초기화
+     * 데이터를 가져와 테이블을 렌더링합니다.
+     */
+    async init() {
+      await this.fetchStudents();
+      this.renderTable();
+    }
+
+    /**
+     * API에서 학생 포인트 데이터 가져오기
+     */
+    async fetchStudents() {
+      try {
+        const data = await apiClient.get("/api/points/balances/");
+        this.studentsData = data;
+      } catch (error) {
+        console.error("학생 데이터 로드 실패:", error);
+        throw error;
+      }
+    }
+
+    /**
+     * API 데이터를 테이블 형식으로 변환
+     * @param {Array} students - 학생 데이터 배열
+     * @returns {Array} 2차원 배열 (테이블 행 데이터)
+     */
+    transformData(students) {
+      return students.map((student) => {
+        const [grade, classNum] = this.parseClassName(student.class_name);
+
+        return [
+          `<input type="checkbox" value="${student.student_id}">`,
+          student.student_name,
+          grade,
+          classNum,
+          `${student.current_balance}P`,
+        ];
+      });
+    }
+
+    /**
+     * 학년-반 문자열 파싱
+     * @param {string} className - 학급명 (예: "3-1")
+     * @returns {Array} [학년, 반] (예: ["3", "1"])
+     */
+    parseClassName(className) {
+      if (!className) return ["", ""];
+      const parts = className.split("-");
+      return [parts[0] || "", parts[1] || ""];
+    }
+
+    /**
+     * simple-datatables 테이블 렌더링
+     */
+    renderTable() {
+      const tableData = this.transformData(this.studentsData);
+
+      this.dataTable = new window.simpleDatatables.DataTable(
+        this.tableSelector,
+        {
+          data: {
+            headings: ["선택", "이름", "학년", "반", "보유 포인트"],
+            data: tableData,
+          },
+          columns: [
+            { select: 0, sortable: false }, // 체크박스 컬럼 정렬 비활성화
+          ],
+        }
+      );
+    }
+  }
+
+  // ============================================================================
+  // 초기화
+  // ============================================================================
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const table = new PointManagementTable("#students-table");
+      await table.init();
+    } catch (error) {
+      console.error("테이블 초기화 실패:", error);
+    }
+  });
+</script>

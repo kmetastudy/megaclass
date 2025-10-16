@@ -1,0 +1,35 @@
+{% extends 'points/teacher/base.html' %}
+
+{% block title %}포인트 부여/차감 - 포인트 관리 시스템{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
+{% endblock %}
+
+{% block page_content %}
+<div class="max-w-7xl mx-auto">
+  <!-- 페이지 헤더 -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">포인트 부여/차감</h1>
+    <p class="mt-2 text-gray-600">학생들의 포인트를 관리하세요</p>
+  </div>
+
+  <!-- 액션 버튼 영역 -->
+  <div class="flex justify-end mb-4">
+    <button class="btn" id="manage-points-btn" disabled>
+      <i data-lucide="plus-circle"></i>
+      포인트 부여/차감
+    </button>
+  </div>
+
+  <!-- 학생 목록 테이블 -->
+  <div class="bg-white rounded-lg shadow p-6">
+    <table id="students-table"></table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
+{% include 'points/scripts/teacher/point_management_script.html' %}
+{% endblock %}

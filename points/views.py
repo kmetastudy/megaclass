@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from points import selectors, services
+from accounts.selectors import student_list
 
 # Create your views here.
 
@@ -44,7 +45,6 @@ def teacher_dashboard(request):
         # 추가 정보
         "week_start_date": week_start,
     }
-    print("[teacher_dashboard] context:", context)
 
     return render(request, "points/teacher/dashboard.html", context)
 
@@ -63,3 +63,24 @@ def teacher_policy(request):
     }
 
     return render(request, "points/teacher/points_policy.html", context)
+
+
+@login_required
+def teacher_manage_points(request):
+    """선생님 포인트 부여/차감 페이지"""
+    teacher = request.user.teacher
+
+    # 1. 선생님이 담당하는 학생 목록 조회 (포인트 잔액 포함)
+    students = student_list(filters={"teacher": teacher.id})
+    students = students.select_related("user", "school_class", "point_balance")
+
+    # 2. 선생님이 생성한 활성화된 포인트 정책 목록
+    policies = selectors.teacher_policies_get(teacher=teacher).filter(is_active=True)
+
+    # Context 구성
+    context = {
+        "students": students,
+        "policies": policies,
+    }
+
+    return render(request, "points/teacher/point_management.html", context)
