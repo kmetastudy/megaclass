@@ -34,13 +34,13 @@
                     <span>포인트 부여/차감</span>
                   </a>
                 </li>
-                <li>
+                <li class="hidden">
                   <a href="#" data-ignore-current>
                     <i data-lucide="users"></i>
                     <span>학생 포인트 현황</span>
                   </a>
                 </li>
-                <li>
+                <li class="hidden">
                   <a href="#" data-ignore-current>
                     <i data-lucide="list"></i>
                     <span>거래 내역</span>
@@ -59,7 +59,7 @@
           </li>
 
           <!-- 설정 -->
-          <li>
+          <li class="hidden">
             <a href="#" data-ignore-current>
               <i data-lucide="settings"></i>
               <span>설정</span>
@@ -69,23 +69,49 @@
       </div>
     </section>
 
-    <!-- 하단 유저 정보 (선택적) -->
-    <div class="px-6 py-4 border-t mt-auto">
-      <div class="flex items-center gap-3">
-        <div
-          class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold"
+    <!-- 하단 유저 정보 (Dropdown Menu) -->
+    <footer>
+      <div class="dropdown-menu">
+        <button
+          type="button"
+          class="btn-ghost p-2 h-12 w-full flex items-center justify-start"
+          aria-haspopup="menu"
+          aria-controls="user-menu"
+          aria-expanded="false"
         >
-          {{
-          request.user.first_name|first|default:request.user.username|first|upper
-          }}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-800 truncate">
-            {{ request.user.get_full_name|default:request.user.username }}
-          </p>
-          <p class="text-xs text-gray-500">선생님</p>
+          <img
+            class="rounded-full shrink-0 size-8 bg-blue-500 text-white"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-size='14' font-weight='bold'%3E{{ user.first_name|first|default:user.username|first|upper }}%3C/text%3E%3C/svg%3E"
+            alt="{{ user.get_full_name }}"
+          />
+          <div class="grid flex-1 min-w-0 text-left text-sm leading-tight">
+            <span class="truncate font-medium">
+              {{ request.user.get_full_name|default:request.user.username }}
+            </span>
+            <span class="truncate text-xs">선생님</span>
+          </div>
+          <i data-lucide="chevrons-up-down"></i>
+        </button>
+
+        <div
+          data-popover
+          data-side="top"
+          aria-hidden="true"
+          class="w-[271px] md:w-[239px]"
+        >
+          <div role="menu" id="user-menu">
+            <a href="{% url 'teacher:dashboard' %}" role="menuitem">
+              <i data-lucide="house"></i>
+              <span>홈</span>
+            </a>
+            <hr role="separator" />
+            <a href="{% url 'accounts:logout' %}" role="menuitem">
+              <i data-lucide="log-out"></i>
+              <span>로그아웃</span>
+            </a>
+          </div>
         </div>
       </div>
-    </div>
+    </footer>
   </nav>
 </aside>

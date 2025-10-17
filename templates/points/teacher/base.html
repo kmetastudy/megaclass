@@ -33,7 +33,7 @@
       .main-content {
         flex: 1;
         padding: 2rem;
-        background-color: #f9fafb;
+        {% comment %} background-color: #f9fafb; {% endcomment %}
       }
 
       /* 반응형 처리 */
@@ -50,7 +50,29 @@
       {% include 'points/components/teacher/_sidebar.html' %}
 
       <!-- Main Content -->
+      {% comment %}
       <main class="main-content">{% block page_content %} {% endblock %}</main>
+      {% endcomment %}
+      <main class="flex-1">
+        <header
+          class="bg-white sticky inset-x-0 top-0 isolate flex shrink-0 items-center gap-2 border-b z-10"
+        >
+          <div class="flex h-14 w-full items-center gap-2 px-4">
+            <button
+              type="button"
+              onclick="document.dispatchEvent(new CustomEvent('basecoat:sidebar'))"
+              aria-label="Toggle sidebar"
+              data-tooltip="Toggle sidebar"
+              data-side="bottom"
+              data-align="start"
+              class="btn-sm-icon-ghost mr-auto size-7 -ml-1.5"
+            >
+              <i data-lucide="panel-left"></i>
+            </button>
+          </div>
+        </header>
+        <div class="main-content">{% block page_content %} {% endblock %}</div>
+      </main>
     </div>
 
     <!-- Lucide Icons 초기화 -->
