@@ -129,6 +129,4 @@ def student_dashboard(request):
         "week_start_date": week_start,
     }
 
-    print("context: ", context)
-
     return render(request, "points/student/dashboard.html", context)
