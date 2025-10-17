@@ -1,15 +1,15 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
 
 from points import selectors, services
 from accounts.selectors import student_list
+from accounts.decorators import student_required, teacher_required
 
 # Create your views here.
 
 
-@login_required
+@teacher_required
 def teacher_dashboard(request):
     """선생님 포인트 관리 대시보드"""
     teacher = request.user.teacher
@@ -49,7 +49,7 @@ def teacher_dashboard(request):
     return render(request, "points/teacher/dashboard.html", context)
 
 
-@login_required
+@teacher_required
 def teacher_policy(request):
     """선생님 포인트 정책 관리 페이지"""
     teacher = request.user.teacher
@@ -65,7 +65,7 @@ def teacher_policy(request):
     return render(request, "points/teacher/points_policy.html", context)
 
 
-@login_required
+@teacher_required
 def teacher_manage_points(request):
     """선생님 포인트 부여/차감 페이지"""
     teacher = request.user.teacher
@@ -84,3 +84,13 @@ def teacher_manage_points(request):
     }
 
     return render(request, "points/teacher/point_management.html", context)
+
+
+@student_required
+def student_dashboard(request):
+    """학생 포인트 대시보드"""
+
+    # Context 구성 (빈 딕셔너리)
+    context = {}
+
+    return render(request, "points/student/dashboard.html", context)
