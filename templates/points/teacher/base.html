@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}포인트 관리 시스템{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Basecoat CSS/JS -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/basecoat.cdn.min.css"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/all.min.js"
+      defer
+    ></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    {% block extra_css %}{% endblock %}
+
+    <style>
+      /* 사이드바와 메인 컨텐츠 레이아웃 */
+      .layout-container {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 2rem;
+        {% comment %} background-color: #f9fafb; {% endcomment %}
+      }
+
+      /* 반응형 처리 */
+      @media (max-width: 768px) {
+        .main-content {
+          padding: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout-container">
+      <!-- Sidebar -->
+      {% include 'points/components/teacher/_sidebar.html' %}
+
+      <!-- Main Content -->
+      {% comment %}
+      <main class="main-content">{% block page_content %} {% endblock %}</main>
+      {% endcomment %}
+      <main class="flex-1">
+        <header
+          class="bg-white sticky inset-x-0 top-0 isolate flex shrink-0 items-center gap-2 border-b z-10"
+        >
+          <div class="flex h-14 w-full items-center gap-2 px-4">
+            <button
+              type="button"
+              onclick="document.dispatchEvent(new CustomEvent('basecoat:sidebar'))"
+              aria-label="Toggle sidebar"
+              data-tooltip="Toggle sidebar"
+              data-side="bottom"
+              data-align="start"
+              class="btn-sm-icon-ghost mr-auto size-7 -ml-1.5"
+            >
+              <i data-lucide="panel-left"></i>
+            </button>
+          </div>
+        </header>
+        <div class="main-content">{% block page_content %} {% endblock %}</div>
+      </main>
+    </div>
+
+    <!-- Lucide Icons 초기화 -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        lucide.createIcons();
+      });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

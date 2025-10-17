@@ -1,0 +1,566 @@
+<script type="module">
+  /**
+   * 포인트 관리 페이지 - 학생 목록 테이블
+   */
+
+  import { apiClient, ApiError } from "/static/js/shared/api/api-client.js";
+
+  /**
+   * 체크박스 선택 관리 클래스
+   * 학생 row 선택 상태를 추적하고 관리
+   */
+  class SelectionManager {
+    /**
+     * @param {string} tableSelector - 테이블 선택자
+     * @param {Function} onSelectionChange - 선택 변경 시 콜백
+     */
+    constructor(tableSelector, onSelectionChange) {
+      this.tableSelector = tableSelector;
+      this.onSelectionChange = onSelectionChange;
+      this.selectedIds = new Set(); // 선택된 학생 ID를 저장
+    }
+
+    /**
+     * 이벤트 위임 방식으로 이벤트 리스너 초기화
+     * datatable.init 이후 호출되어야 함
+     */
+    init() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) {
+        console.error("테이블을 찾을 수 없습니다:", this.tableSelector);
+        return;
+      }
+
+      // 이벤트 위임: 테이블 전체에 click 이벤트 리스너 등록
+      table.addEventListener("click", (event) => {
+        const target = event.target;
+
+        // 헤더 checkbox 클릭
+        if (target.id === "select-all-checkbox") {
+          this.handleHeaderCheckboxChange(event);
+        }
+        // Row checkbox 클릭
+        else if (
+          target.type === "checkbox" &&
+          target.closest("tbody") &&
+          target.value
+        ) {
+          this.handleRowCheckboxChange(event);
+        }
+      });
+
+      // 초기 상태 동기화
+      this.syncCheckboxStates();
+    }
+
+    /**
+     * 현재 페이지의 checkbox 상태를 selectedIds와 동기화
+     */
+    syncCheckboxStates() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 현재 페이지의 모든 row checkbox 찾기
+      const rowCheckboxes = table.querySelectorAll(
+        "tbody input[type='checkbox']"
+      );
+
+      rowCheckboxes.forEach((checkbox) => {
+        const studentId = parseInt(checkbox.value, 10);
+        // selectedIds에 있으면 체크, 없으면 언체크
+        checkbox.checked = this.selectedIds.has(studentId);
+      });
+
+      // 헤더 checkbox 상태 업데이트
+      this.updateHeaderCheckbox();
+    }
+
+    /**
+     * 헤더 checkbox 변경 핸들러 (전체 선택/해제)
+     */
+    handleHeaderCheckboxChange(event) {
+      const isChecked = event.target.checked;
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 현재 페이지의 모든 row checkbox 찾기
+      const rowCheckboxes = table.querySelectorAll(
+        "tbody input[type='checkbox']"
+      );
+
+      rowCheckboxes.forEach((checkbox) => {
+        checkbox.checked = isChecked;
+        const studentId = parseInt(checkbox.value, 10);
+
+        if (isChecked) {
+          this.selectedIds.add(studentId);
+        } else {
+          this.selectedIds.delete(studentId);
+        }
+      });
+
+      this.notifyChange();
+    }
+
+    /**
+     * Row checkbox 변경 핸들러 (개별 선택)
+     */
+    handleRowCheckboxChange(event) {
+      const checkbox = event.target;
+      const studentId = parseInt(checkbox.value, 10);
+
+      if (checkbox.checked) {
+        this.selectedIds.add(studentId);
+      } else {
+        this.selectedIds.delete(studentId);
+      }
+
+      // 헤더 checkbox 상태 업데이트
+      this.updateHeaderCheckbox();
+
+      this.notifyChange();
+    }
+
+    /**
+     * 헤더 checkbox 상태 업데이트
+     * 현재 페이지의 모든 row가 선택되면 체크, 아니면 해제
+     */
+    updateHeaderCheckbox() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      const headerCheckbox = table.querySelector("#select-all-checkbox");
+      if (!headerCheckbox) return;
+
+      // 현재 페이지의 row checkbox들만 확인
+      const rowCheckboxes = Array.from(
+        table.querySelectorAll("tbody input[type='checkbox']")
+      );
+
+      if (rowCheckboxes.length === 0) {
+        headerCheckbox.checked = false;
+        headerCheckbox.indeterminate = false;
+        return;
+      }
+
+      const allChecked = rowCheckboxes.every((cb) => cb.checked);
+      const someChecked = rowCheckboxes.some((cb) => cb.checked);
+
+      headerCheckbox.checked = allChecked;
+      headerCheckbox.indeterminate = someChecked && !allChecked;
+    }
+
+    /**
+     * 선택 변경 알림
+     */
+    notifyChange() {
+      const selectedIds = Array.from(this.selectedIds);
+
+      // 디버깅용 console 출력
+      console.log("선택된 학생 ID:", selectedIds);
+      console.log("선택 개수:", selectedIds.length);
+
+      // 콜백 실행
+      if (this.onSelectionChange) {
+        this.onSelectionChange(selectedIds);
+      }
+    }
+
+    /**
+     * 선택된 ID 배열 반환
+     * @returns {Array<number>}
+     */
+    getSelectedIds() {
+      return Array.from(this.selectedIds);
+    }
+
+    /**
+     * 선택 초기화
+     */
+    clearSelection() {
+      this.selectedIds.clear();
+      this.syncCheckboxStates();
+      this.notifyChange();
+    }
+  }
+
+  /**
+   * 포인트 관리 테이블 클래스
+   * 학생 목록을 가져와 simple-datatables로 렌더링
+   */
+  class PointManagementTable {
+    /**
+     * @param {string} tableSelector - 테이블 선택자 (예: '#students-table')
+     * @param {string} buttonSelector - 버튼 선택자 (예: '#manage-points-btn')
+     */
+    constructor(tableSelector, buttonSelector) {
+      this.tableSelector = tableSelector;
+      this.buttonSelector = buttonSelector;
+      this.dataTable = null;
+      this.studentsData = [];
+      this.selectionManager = null;
+    }
+
+    /**
+     * 테이블 초기화
+     * 데이터를 가져와 테이블을 렌더링합니다.
+     */
+    async init() {
+      await this.fetchStudents();
+      this.renderTable();
+      this.initDialogEventListeners();
+    }
+
+    /**
+     * 선택 변경 핸들러
+     * @param {Array<number>} selectedIds - 선택된 학생 ID 배열
+     */
+    handleSelectionChange(selectedIds) {
+      const button = document.querySelector(this.buttonSelector);
+      if (!button) return;
+
+      // 1개 이상 선택 시 버튼 활성화, 0개 선택 시 비활성화
+      if (selectedIds.length > 0) {
+        button.disabled = false;
+      } else {
+        button.disabled = true;
+      }
+    }
+
+    /**
+     * API에서 학생 포인트 데이터 가져오기
+     */
+    async fetchStudents() {
+      try {
+        const data = await apiClient.get("/api/points/balances/");
+        this.studentsData = data;
+      } catch (error) {
+        console.error("학생 데이터 로드 실패:", error);
+        throw error;
+      }
+    }
+
+    /**
+     * API 데이터를 테이블 형식으로 변환
+     * @param {Array} students - 학생 데이터 배열
+     * @returns {Array} 2차원 배열 (테이블 행 데이터)
+     */
+    transformData(students) {
+      return students.map((student) => {
+        return [
+          `<input type="checkbox" value="${student.student_id}">`,
+          student.student_name,
+          student.grade,
+          student.class_number,
+          `${student.current_balance}P`,
+        ];
+      });
+    }
+
+    /**
+     * simple-datatables 테이블 렌더링
+     */
+    renderTable() {
+      const tableData = this.transformData(this.studentsData);
+
+      this.dataTable = new window.simpleDatatables.DataTable(
+        this.tableSelector,
+        {
+          data: {
+            headings: ["선택", "이름", "학년", "반", "보유 포인트"],
+            data: tableData,
+          },
+          columns: [
+            { select: 0, sortable: false }, // 체크박스 컬럼 정렬 비활성화
+          ],
+        }
+      );
+
+      // datatable 초기화 후 헤더 checkbox 추가 및 SelectionManager 초기화
+      this.dataTable.on("datatable.init", () => {
+        this.addHeaderCheckbox();
+        this.initSelectionManager();
+      });
+
+      // 페이지 변경 이벤트: checkbox 상태 동기화
+      this.dataTable.on("datatable.page", () => {
+        if (this.selectionManager) {
+          this.selectionManager.syncCheckboxStates();
+        }
+      });
+    }
+
+    /**
+     * 헤더에 전체 선택 checkbox 추가
+     * TODO: 헤더 checkbox 버그 수정 후 hidden 클래스 제거
+     */
+    addHeaderCheckbox() {
+      const table = document.querySelector(this.tableSelector);
+      if (!table) return;
+
+      // 첫 번째 th 요소 찾기 (선택 컬럼)
+      const firstTh = table.querySelector("thead tr th:first-child");
+      if (firstTh) {
+        firstTh.innerHTML =
+          '<input type="checkbox" id="select-all-checkbox" class="hidden">';
+      }
+    }
+
+    /**
+     * SelectionManager 초기화
+     */
+    initSelectionManager() {
+      this.selectionManager = new SelectionManager(
+        this.tableSelector,
+        this.handleSelectionChange.bind(this)
+      );
+      this.selectionManager.init();
+    }
+
+    /**
+     * Dialog 이벤트 리스너 초기화
+     */
+    initDialogEventListeners() {
+      // "포인트 부여/차감" 버튼 클릭 이벤트
+      const manageBtn = document.querySelector(this.buttonSelector);
+      if (manageBtn) {
+        manageBtn.addEventListener("click", () => {
+          this.openManagePointsDialog();
+        });
+      }
+
+      // 정책 선택 change 이벤트
+      const policySelect = document.getElementById("policy-select");
+      if (policySelect) {
+        policySelect.addEventListener("change", () => {
+          this.handlePolicyChange();
+        });
+      }
+
+      // 폼 input 이벤트 (실시간 검증)
+      const form = document.getElementById("manage-points-form");
+      if (form) {
+        form.addEventListener("input", () => {
+          this.handleFormInput();
+        });
+      }
+
+      // 저장 버튼 클릭 이벤트
+      const saveBtn = document.getElementById("save-points-btn");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", () => {
+          this.handleSavePoints();
+        });
+      }
+    }
+
+    /**
+     * Dialog 열기
+     */
+    openManagePointsDialog() {
+      const selectedIds = this.selectionManager.getSelectedIds();
+
+      if (selectedIds.length === 0) {
+        this.showToast("warning", "학생 미선택", "학생을 먼저 선택해주세요.");
+        return;
+      }
+
+      // 선택된 학생 수 표시
+      document.getElementById("selected-student-count").textContent =
+        selectedIds.length;
+
+      // Hidden input에 학생 ID 저장
+      document.getElementById("selected-student-ids").value =
+        JSON.stringify(selectedIds);
+
+      // Dialog 열기
+      document.getElementById("manage-points-dialog").showModal();
+    }
+
+    /**
+     * Dialog 닫기 및 폼 초기화
+     */
+    closeManagePointsDialog() {
+      const dialog = document.getElementById("manage-points-dialog");
+      const form = document.getElementById("manage-points-form");
+
+      // 폼 초기화
+      form.reset();
+
+      // 저장 버튼 비활성화
+      document.getElementById("save-points-btn").disabled = true;
+
+      // Dialog 닫기
+      dialog.close();
+    }
+
+    /**
+     * 정책 선택 시 포인트 값 자동 입력
+     */
+    handlePolicyChange() {
+      const policySelect = document.getElementById("policy-select");
+      const pointValueInput = document.getElementById("point-value-input");
+
+      const selectedOption = policySelect.options[policySelect.selectedIndex];
+
+      if (selectedOption && selectedOption.value) {
+        const pointValue = selectedOption.getAttribute("data-point-value");
+        pointValueInput.value = pointValue;
+      } else {
+        pointValueInput.value = "";
+      }
+
+      // 입력 검증
+      this.handleFormInput();
+    }
+
+    /**
+     * 폼 입력 검증 및 저장 버튼 상태 업데이트
+     */
+    handleFormInput() {
+      const policySelect = document.getElementById("policy-select");
+      const pointValueInput = document.getElementById("point-value-input");
+      const saveBtn = document.getElementById("save-points-btn");
+
+      // 필수 입력값 확인
+      const policySelected = policySelect.value !== "";
+      const pointValueEntered = pointValueInput.value !== "";
+
+      // 저장 버튼 활성화/비활성화
+      saveBtn.disabled = !(policySelected && pointValueEntered);
+    }
+
+    /**
+     * 저장 처리 (API 호출)
+     */
+    async handleSavePoints() {
+      const form = document.getElementById("manage-points-form");
+      const formData = new FormData(form);
+      const saveBtn = document.getElementById("save-points-btn");
+
+      // 데이터 수집
+      const studentIds = JSON.parse(
+        document.getElementById("selected-student-ids").value
+      );
+      const pointValue = parseInt(formData.get("point_value"), 10);
+      const policyId = formData.get("policy_id");
+      const reason = formData.get("reason") || "사유 없음";
+
+      // transaction_type 결정 (양수면 earned, 음수면 deducted)
+      const transactionType = pointValue >= 0 ? "earned" : "deducted";
+
+      // 로딩 상태 시작
+      this.setButtonLoading(saveBtn, true);
+
+      try {
+        // API 호출
+        const response = await apiClient.post(
+          "/api/points/transactions/create/",
+          {
+            student_ids: studentIds,
+            point_value: pointValue,
+            transaction_type: transactionType,
+            reason: reason,
+            policy_id: policyId,
+          }
+        );
+
+        // 성공 처리
+        this.showToast(
+          "success",
+          "포인트 처리 완료",
+          response.message || "포인트가 성공적으로 처리되었습니다."
+        );
+
+        // Dialog 닫기
+        this.closeManagePointsDialog();
+
+        // 테이블 새로고침
+        await this.fetchStudents();
+        this.dataTable.destroy();
+        this.renderTable();
+
+        // 선택 초기화
+        this.selectionManager.clearSelection();
+      } catch (error) {
+        console.error("포인트 처리 실패:", error);
+
+        // 에러 처리
+        if (error instanceof ApiError) {
+          if (error.isValidationError()) {
+            this.showToast("error", "입력 오류", error.message);
+          } else if (error.isUnauthorized()) {
+            this.showToast("error", "권한 없음", "교사 권한이 필요합니다.");
+          } else if (error.isNotFound()) {
+            this.showToast(
+              "error",
+              "찾을 수 없음",
+              "학생 또는 정책을 찾을 수 없습니다."
+            );
+          } else if (error.isServerError()) {
+            this.showToast("error", "서버 오류", "잠시 후 다시 시도해주세요.");
+          } else {
+            this.showToast("error", "오류", error.message);
+          }
+        } else {
+          this.showToast("error", "네트워크 오류", "연결을 확인해주세요.");
+        }
+      } finally {
+        this.setButtonLoading(saveBtn, false);
+      }
+    }
+
+    /**
+     * Toast 메시지 표시
+     * @param {string} category - success, error, warning, info
+     * @param {string} title - 제목
+     * @param {string} description - 설명
+     */
+    showToast(category, title, description) {
+      document.dispatchEvent(
+        new CustomEvent("basecoat:toast", {
+          detail: {
+            config: {
+              category,
+              title,
+              description: description || "",
+              duration: 3000,
+            },
+          },
+        })
+      );
+    }
+
+    /**
+     * 버튼 로딩 상태 설정
+     * @param {HTMLButtonElement} button - 버튼 요소
+     * @param {boolean} isLoading - 로딩 상태
+     */
+    setButtonLoading(button, isLoading) {
+      if (isLoading) {
+        button.disabled = true;
+        button.dataset.originalText = button.innerHTML;
+        button.innerHTML = "<span>처리 중...</span>";
+      } else {
+        button.disabled = false;
+        button.innerHTML = button.dataset.originalText;
+      }
+    }
+  }
+
+  // ============================================================================
+  // 초기화
+  // ============================================================================
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const table = new PointManagementTable(
+        "#students-table",
+        "#manage-points-btn"
+      );
+      await table.init();
+    } catch (error) {
+      console.error("테이블 초기화 실패:", error);
+    }
+  });
+</script>

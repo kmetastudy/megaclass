@@ -54,9 +54,12 @@ def point_policy_update(*, point_policy: PointPolicy, data: dict) -> PointPolicy
 
 @transaction.atomic
 def point_policy_delete(*, point_policy: PointPolicy) -> None:
-    """포인트 정책 삭제 (비활성화)"""
-    point_policy.is_active = False
-    point_policy.save(update_fields=["is_active", "updated_at"])
+    """포인트 정책 삭제
+
+    실제 데이터를 DB에서 삭제합니다.
+    관련 PointTransaction의 policy 필드는 on_delete=SET_NULL로 인해 NULL이 됩니다.
+    """
+    point_policy.delete()
 
 
 # =============================================================================
@@ -210,3 +213,53 @@ def student_point_balance_get_or_create(
             "total_deducted": 0,
         },
     )
+
+
+@transaction.atomic
+def teacher_students_point_balance_ensure(*, teacher: Teacher) -> int:
+    """
+    선생님이 담당하는 학생들의 포인트 잔액 초기화 보장
+    StudentPointBalance가 없는 학생에 대해 초기 레코드 생성
+
+    Django 5.1.5 + SQLite3 환경에서 bulk_create의 ignore_conflicts 사용
+
+    Args:
+        teacher: Teacher 인스턴스
+
+    Returns:
+        생성된 레코드 수
+    """
+    from accounts.selectors import student_list
+
+    # 1. 담당 학생 조회 (필터 사용)
+    students = student_list(filters={"teacher": teacher.id})
+
+    # 2. 이미 StudentPointBalance가 있는 학생 ID 조회
+    existing_student_ids = set(
+        StudentPointBalance.objects.filter(student__in=students).values_list(
+            "student_id", flat=True
+        )
+    )
+
+    # 3. StudentPointBalance가 없는 학생들
+    students_without_balance = students.exclude(id__in=existing_student_ids)
+
+    # 4. 초기 레코드 생성 (bulk_create with ignore_conflicts)
+    balances_to_create = [
+        StudentPointBalance(
+            student=student,
+            current_balance=0,
+            total_earned=0,
+            total_deducted=0,
+        )
+        for student in students_without_balance
+    ]
+
+    if balances_to_create:
+        # Django 5.1.5 + SQLite3에서 ignore_conflicts=True 지원
+        StudentPointBalance.objects.bulk_create(
+            balances_to_create, ignore_conflicts=True
+        )
+        return len(balances_to_create)
+
+    return 0

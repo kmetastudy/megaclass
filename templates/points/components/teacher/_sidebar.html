@@ -1,0 +1,117 @@
+<!-- 선생님용 포인트 관리 Sidebar -->
+<aside class="sidebar" data-side="left" aria-hidden="false">
+  <nav aria-label="포인트 관리 메뉴">
+    <!-- 헤더 -->
+    <div class="px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">포인트 관리</h2>
+      <p class="text-sm text-gray-500 mt-1">Point Management</p>
+    </div>
+
+    <!-- 메뉴 섹션 -->
+    <section class="scrollbar p-4">
+      <div role="group" aria-labelledby="main-menu-label">
+        <h3 id="main-menu-label" class="sr-only">메인 메뉴</h3>
+        <ul class="space-y-1">
+          <!-- 대시보드 -->
+          <li>
+            <a href="{% url 'points:teacher_dashboard' %}">
+              <i data-lucide="layout-dashboard"></i>
+              <span>대시보드</span>
+            </a>
+          </li>
+
+          <!-- 포인트 관리 (접기/펼치기) -->
+          <li>
+            <details id="points-management-menu" open>
+              <summary>
+                <i data-lucide="coins"></i>
+                <span>포인트 관리</span>
+              </summary>
+              <ul>
+                <li>
+                  <a href="{% url 'points:teacher_manage_points' %}">
+                    <i data-lucide="plus-circle"></i>
+                    <span>포인트 부여/차감</span>
+                  </a>
+                </li>
+                <li class="hidden">
+                  <a href="#" data-ignore-current>
+                    <i data-lucide="users"></i>
+                    <span>학생 포인트 현황</span>
+                  </a>
+                </li>
+                <li class="hidden">
+                  <a href="#" data-ignore-current>
+                    <i data-lucide="list"></i>
+                    <span>거래 내역</span>
+                  </a>
+                </li>
+              </ul>
+            </details>
+          </li>
+
+          <!-- 정책 관리 -->
+          <li>
+            <a href="{% url 'points:teacher_policy' %}">
+              <i data-lucide="file-text"></i>
+              <span>정책 관리</span>
+            </a>
+          </li>
+
+          <!-- 설정 -->
+          <li class="hidden">
+            <a href="#" data-ignore-current>
+              <i data-lucide="settings"></i>
+              <span>설정</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 하단 유저 정보 (Dropdown Menu) -->
+    <footer>
+      <div class="dropdown-menu">
+        <button
+          type="button"
+          class="btn-ghost p-2 h-12 w-full flex items-center justify-start"
+          aria-haspopup="menu"
+          aria-controls="user-menu"
+          aria-expanded="false"
+        >
+          <img
+            class="rounded-full shrink-0 size-8 bg-blue-500 text-white"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-size='14' font-weight='bold'%3E{{ user.first_name|first|default:user.username|first|upper }}%3C/text%3E%3C/svg%3E"
+            alt="{{ user.get_full_name }}"
+          />
+          <div class="grid flex-1 min-w-0 text-left text-sm leading-tight">
+            <span class="truncate font-medium">
+              {{ request.user.get_full_name|default:request.user.username }}
+            </span>
+            <span class="truncate text-xs">선생님</span>
+          </div>
+          <i data-lucide="chevrons-up-down"></i>
+        </button>
+
+        <div
+          data-popover
+          data-side="top"
+          aria-hidden="true"
+          class="w-[271px] md:w-[239px]"
+        >
+          <div role="menu" id="user-menu">
+            <a href="{% url 'teacher:dashboard' %}" role="menuitem">
+              <i data-lucide="house"></i>
+              <span>홈</span>
+            </a>
+            <hr role="separator" />
+            <a href="{% url 'accounts:logout' %}" role="menuitem">
+              <i data-lucide="log-out"></i>
+              <span>로그아웃</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </nav>
+</aside>
