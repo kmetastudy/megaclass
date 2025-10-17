@@ -353,6 +353,8 @@ class StudentPointBalanceListApi(APIView):
         student_id = serializers.IntegerField(source="student.id")
         student_name = serializers.CharField(source="student.user.get_full_name")
         class_name = serializers.CharField(source="student.school_class.__str__")
+        grade = serializers.IntegerField(source="student.school_class.grade")
+        class_number = serializers.IntegerField(source="student.school_class.class_number")
         current_balance = serializers.IntegerField()
         total_earned = serializers.IntegerField()
         total_deducted = serializers.IntegerField()
