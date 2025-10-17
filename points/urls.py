@@ -14,7 +14,12 @@ from points.apis import (
     StudentPointBalanceListApi,
     StudentPointBalanceDetailApi,
 )
-from points.views import teacher_dashboard, teacher_policy, teacher_manage_points
+from points.views import (
+    teacher_dashboard,
+    teacher_policy,
+    teacher_manage_points,
+    student_dashboard,
+)
 
 app_name = "points"
 
@@ -64,4 +69,6 @@ urlpatterns = [
     path("teacher/", teacher_dashboard, name="teacher_dashboard"),
     path("teacher/policy/", teacher_policy, name="teacher_policy"),
     path("teacher/manage-points/", teacher_manage_points, name="teacher_manage_points"),
+    # Student views
+    path("student/", student_dashboard, name="student_dashboard"),
 ]
