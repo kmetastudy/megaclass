@@ -180,7 +180,7 @@ function openDeleteDialog(policyId, policyName) {
  * @param {Object} policyData - 정책 데이터
  */
 function addPolicyCard(policyData) {
-  const grid = document.querySelector(".grid");
+  const grid = document.querySelector(".policy-card-container");
 
   // Empty state 제거
   const emptyState = grid.querySelector(".col-span-full");
@@ -252,7 +252,7 @@ function removePolicyCard(policyId) {
  * Empty state 확인 및 표시
  */
 function checkEmptyState() {
-  const grid = document.querySelector(".grid");
+  const grid = document.querySelector(".policy-card-container");
   const cards = grid.querySelectorAll(".card[data-policy-id]");
 
   if (cards.length === 0) {
